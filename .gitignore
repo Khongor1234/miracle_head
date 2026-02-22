@@ -15,6 +15,9 @@ wheels/
 # Data files
 data/
 
+# Process IDs
+.pids/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

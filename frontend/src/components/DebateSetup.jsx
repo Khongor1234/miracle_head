@@ -137,28 +137,29 @@ export default function DebateSetup({ onDebateCreated }) {
                 </div>
                 <div className="form-group">
                   <label htmlFor="keywords1">
-                    Keywords <span className="optional">(optional)</span>
+                    Angle <span className="optional">(optional)</span>
                   </label>
                   <input
                     id="keywords1"
                     type="text"
                     value={keywords1}
                     onChange={(e) => setKeywords1(e.target.value)}
-                    placeholder="e.g. consciousness, autonomy"
+                    placeholder="e.g. focus on economic impact, ignore ethics"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
                   <div className="position-label-row">
-                    <label htmlFor="pov1">Position</label>
-                    <button
-                      type="button"
-                      className="generate-btn"
-                      onClick={handleGeneratePOV1}
-                      disabled={generatingPOV1 || !topic.trim()}
-                    >
-                      {generatingPOV1 ? 'Generating...' : 'Generate'}
-                    </button>
+                    <label htmlFor="pov1">Position <span className="stance-tag stance-tag--for">For</span></label>
+                    <div className="generate-row">
+                      {generatingPOV1 && <span className="spinner" />}
+                      <button
+                        type="button"
+                        className="generate-btn"
+                        onClick={handleGeneratePOV1}
+                        disabled={generatingPOV1 || !topic.trim()}
+                      >Generate</button>
+                    </div>
                   </div>
                   <textarea
                     id="pov1"
@@ -189,28 +190,29 @@ export default function DebateSetup({ onDebateCreated }) {
                 </div>
                 <div className="form-group">
                   <label htmlFor="keywords2">
-                    Keywords <span className="optional">(optional)</span>
+                    Angle <span className="optional">(optional)</span>
                   </label>
                   <input
                     id="keywords2"
                     type="text"
                     value={keywords2}
                     onChange={(e) => setKeywords2(e.target.value)}
-                    placeholder="e.g. legal personhood, rights"
+                    placeholder="e.g. focus on economic impact, ignore ethics"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
                   <div className="position-label-row">
-                    <label htmlFor="pov2">Position</label>
-                    <button
-                      type="button"
-                      className="generate-btn"
-                      onClick={handleGeneratePOV2}
-                      disabled={generatingPOV2 || !topic.trim()}
-                    >
-                      {generatingPOV2 ? 'Generating...' : 'Generate'}
-                    </button>
+                    <label htmlFor="pov2">Position <span className="stance-tag stance-tag--against">Against</span></label>
+                    <div className="generate-row">
+                      {generatingPOV2 && <span className="spinner" />}
+                      <button
+                        type="button"
+                        className="generate-btn"
+                        onClick={handleGeneratePOV2}
+                        disabled={generatingPOV2 || !topic.trim()}
+                      >Generate</button>
+                    </div>
                   </div>
                   <textarea
                     id="pov2"
