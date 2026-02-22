@@ -1,199 +1,180 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import ChatInterface from './components/ChatInterface';
+import DebateSetup from './components/DebateSetup';
+import DebateView from './components/DebateView';
 import { api } from './api';
 import './App.css';
 
 function App() {
-  const [conversations, setConversations] = useState([]);
-  const [currentConversationId, setCurrentConversationId] = useState(null);
-  const [currentConversation, setCurrentConversation] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [debates, setDebates] = useState([]);
+  const [currentDebateId, setCurrentDebateId] = useState(null);
+  const [currentDebate, setCurrentDebate] = useState(null);
+  const [showSetup, setShowSetup] = useState(false);
+  // loadingTurn: { speaker, speaker_name, turn_number } | null
+  const [loadingTurn, setLoadingTurn] = useState(null);
 
-  // Load conversations on mount
   useEffect(() => {
-    loadConversations();
+    loadDebates();
   }, []);
 
-  // Load conversation details when selected
   useEffect(() => {
-    if (currentConversationId) {
-      loadConversation(currentConversationId);
+    if (currentDebateId) {
+      loadDebate(currentDebateId);
     }
-  }, [currentConversationId]);
+  }, [currentDebateId]);
 
-  const loadConversations = async () => {
+  const loadDebates = async () => {
     try {
-      const convs = await api.listConversations();
-      setConversations(convs);
+      const list = await api.listConversations();
+      setDebates(list);
     } catch (error) {
-      console.error('Failed to load conversations:', error);
+      console.error('Failed to load debates:', error);
     }
   };
 
-  const loadConversation = async (id) => {
+  const loadDebate = async (id) => {
     try {
-      const conv = await api.getConversation(id);
-      setCurrentConversation(conv);
+      const debate = await api.getConversation(id);
+      setCurrentDebate(debate);
     } catch (error) {
-      console.error('Failed to load conversation:', error);
+      console.error('Failed to load debate:', error);
     }
   };
 
-  const handleNewConversation = async () => {
-    try {
-      const newConv = await api.createConversation();
-      setConversations([
-        { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
-        ...conversations,
-      ]);
-      setCurrentConversationId(newConv.id);
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-    }
+  const handleNewDebate = () => {
+    setCurrentDebateId(null);
+    setCurrentDebate(null);
+    setShowSetup(true);
+    setLoadingTurn(null);
   };
 
-  const handleSelectConversation = (id) => {
-    setCurrentConversationId(id);
+  const handleSelectDebate = (id) => {
+    setShowSetup(false);
+    setLoadingTurn(null);
+    setCurrentDebateId(id);
   };
 
-  const handleSendMessage = async (content) => {
-    if (!currentConversationId) return;
+  const handleDebateCreated = async (debate) => {
+    // Add to sidebar immediately
+    setDebates((prev) => [
+      {
+        id: debate.id,
+        created_at: debate.created_at,
+        title: debate.title,
+        turn_count: 0,
+        status: debate.status,
+      },
+      ...prev,
+    ]);
 
-    setIsLoading(true);
+    setCurrentDebate({ ...debate, turns: [] });
+    setCurrentDebateId(debate.id);
+    setShowSetup(false);
+
+    // Stream the debate
+    await streamDebate(debate.id, debate);
+  };
+
+  const streamDebate = async (debateId, initialDebate) => {
     try {
-      // Optimistically add user message to UI
-      const userMessage = { role: 'user', content };
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, userMessage],
-      }));
-
-      // Create a partial assistant message that will be updated progressively
-      const assistantMessage = {
-        role: 'assistant',
-        stage1: null,
-        stage2: null,
-        stage3: null,
-        metadata: null,
-        loading: {
-          stage1: false,
-          stage2: false,
-          stage3: false,
-        },
-      };
-
-      // Add the partial assistant message
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-      }));
-
-      // Send message with streaming
-      await api.sendMessageStream(currentConversationId, content, (eventType, event) => {
+      await api.startDebateStream(debateId, (eventType, event) => {
         switch (eventType) {
-          case 'stage1_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage1 = true;
-              return { ...prev, messages };
+          case 'debate_start':
+            setCurrentDebate((prev) => ({ ...prev, status: 'in_progress' }));
+            break;
+
+          case 'turn_start':
+            setLoadingTurn({
+              speaker: event.speaker,
+              speaker_name: event.speaker_name,
+              turn_number: event.turn_number,
             });
             break;
 
-          case 'stage1_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage1 = event.data;
-              lastMsg.loading.stage1 = false;
-              return { ...prev, messages };
-            });
+          case 'turn_complete':
+            setLoadingTurn(null);
+            setCurrentDebate((prev) => ({
+              ...prev,
+              turns: [...(prev?.turns || []), event.turn],
+            }));
+            // Update sidebar turn count
+            setDebates((prev) =>
+              prev.map((d) =>
+                d.id === debateId
+                  ? { ...d, turn_count: (d.turn_count || 0) + 1 }
+                  : d
+              )
+            );
             break;
 
-          case 'stage2_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage2 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage2_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage2 = event.data;
-              lastMsg.metadata = event.metadata;
-              lastMsg.loading.stage2 = false;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage3_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage3 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage3_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage3 = event.data;
-              lastMsg.loading.stage3 = false;
-              return { ...prev, messages };
-            });
+          case 'turn_error':
+            console.error('Turn error:', event.message);
+            setLoadingTurn(null);
             break;
 
           case 'title_complete':
-            // Reload conversations to get updated title
-            loadConversations();
+            setCurrentDebate((prev) => ({ ...prev, title: event.title }));
+            setDebates((prev) =>
+              prev.map((d) =>
+                d.id === debateId ? { ...d, title: event.title } : d
+              )
+            );
             break;
 
-          case 'complete':
-            // Stream complete, reload conversations list
-            loadConversations();
-            setIsLoading(false);
+          case 'debate_complete':
+            setCurrentDebate((prev) => ({ ...prev, status: 'completed' }));
+            setDebates((prev) =>
+              prev.map((d) =>
+                d.id === debateId ? { ...d, status: 'completed' } : d
+              )
+            );
+            setLoadingTurn(null);
             break;
 
           case 'error':
-            console.error('Stream error:', event.message);
-            setIsLoading(false);
+            console.error('Debate error:', event.message);
+            setCurrentDebate((prev) => ({ ...prev, status: 'error' }));
+            setDebates((prev) =>
+              prev.map((d) =>
+                d.id === debateId ? { ...d, status: 'error' } : d
+              )
+            );
+            setLoadingTurn(null);
             break;
 
           default:
-            console.log('Unknown event type:', eventType);
+            console.log('Unknown event:', eventType);
         }
       });
     } catch (error) {
-      console.error('Failed to send message:', error);
-      // Remove optimistic messages on error
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: prev.messages.slice(0, -2),
-      }));
-      setIsLoading(false);
+      console.error('Failed to stream debate:', error);
+      setLoadingTurn(null);
     }
+  };
+
+  const renderMain = () => {
+    if (showSetup) {
+      return <DebateSetup onDebateCreated={handleDebateCreated} />;
+    }
+    if (currentDebate) {
+      return <DebateView debate={currentDebate} loadingTurn={loadingTurn} />;
+    }
+    return (
+      <div className="empty-state">
+        <p>Select a debate from the sidebar or start a new one.</p>
+      </div>
+    );
   };
 
   return (
     <div className="app">
       <Sidebar
-        conversations={conversations}
-        currentConversationId={currentConversationId}
-        onSelectConversation={handleSelectConversation}
-        onNewConversation={handleNewConversation}
+        debates={debates}
+        currentDebateId={currentDebateId}
+        onSelectDebate={handleSelectDebate}
+        onNewDebate={handleNewDebate}
       />
-      <ChatInterface
-        conversation={currentConversation}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      {renderMain()}
     </div>
   );
 }

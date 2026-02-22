@@ -1,4 +1,4 @@
-"""JSON-based storage for conversations."""
+"""JSON-based storage for debates."""
 
 import json
 import os
@@ -13,160 +13,116 @@ def ensure_data_dir():
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
-def get_conversation_path(conversation_id: str) -> str:
-    """Get the file path for a conversation."""
-    return os.path.join(DATA_DIR, f"{conversation_id}.json")
+def get_debate_path(debate_id: str) -> str:
+    """Get the file path for a debate."""
+    return os.path.join(DATA_DIR, f"{debate_id}.json")
 
 
-def create_conversation(conversation_id: str) -> Dict[str, Any]:
+# Keep alias for compatibility
+get_conversation_path = get_debate_path
+
+
+def create_debate(debate_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Create a new conversation.
+    Create a new debate with the given config.
 
     Args:
-        conversation_id: Unique identifier for the conversation
+        debate_id: Unique identifier for the debate
+        config: Debate configuration (models, topic, povs, max_turns, etc.)
 
     Returns:
-        New conversation dict
+        New debate dict
     """
     ensure_data_dir()
 
-    conversation = {
-        "id": conversation_id,
+    debate = {
+        "id": debate_id,
         "created_at": datetime.utcnow().isoformat(),
-        "title": "New Conversation",
-        "messages": []
+        "title": "New Debate",
+        "config": config,
+        "turns": [],
+        "status": "pending",
     }
 
-    # Save to file
-    path = get_conversation_path(conversation_id)
-    with open(path, 'w') as f:
-        json.dump(conversation, f, indent=2)
+    path = get_debate_path(debate_id)
+    with open(path, "w") as f:
+        json.dump(debate, f, indent=2)
 
-    return conversation
+    return debate
 
 
 def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Load a conversation from storage.
-
-    Args:
-        conversation_id: Unique identifier for the conversation
-
-    Returns:
-        Conversation dict or None if not found
-    """
-    path = get_conversation_path(conversation_id)
-
+    """Load a debate from storage."""
+    path = get_debate_path(conversation_id)
     if not os.path.exists(path):
         return None
-
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return json.load(f)
 
 
-def save_conversation(conversation: Dict[str, Any]):
+def save_debate(debate: Dict[str, Any]):
+    """Save a debate to storage."""
+    ensure_data_dir()
+    path = get_debate_path(debate["id"])
+    with open(path, "w") as f:
+        json.dump(debate, f, indent=2)
+
+
+def add_debate_turn(debate_id: str, turn: Dict[str, Any]):
     """
-    Save a conversation to storage.
+    Append a turn to the debate.
 
     Args:
-        conversation: Conversation dict to save
+        debate_id: Debate identifier
+        turn: Turn dict with speaker, model, speaker_name, content, turn_number
     """
-    ensure_data_dir()
+    debate = get_conversation(debate_id)
+    if debate is None:
+        raise ValueError(f"Debate {debate_id} not found")
+    debate["turns"].append(turn)
+    save_debate(debate)
 
-    path = get_conversation_path(conversation['id'])
-    with open(path, 'w') as f:
-        json.dump(conversation, f, indent=2)
+
+def update_debate_status(debate_id: str, status: str):
+    """Update the status of a debate ('pending', 'in_progress', 'completed', 'error')."""
+    debate = get_conversation(debate_id)
+    if debate is None:
+        raise ValueError(f"Debate {debate_id} not found")
+    debate["status"] = status
+    save_debate(debate)
 
 
 def list_conversations() -> List[Dict[str, Any]]:
     """
-    List all conversations (metadata only).
+    List all debates (metadata only).
 
     Returns:
-        List of conversation metadata dicts
+        List of debate metadata dicts
     """
     ensure_data_dir()
 
-    conversations = []
+    debates = []
     for filename in os.listdir(DATA_DIR):
-        if filename.endswith('.json'):
+        if filename.endswith(".json"):
             path = os.path.join(DATA_DIR, filename)
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 data = json.load(f)
-                # Return metadata only
-                conversations.append({
-                    "id": data["id"],
-                    "created_at": data["created_at"],
-                    "title": data.get("title", "New Conversation"),
-                    "message_count": len(data["messages"])
-                })
+            debates.append({
+                "id": data["id"],
+                "created_at": data["created_at"],
+                "title": data.get("title", "New Debate"),
+                "turn_count": len(data.get("turns", [])),
+                "status": data.get("status", "pending"),
+            })
 
-    # Sort by creation time, newest first
-    conversations.sort(key=lambda x: x["created_at"], reverse=True)
-
-    return conversations
-
-
-def add_user_message(conversation_id: str, content: str):
-    """
-    Add a user message to a conversation.
-
-    Args:
-        conversation_id: Conversation identifier
-        content: User message content
-    """
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-
-    conversation["messages"].append({
-        "role": "user",
-        "content": content
-    })
-
-    save_conversation(conversation)
-
-
-def add_assistant_message(
-    conversation_id: str,
-    stage1: List[Dict[str, Any]],
-    stage2: List[Dict[str, Any]],
-    stage3: Dict[str, Any]
-):
-    """
-    Add an assistant message with all 3 stages to a conversation.
-
-    Args:
-        conversation_id: Conversation identifier
-        stage1: List of individual model responses
-        stage2: List of model rankings
-        stage3: Final synthesized response
-    """
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-
-    conversation["messages"].append({
-        "role": "assistant",
-        "stage1": stage1,
-        "stage2": stage2,
-        "stage3": stage3
-    })
-
-    save_conversation(conversation)
+    debates.sort(key=lambda x: x["created_at"], reverse=True)
+    return debates
 
 
 def update_conversation_title(conversation_id: str, title: str):
-    """
-    Update the title of a conversation.
-
-    Args:
-        conversation_id: Conversation identifier
-        title: New title for the conversation
-    """
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-
-    conversation["title"] = title
-    save_conversation(conversation)
+    """Update the title of a debate."""
+    debate = get_conversation(conversation_id)
+    if debate is None:
+        raise ValueError(f"Debate {conversation_id} not found")
+    debate["title"] = title
+    save_debate(debate)

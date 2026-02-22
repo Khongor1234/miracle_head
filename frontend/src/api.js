@@ -1,92 +1,84 @@
 /**
- * API client for the LLM Council backend.
+ * API client for the LLM Debate backend.
  */
 
 const API_BASE = 'http://localhost:8001';
 
 export const api = {
   /**
-   * List all conversations.
+   * List all debates.
    */
   async listConversations() {
     const response = await fetch(`${API_BASE}/api/conversations`);
     if (!response.ok) {
-      throw new Error('Failed to list conversations');
+      throw new Error('Failed to list debates');
     }
     return response.json();
   },
 
   /**
-   * Create a new conversation.
+   * Get a specific debate.
    */
-  async createConversation() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+  async getConversation(debateId) {
+    const response = await fetch(`${API_BASE}/api/conversations/${debateId}`);
+    if (!response.ok) {
+      throw new Error('Failed to get debate');
+    }
+    return response.json();
+  },
+
+  /**
+   * Generate two opposing POVs for a topic.
+   * @param {string} topic
+   * @param {string} keywords - optional keywords/phrases
+   */
+  async generatePOVs(topic, keywords = '') {
+    const response = await fetch(`${API_BASE}/api/generate-povs`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, keywords }),
     });
     if (!response.ok) {
-      throw new Error('Failed to create conversation');
+      throw new Error('Failed to generate POVs');
     }
     return response.json();
   },
 
   /**
-   * Get a specific conversation.
+   * Create a new debate.
+   * @param {object} config - debate config
+   * @returns {Promise<object>} debate object, or throws with {errors} on 400
    */
-  async getConversation(conversationId) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`
-    );
+  async createDebate(config) {
+    const response = await fetch(`${API_BASE}/api/debates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    if (response.status === 400) {
+      const data = await response.json();
+      const err = new Error('Invalid model(s)');
+      err.errors = data.detail?.errors || [data.detail];
+      throw err;
+    }
     if (!response.ok) {
-      throw new Error('Failed to get conversation');
+      throw new Error('Failed to create debate');
     }
     return response.json();
   },
 
   /**
-   * Send a message in a conversation.
+   * Start a debate and stream turns via SSE.
+   * @param {string} debateId
+   * @param {function} onEvent - callback (eventType, eventData)
    */
-  async sendMessage(conversationId, content) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to send message');
-    }
-    return response.json();
-  },
-
-  /**
-   * Send a message and receive streaming updates.
-   * @param {string} conversationId - The conversation ID
-   * @param {string} content - The message content
-   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
-   * @returns {Promise<void>}
-   */
-  async sendMessageStream(conversationId, content, onEvent) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message/stream`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      }
-    );
+  async startDebateStream(debateId, onEvent) {
+    const response = await fetch(`${API_BASE}/api/debates/${debateId}/start`, {
+      method: 'POST',
+    });
 
     if (!response.ok) {
-      throw new Error('Failed to send message');
+      throw new Error('Failed to start debate');
     }
 
     const reader = response.body.getReader();
