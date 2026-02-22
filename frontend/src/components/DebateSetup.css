@@ -109,12 +109,11 @@
   background: var(--bg-3);
 }
 
-/* POV row (label + generate button) */
-.pov-header-row {
+/* Position label row (inline label + generate button per side card) */
+.position-label-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
 }
 
 .generate-btn {
@@ -134,7 +133,17 @@
 .generate-btn:hover:not(:disabled) {
   background: var(--bg-3);
   color: var(--text-1);
-  border-color: rgba(91, 163, 245, 0.35);
+  border-color: var(--border-2);
+}
+
+.side-card-a .generate-btn:hover:not(:disabled) {
+  border-color: rgba(91, 163, 245, 0.4);
+  color: var(--model-a);
+}
+
+.side-card-b .generate-btn:hover:not(:disabled) {
+  border-color: rgba(245, 146, 74, 0.4);
+  color: var(--model-b);
 }
 
 .generate-btn:disabled {

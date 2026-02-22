@@ -6,29 +6,47 @@ export default function DebateSetup({ onDebateCreated }) {
   const [model1, setModel1] = useState('');
   const [model2, setModel2] = useState('');
   const [topic, setTopic] = useState('');
-  const [keywords, setKeywords] = useState('');
+  const [keywords1, setKeywords1] = useState('');
+  const [keywords2, setKeywords2] = useState('');
   const [pov1, setPov1] = useState('');
   const [pov2, setPov2] = useState('');
   const [maxTurns, setMaxTurns] = useState(10);
-  const [generatingPOVs, setGeneratingPOVs] = useState(false);
+  const [generatingPOV1, setGeneratingPOV1] = useState(false);
+  const [generatingPOV2, setGeneratingPOV2] = useState(false);
   const [creating, setCreating] = useState(false);
   const [errors, setErrors] = useState([]);
 
-  const handleGeneratePOVs = async () => {
+  const handleGeneratePOV1 = async () => {
     if (!topic.trim()) {
-      setErrors(['Please enter a topic before generating POVs.']);
+      setErrors(['Please enter a topic before generating a position.']);
       return;
     }
     setErrors([]);
-    setGeneratingPOVs(true);
+    setGeneratingPOV1(true);
     try {
-      const result = await api.generatePOVs(topic, keywords);
+      const result = await api.generatePOVs(topic, keywords1);
       if (result.pov_for) setPov1(result.pov_for);
+    } catch (e) {
+      setErrors(['Failed to generate position for Side A. Please try again.']);
+    } finally {
+      setGeneratingPOV1(false);
+    }
+  };
+
+  const handleGeneratePOV2 = async () => {
+    if (!topic.trim()) {
+      setErrors(['Please enter a topic before generating a position.']);
+      return;
+    }
+    setErrors([]);
+    setGeneratingPOV2(true);
+    try {
+      const result = await api.generatePOVs(topic, keywords2);
       if (result.pov_against) setPov2(result.pov_against);
     } catch (e) {
-      setErrors(['Failed to generate POVs. Please try again.']);
+      setErrors(['Failed to generate position for Side B. Please try again.']);
     } finally {
-      setGeneratingPOVs(false);
+      setGeneratingPOV2(false);
     }
   };
 
@@ -92,34 +110,11 @@ export default function DebateSetup({ onDebateCreated }) {
                 rows={2}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="keywords">
-                Keywords <span className="optional">(optional, used for POV generation)</span>
-              </label>
-              <input
-                id="keywords"
-                type="text"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="e.g. consciousness, autonomy, legal personhood"
-                className="form-input"
-              />
-            </div>
           </div>
 
           {/* Models + Positions */}
           <div className="form-section">
-            <div className="pov-header-row">
-              <div className="form-section-label" style={{ marginBottom: 0 }}>Participants &amp; Positions</div>
-              <button
-                type="button"
-                className="generate-btn"
-                onClick={handleGeneratePOVs}
-                disabled={generatingPOVs || !topic.trim()}
-              >
-                {generatingPOVs ? 'Generating...' : 'Generate POVs'}
-              </button>
-            </div>
+            <div className="form-section-label">Participants &amp; Positions</div>
             <div className="sides-row">
               <div className="side-card side-card-a">
                 <div className="side-card-badge">
@@ -138,7 +133,30 @@ export default function DebateSetup({ onDebateCreated }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="pov1">Position</label>
+                  <label htmlFor="keywords1">
+                    Keywords <span className="optional">(optional)</span>
+                  </label>
+                  <input
+                    id="keywords1"
+                    type="text"
+                    value={keywords1}
+                    onChange={(e) => setKeywords1(e.target.value)}
+                    placeholder="e.g. consciousness, autonomy"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <div className="position-label-row">
+                    <label htmlFor="pov1">Position</label>
+                    <button
+                      type="button"
+                      className="generate-btn"
+                      onClick={handleGeneratePOV1}
+                      disabled={generatingPOV1 || !topic.trim()}
+                    >
+                      {generatingPOV1 ? 'Generating...' : 'Generate'}
+                    </button>
+                  </div>
                   <textarea
                     id="pov1"
                     value={pov1}
@@ -167,7 +185,30 @@ export default function DebateSetup({ onDebateCreated }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="pov2">Position</label>
+                  <label htmlFor="keywords2">
+                    Keywords <span className="optional">(optional)</span>
+                  </label>
+                  <input
+                    id="keywords2"
+                    type="text"
+                    value={keywords2}
+                    onChange={(e) => setKeywords2(e.target.value)}
+                    placeholder="e.g. legal personhood, rights"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <div className="position-label-row">
+                    <label htmlFor="pov2">Position</label>
+                    <button
+                      type="button"
+                      className="generate-btn"
+                      onClick={handleGeneratePOV2}
+                      disabled={generatingPOV2 || !topic.trim()}
+                    >
+                      {generatingPOV2 ? 'Generating...' : 'Generate'}
+                    </button>
+                  </div>
                   <textarea
                     id="pov2"
                     value={pov2}
