@@ -17,6 +17,7 @@ from .debate import (
     generate_debate_title,
     generate_povs,
     run_debate_turn,
+    run_judge,
 )
 from .models import validate_models
 
@@ -49,6 +50,7 @@ class CreateDebateRequest(BaseModel):
     pov1: str
     pov2: str
     max_turns: Optional[int] = None
+    judge_model: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +119,7 @@ async def create_debate(request: CreateDebateRequest):
         "pov1": request.pov1,
         "pov2": request.pov2,
         "max_turns": max_turns,
+        "judge_model": request.judge_model or None,
     }
 
     debate = storage.create_debate(debate_id, config)
@@ -148,6 +151,7 @@ async def start_debate(debate_id: str):
         pov2 = cfg["pov2"]
         max_turns = cfg["max_turns"]
 
+        judged = bool(cfg.get("judge_model"))
         system1 = build_debater_system_prompt(
             name=model1_name,
             topic=topic,
@@ -155,6 +159,7 @@ async def start_debate(debate_id: str):
             opponent_name=model2_name,
             opponent_pov=pov2,
             max_turns=max_turns,
+            judged=judged,
         )
         system2 = build_debater_system_prompt(
             name=model2_name,
@@ -163,6 +168,7 @@ async def start_debate(debate_id: str):
             opponent_name=model1_name,
             opponent_pov=pov1,
             max_turns=max_turns,
+            judged=judged,
         )
 
         try:
@@ -236,6 +242,42 @@ async def start_debate(debate_id: str):
             "Connection": "keep-alive",
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Judge debate
+# ---------------------------------------------------------------------------
+
+@app.post("/api/debates/{debate_id}/judge")
+async def judge_debate(debate_id: str):
+    """Run the configured judge model on a completed debate."""
+    debate = storage.get_conversation(debate_id)
+    if debate is None:
+        raise HTTPException(status_code=404, detail="Debate not found")
+
+    if debate.get("status") != "completed":
+        raise HTTPException(status_code=400, detail="Debate must be completed before judging")
+
+    judge_model = debate["config"].get("judge_model")
+    if not judge_model:
+        raise HTTPException(status_code=400, detail="No judge model configured for this debate")
+
+    cfg = debate["config"]
+    try:
+        result = await run_judge(
+            judge_model=judge_model,
+            topic=cfg["topic"],
+            model1_name=cfg["model1_name"],
+            pov1=cfg["pov1"],
+            model2_name=cfg["model2_name"],
+            pov2=cfg["pov2"],
+            turns=debate.get("turns", []),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    storage.save_judge_result(debate_id, result)
+    return result
 
 
 if __name__ == "__main__":

@@ -68,6 +68,21 @@ export const api = {
   },
 
   /**
+   * Run the configured judge model on a completed debate.
+   * @param {string} debateId
+   */
+  async judgeDebate(debateId) {
+    const response = await fetch(`${API_BASE}/api/debates/${debateId}/judge`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || 'Failed to run judge');
+    }
+    return response.json();
+  },
+
+  /**
    * Start a debate and stream turns via SSE.
    * @param {string} debateId
    * @param {function} onEvent - callback (eventType, eventData)

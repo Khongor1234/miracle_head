@@ -126,3 +126,12 @@ def update_conversation_title(conversation_id: str, title: str):
         raise ValueError(f"Debate {conversation_id} not found")
     debate["title"] = title
     save_debate(debate)
+
+
+def save_judge_result(debate_id: str, judge_result: Dict[str, Any]):
+    """Persist a judge report card onto a debate."""
+    debate = get_conversation(debate_id)
+    if debate is None:
+        raise ValueError(f"Debate {debate_id} not found")
+    debate["judge_result"] = judge_result
+    save_debate(debate)

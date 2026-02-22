@@ -11,6 +11,8 @@ export default function DebateSetup({ onDebateCreated }) {
   const [pov1, setPov1] = useState('');
   const [pov2, setPov2] = useState('');
   const [maxTurns, setMaxTurns] = useState(10);
+  const [enableJudge, setEnableJudge] = useState(false);
+  const [judgeModel, setJudgeModel] = useState('');
   const [generatingPOV1, setGeneratingPOV1] = useState(false);
   const [generatingPOV2, setGeneratingPOV2] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -76,6 +78,7 @@ export default function DebateSetup({ onDebateCreated }) {
         pov1: pov1.trim(),
         pov2: pov2.trim(),
         max_turns: maxTurns,
+        judge_model: enableJudge && judgeModel.trim() ? judgeModel.trim() : null,
       });
       onDebateCreated(debate);
     } catch (e) {
@@ -237,6 +240,37 @@ export default function DebateSetup({ onDebateCreated }) {
               />
               <span className="turns-value">{maxTurns}</span>
             </div>
+
+            <div className="judge-toggle-row">
+              <div className="judge-toggle-info">
+                <span className="judge-toggle-label">Enable Judge</span>
+                <span className="judge-toggle-hint">
+                  A third model evaluates the debate and declares a winner
+                </span>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={enableJudge}
+                  onChange={(e) => setEnableJudge(e.target.checked)}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+            {enableJudge && (
+              <div className="form-group judge-model-group">
+                <label htmlFor="judgeModel">Judge Model (OpenRouter ID)</label>
+                <input
+                  id="judgeModel"
+                  type="text"
+                  value={judgeModel}
+                  onChange={(e) => setJudgeModel(e.target.value)}
+                  placeholder="e.g. google/gemini-flash-1.5"
+                  className="form-input"
+                />
+              </div>
+            )}
           </div>
 
           {errors.length > 0 && (

@@ -1,15 +1,39 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { api } from '../api';
+import JudgeReport from './JudgeReport';
 import './DebateView.css';
 
 export default function DebateView({ debate, loadingTurn }) {
   const bottomRef = useRef(null);
+  const [judgeResult, setJudgeResult] = useState(debate.judge_result || null);
+  const [judgingLoading, setJudgingLoading] = useState(false);
+  const [judgeError, setJudgeError] = useState(null);
+
+  // Sync judge state when switching debates
+  useEffect(() => {
+    setJudgeResult(debate.judge_result || null);
+    setJudgeError(null);
+  }, [debate.id]);
 
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [debate?.turns?.length, loadingTurn]);
+  }, [debate?.turns?.length, loadingTurn, judgeResult]);
+
+  const handleRequestJudgment = async () => {
+    setJudgingLoading(true);
+    setJudgeError(null);
+    try {
+      const result = await api.judgeDebate(debate.id);
+      setJudgeResult(result);
+    } catch (e) {
+      setJudgeError(e.message || 'Failed to run judge.');
+    } finally {
+      setJudgingLoading(false);
+    }
+  };
 
   if (!debate) return null;
 
@@ -72,6 +96,33 @@ export default function DebateView({ debate, loadingTurn }) {
         {status === 'completed' && turns.length > 0 && (
           <div className="debate-done">
             Debate complete &mdash; {turns.length} of {max_turns} turns
+          </div>
+        )}
+
+        {status === 'completed' && config.judge_model && (
+          <div className="judge-section">
+            {!judgeResult && !judgingLoading && (
+              <button className="judge-btn" onClick={handleRequestJudgment}>
+                Request Judgment
+              </button>
+            )}
+            {judgingLoading && (
+              <div className="judge-loading">
+                <div className="loading-dots">
+                  <span /><span /><span />
+                </div>
+                <span>Judge is deliberating...</span>
+              </div>
+            )}
+            {judgeError && (
+              <div className="judge-error">
+                {judgeError}
+                <button className="judge-retry-btn" onClick={handleRequestJudgment}>
+                  Retry
+                </button>
+              </div>
+            )}
+            {judgeResult && <JudgeReport result={judgeResult} />}
           </div>
         )}
 
