@@ -55,7 +55,6 @@ function App() {
   };
 
   const handleDebateCreated = async (debate) => {
-    // Add to sidebar immediately
     setDebates((prev) => [
       {
         id: debate.id,
@@ -71,7 +70,6 @@ function App() {
     setCurrentDebateId(debate.id);
     setShowSetup(false);
 
-    // Stream the debate
     await streamDebate(debate.id, debate);
   };
 
@@ -97,7 +95,6 @@ function App() {
               ...prev,
               turns: [...(prev?.turns || []), event.turn],
             }));
-            // Update sidebar turn count
             setDebates((prev) =>
               prev.map((d) =>
                 d.id === debateId
@@ -161,7 +158,12 @@ function App() {
     }
     return (
       <div className="empty-state">
-        <p>Select a debate from the sidebar or start a new one.</p>
+        <div className="empty-state-emblem">
+          <div className="empty-state-dot empty-state-dot-a" />
+          <div className="empty-state-divider" />
+          <div className="empty-state-dot empty-state-dot-b" />
+        </div>
+        <p>Select a debate or start a new one.</p>
       </div>
     );
   };
@@ -174,7 +176,9 @@ function App() {
         onSelectDebate={handleSelectDebate}
         onNewDebate={handleNewDebate}
       />
-      {renderMain()}
+      <main className="main-content">
+        {renderMain()}
+      </main>
     </div>
   );
 }

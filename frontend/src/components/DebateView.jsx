@@ -14,14 +14,7 @@ export default function DebateView({ debate, loadingTurn }) {
   if (!debate) return null;
 
   const { config, turns = [], status } = debate;
-  const {
-    model1_name,
-    model2_name,
-    topic,
-    pov1,
-    pov2,
-    max_turns,
-  } = config;
+  const { model1_name, model2_name, topic, pov1, pov2, max_turns } = config;
 
   return (
     <div className="debate-view">
@@ -42,36 +35,44 @@ export default function DebateView({ debate, loadingTurn }) {
 
       <div className="turns-container">
         {turns.length === 0 && status === 'in_progress' && (
-          <div className="debate-waiting">Debate starting...</div>
+          <div className="debate-waiting">Debate is starting...</div>
         )}
 
         {turns.map((turn) => (
           <div
             key={turn.turn_number}
-            className={`turn-bubble ${turn.speaker === 'model1' ? 'turn-left' : 'turn-right'}`}
+            className={`turn-card ${turn.speaker === 'model1' ? 'turn-card-a' : 'turn-card-b'}`}
           >
-            <div className="turn-label">
-              {turn.speaker_name} <span className="turn-number">Turn {turn.turn_number}</span>
-            </div>
-            <div className="turn-content markdown-content">
-              <ReactMarkdown>{turn.content}</ReactMarkdown>
+            <div className="turn-card-inner">
+              <div className="turn-header">
+                <span className="turn-speaker">{turn.speaker_name}</span>
+                <span className="turn-number-badge">Turn {turn.turn_number}</span>
+              </div>
+              <div className="turn-content markdown-content">
+                <ReactMarkdown>{turn.content}</ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}
 
         {loadingTurn && (
-          <div className={`turn-bubble ${loadingTurn.speaker === 'model1' ? 'turn-left' : 'turn-right'} turn-loading`}>
-            <div className="turn-label">
-              {loadingTurn.speaker_name} <span className="turn-number">Turn {loadingTurn.turn_number}</span>
-            </div>
-            <div className="loading-dots">
-              <span></span><span></span><span></span>
+          <div className={`turn-card turn-loading ${loadingTurn.speaker === 'model1' ? 'turn-card-a' : 'turn-card-b'}`}>
+            <div className="turn-card-inner">
+              <div className="turn-header">
+                <span className="turn-speaker">{loadingTurn.speaker_name}</span>
+                <span className="turn-number-badge">Turn {loadingTurn.turn_number}</span>
+              </div>
+              <div className="loading-dots">
+                <span /><span /><span />
+              </div>
             </div>
           </div>
         )}
 
         {status === 'completed' && turns.length > 0 && (
-          <div className="debate-done">Debate complete — {turns.length} of {max_turns} turns</div>
+          <div className="debate-done">
+            Debate complete &mdash; {turns.length} of {max_turns} turns
+          </div>
         )}
 
         <div ref={bottomRef} />

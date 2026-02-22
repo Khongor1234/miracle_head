@@ -75,107 +75,127 @@ export default function DebateSetup({ onDebateCreated }) {
     <div className="debate-setup">
       <div className="setup-container">
         <h2 className="setup-title">New Debate</h2>
+        <p className="setup-subtitle">Configure two models to argue opposing positions on a topic.</p>
+
         <form onSubmit={handleSubmit} className="setup-form">
 
-          <div className="form-row two-col">
+          {/* Topic section */}
+          <div className="form-section">
+            <div className="form-section-label">Topic</div>
             <div className="form-group">
-              <label htmlFor="model1">Model 1 (OpenRouter ID)</label>
+              <textarea
+                id="topic"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Enter the debate topic..."
+                className="form-textarea"
+                rows={2}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="keywords">
+                Keywords <span className="optional">(optional, used for POV generation)</span>
+              </label>
               <input
-                id="model1"
+                id="keywords"
                 type="text"
-                value={model1}
-                onChange={(e) => setModel1(e.target.value)}
-                placeholder="e.g. openai/gpt-4o"
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                placeholder="e.g. consciousness, autonomy, legal personhood"
                 className="form-input"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="model2">Model 2 (OpenRouter ID)</label>
+          </div>
+
+          {/* Models + Positions */}
+          <div className="form-section">
+            <div className="pov-header-row">
+              <div className="form-section-label" style={{ marginBottom: 0 }}>Participants &amp; Positions</div>
+              <button
+                type="button"
+                className="generate-btn"
+                onClick={handleGeneratePOVs}
+                disabled={generatingPOVs || !topic.trim()}
+              >
+                {generatingPOVs ? 'Generating...' : 'Generate POVs'}
+              </button>
+            </div>
+            <div className="sides-row">
+              <div className="side-card side-card-a">
+                <div className="side-card-badge">
+                  <div className="side-card-color" />
+                  <span className="side-card-label">Side A</span>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="model1">Model (OpenRouter ID)</label>
+                  <input
+                    id="model1"
+                    type="text"
+                    value={model1}
+                    onChange={(e) => setModel1(e.target.value)}
+                    placeholder="e.g. openai/gpt-4o"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="pov1">Position</label>
+                  <textarea
+                    id="pov1"
+                    value={pov1}
+                    onChange={(e) => setPov1(e.target.value)}
+                    placeholder="Model A's stance..."
+                    className="form-textarea"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="side-card side-card-b">
+                <div className="side-card-badge">
+                  <div className="side-card-color" />
+                  <span className="side-card-label">Side B</span>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="model2">Model (OpenRouter ID)</label>
+                  <input
+                    id="model2"
+                    type="text"
+                    value={model2}
+                    onChange={(e) => setModel2(e.target.value)}
+                    placeholder="e.g. anthropic/claude-sonnet-4-5"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="pov2">Position</label>
+                  <textarea
+                    id="pov2"
+                    value={pov2}
+                    onChange={(e) => setPov2(e.target.value)}
+                    placeholder="Model B's stance..."
+                    className="form-textarea"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Settings */}
+          <div className="form-section">
+            <div className="form-section-label">Settings</div>
+            <div className="turns-row">
+              <label>Max turns</label>
               <input
-                id="model2"
-                type="text"
-                value={model2}
-                onChange={(e) => setModel2(e.target.value)}
-                placeholder="e.g. anthropic/claude-sonnet-4-5"
-                className="form-input"
+                type="range"
+                value={maxTurns}
+                onChange={(e) => setMaxTurns(Number(e.target.value))}
+                min={2}
+                max={30}
+                step={1}
               />
+              <span className="turns-value">{maxTurns}</span>
             </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="topic">Topic</label>
-            <textarea
-              id="topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter the debate topic..."
-              className="form-textarea"
-              rows={2}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="keywords">
-              Keywords <span className="optional">(optional, used for POV generation)</span>
-            </label>
-            <input
-              id="keywords"
-              type="text"
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
-              placeholder="e.g. consciousness, autonomy, legal personhood"
-              className="form-input"
-            />
-          </div>
-
-          <div className="pov-header">
-            <span className="pov-label">Positions</span>
-            <button
-              type="button"
-              className="generate-btn"
-              onClick={handleGeneratePOVs}
-              disabled={generatingPOVs || !topic.trim()}
-            >
-              {generatingPOVs ? 'Generating...' : 'Generate POVs'}
-            </button>
-          </div>
-
-          <div className="form-row two-col">
-            <div className="form-group">
-              <label htmlFor="pov1">Position 1 (Model 1 argues)</label>
-              <textarea
-                id="pov1"
-                value={pov1}
-                onChange={(e) => setPov1(e.target.value)}
-                placeholder="Model 1's stance..."
-                className="form-textarea"
-                rows={3}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="pov2">Position 2 (Model 2 argues)</label>
-              <textarea
-                id="pov2"
-                value={pov2}
-                onChange={(e) => setPov2(e.target.value)}
-                placeholder="Model 2's stance..."
-                className="form-textarea"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <div className="form-group form-group-inline">
-            <label htmlFor="maxTurns">Max turns</label>
-            <input
-              id="maxTurns"
-              type="number"
-              value={maxTurns}
-              onChange={(e) => setMaxTurns(Number(e.target.value))}
-              min={2}
-              max={30}
-              className="form-input form-input-narrow"
-            />
           </div>
 
           {errors.length > 0 && (
@@ -186,13 +206,12 @@ export default function DebateSetup({ onDebateCreated }) {
             </div>
           )}
 
-          <button
-            type="submit"
-            className="start-btn"
-            disabled={creating}
-          >
-            {creating ? 'Creating...' : 'Start Debate'}
-          </button>
+          <div className="form-footer">
+            <button type="submit" className="start-btn" disabled={creating}>
+              {creating ? 'Creating...' : 'Start Debate'}
+            </button>
+          </div>
+
         </form>
       </div>
     </div>
