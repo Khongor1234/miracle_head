@@ -71,10 +71,20 @@ export default function DebateView({ debate, loadingTurn }) {
                   </div>
                 </div>
                 {turn.content ? (
-                  <div className="turn-content markdown-content">
-                    <ReactMarkdown>{turn.content}</ReactMarkdown>
-                    {streaming && <span className="typing-cursor" />}
-                  </div>
+                  streaming ? (
+                    // During streaming, render as plain text to avoid
+                    // ReactMarkdown re-parsing the entire string on every
+                    // token flush, which blocks the main thread and
+                    // prevents the browser from painting intermediate states.
+                    <div className="turn-content markdown-content streaming-text">
+                      {turn.content}
+                      <span className="typing-cursor" />
+                    </div>
+                  ) : (
+                    <div className="turn-content markdown-content">
+                      <ReactMarkdown>{turn.content}</ReactMarkdown>
+                    </div>
+                  )
                 ) : streaming ? (
                   <div className="loading-dots">
                     <span /><span /><span />

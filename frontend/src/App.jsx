@@ -45,8 +45,13 @@ function App() {
     tokenBuffer.current += token;
     const now = performance.now();
     const elapsed = now - lastFlushTime.current;
-    // Flush every ~30ms to keep renders smooth but progressive
-    if (elapsed >= 30) {
+    // Flush every ~150ms OR when buffer has accumulated enough content.
+    // A longer interval (150ms vs 30ms) is critical because each flush
+    // triggers a React re-render, and ReactMarkdown re-parses the entire
+    // content string on every render. At 30ms intervals with per-token
+    // flushes, ReactMarkdown blocks the main thread so heavily that the
+    // browser never paints intermediate states.
+    if (elapsed >= 150 || tokenBuffer.current.length >= 200) {
       if (flushTimerId.current) {
         clearTimeout(flushTimerId.current);
         flushTimerId.current = null;
@@ -57,7 +62,7 @@ function App() {
       flushTimerId.current = setTimeout(() => {
         flushTimerId.current = null;
         flushTokens();
-      }, 30 - elapsed);
+      }, 150 - elapsed);
     }
   }, [flushTokens]);
 
@@ -75,11 +80,12 @@ function App() {
     loadDebates();
   }, []);
 
-  useEffect(() => {
-    if (currentDebateId) {
-      loadDebate(currentDebateId);
-    }
-  }, [currentDebateId]);
+  // NOTE: Do NOT auto-load debate when currentDebateId changes.
+  // handleDebateCreated sets currentDebateId for sidebar highlighting
+  // while streaming is active. An auto-load here would race with the
+  // SSE stream, replacing the in-progress turns with a stale API fetch
+  // and wiping out all streamed content. Instead, loadDebate is called
+  // explicitly in handleSelectDebate.
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -117,6 +123,7 @@ function App() {
     setShowSetup(false);
     setLoadingTurn(null);
     setCurrentDebateId(id);
+    loadDebate(id);
   };
 
   const handleDeleteDebate = async (id) => {
@@ -169,6 +176,7 @@ function App() {
             // Reset buffer for new turn
             tokenBuffer.current = '';
             tokenTurn.current = event.msg_index || event.turn_number;
+            lastFlushTime.current = performance.now();
             // Append an empty turn so it renders progressively
             setCurrentDebate((prev) => ({
               ...prev,

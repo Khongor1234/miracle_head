@@ -130,10 +130,12 @@ export const api = {
             const event = JSON.parse(data);
             onEvent(event.type, event);
             // Yield control periodically during token bursts so the
-            // browser can render progressive updates.
+            // browser can render progressive updates. Yielding every 4
+            // tokens (down from 8) gives React more opportunities to
+            // paint flushed content between bursts.
             if (event.type === 'token') {
               tokenCount++;
-              if (tokenCount >= 8) {
+              if (tokenCount >= 4) {
                 tokenCount = 0;
                 await new Promise((r) => setTimeout(r, 0));
               }

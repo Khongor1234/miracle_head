@@ -366,6 +366,12 @@
   width: 100%;
 }
 
+/* ── Streaming plain text ── */
+.streaming-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Typing cursor ── */
 .typing-cursor {
   display: inline-block;
