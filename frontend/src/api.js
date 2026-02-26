@@ -83,6 +83,19 @@ export const api = {
   },
 
   /**
+   * Delete a debate.
+   * @param {string} debateId
+   */
+  async deleteDebate(debateId) {
+    const response = await fetch(`${API_BASE}/api/conversations/${debateId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete debate');
+    }
+  },
+
+  /**
    * Start a debate and stream turns via SSE.
    * @param {string} debateId
    * @param {function} onEvent - callback (eventType, eventData)
@@ -98,20 +111,33 @@ export const api = {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      // Keep the last (potentially incomplete) line in the buffer
+      buffer = lines.pop() || '';
 
+      let tokenCount = 0;
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
           try {
             const event = JSON.parse(data);
             onEvent(event.type, event);
+            // Yield control periodically during token bursts so the
+            // browser can render progressive updates.
+            if (event.type === 'token') {
+              tokenCount++;
+              if (tokenCount >= 8) {
+                tokenCount = 0;
+                await new Promise((r) => setTimeout(r, 0));
+              }
+            }
           } catch (e) {
             console.error('Failed to parse SSE event:', e);
           }

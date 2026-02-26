@@ -2,9 +2,9 @@
 
 import json as _json
 import re as _re
-from typing import List, Dict, Any, Optional
+from typing import AsyncGenerator, List, Dict, Any, Optional
 
-from .openrouter import query_model
+from .openrouter import query_model, query_model_with_retry, query_model_streaming
 from .config import POV_GENERATOR_MODEL
 
 
@@ -43,7 +43,7 @@ Rules:
 - Respond directly to your opponent's most recent argument.
 - Be concise but substantive. Aim for 2-4 paragraphs per turn.
 - Do not concede your position or agree with your opponent.
-- This debate will last at most {max_turns} total turns.
+- This debate will last {max_turns} rounds ({max_turns * 2} messages total).
 - Do not introduce yourself or reference the debate format — just argue."""
 
 
@@ -52,32 +52,51 @@ def build_turn_messages(
     debate_history: List[Dict[str, Any]],
     speaker_name: str,
     opponent_name: str,
+    turn_number: int = 1,
+    max_turns: int = 10,
 ) -> List[Dict[str, str]]:
-    """Build the message list for a debater's turn."""
+    """Build the message list for a debater's turn.
+
+    Maps each turn to the appropriate role from this speaker's perspective:
+    - This speaker's own turns → "assistant"
+    - Opponent's turns → "user"
+
+    If the history starts with this speaker's turn (i.e. they went first),
+    a synthetic opening user prompt is prepended so the messages array is
+    always user-first.
+    """
     messages: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
+    turn_hint = f" [Turn {turn_number} of {max_turns}]"
+    if turn_number == max_turns or turn_number == max_turns - 1:
+        turn_hint += " — This is one of the final turns. Summarise your strongest points and deliver a compelling closing."
+    elif turn_number == 1:
+        turn_hint += " — Opening turn."
+
     if not debate_history:
-        messages.append({
-            "role": "user",
-            "content": "Make your opening argument.",
-        })
+        messages.append({"role": "user", "content": f"Make your opening argument.{turn_hint}"})
         return messages
 
-    # Build transcript
-    transcript_lines = []
+    # If the first turn belongs to the current speaker we need a synthetic
+    # prompt to satisfy the user-first constraint most models require.
+    if debate_history[0]["speaker_name"] == speaker_name:
+        messages.append({"role": "user", "content": "Make your opening argument."})
+
     for turn in debate_history:
-        label = turn["speaker_name"]
-        transcript_lines.append(f"**{label}:** {turn['content']}")
+        role = "assistant" if turn["speaker_name"] == speaker_name else "user"
+        messages.append({"role": role, "content": turn["content"]})
 
-    transcript = "\n\n".join(transcript_lines)
+    # If the last message is already from the assistant (i.e. the current
+    # speaker just went), prompt for the next turn explicitly.
+    if messages[-1]["role"] == "assistant":
+        messages.append({
+            "role": "user",
+            "content": f"Now provide your next argument as {speaker_name}.{turn_hint}",
+        })
+    else:
+        # Append turn context to the last user message (opponent's turn)
+        messages[-1]["content"] += f"\n\n{turn_hint}"
 
-    messages.append({
-        "role": "user",
-        "content": (
-            f"Here is the debate so far:\n\n{transcript}\n\n"
-            f"Now provide your next argument as {speaker_name}."
-        ),
-    })
     return messages
 
 
@@ -87,20 +106,43 @@ async def run_debate_turn(
     debate_history: List[Dict[str, Any]],
     speaker_name: str,
     opponent_name: str,
+    turn_number: int = 1,
+    max_turns: int = 10,
 ) -> Optional[str]:
     """Run a single debate turn and return the content string."""
-    messages = build_turn_messages(system_prompt, debate_history, speaker_name, opponent_name)
-    result = await query_model(model, messages, timeout=120.0)
+    messages = build_turn_messages(
+        system_prompt, debate_history, speaker_name, opponent_name,
+        turn_number=turn_number, max_turns=max_turns,
+    )
+    result = await query_model_with_retry(model, messages, timeout=120.0)
     if result is None:
         return None
     return result.get("content")
+
+
+async def run_debate_turn_streaming(
+    model: str,
+    system_prompt: str,
+    debate_history: List[Dict[str, Any]],
+    speaker_name: str,
+    opponent_name: str,
+    turn_number: int = 1,
+    max_turns: int = 10,
+) -> AsyncGenerator[str, None]:
+    """Run a single debate turn, yielding tokens as they stream in."""
+    messages = build_turn_messages(
+        system_prompt, debate_history, speaker_name, opponent_name,
+        turn_number=turn_number, max_turns=max_turns,
+    )
+    async for token in query_model_streaming(model, messages, timeout=120.0):
+        yield token
 
 
 async def generate_povs(topic: str, keywords: str = "") -> Dict[str, str]:
     """Generate two opposing POVs for a topic using an LLM."""
     prompt = f"Topic: {topic}"
     if keywords.strip():
-        prompt += f"\nKeywords/themes to incorporate: {keywords}"
+        prompt += f"\nAngle to argue from: {keywords}"
 
     prompt += (
         "\n\nGenerate two short, clear opposing positions for a debate on this topic. "
@@ -150,7 +192,7 @@ async def run_judge(
     transcript_parts = []
     for turn in turns:
         transcript_parts.append(
-            f"**{turn['speaker_name']} (Turn {turn['turn_number']}):**\n{turn['content']}"
+            f"**{turn['speaker_name']} (Round {turn['turn_number']}):**\n{turn['content']}"
         )
     transcript = "\n\n---\n\n".join(transcript_parts)
 

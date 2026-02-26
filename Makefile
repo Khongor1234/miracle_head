@@ -1,28 +1,41 @@
 .PHONY: start stop restart backend frontend
 
-PIDS_DIR := .pids
+PIDS_DIR  := .pids
+LOGS_DIR  := .logs
+PYTHON    := .venv/bin/python
 
 $(PIDS_DIR):
 	mkdir -p $(PIDS_DIR)
 
-start: backend frontend
+$(LOGS_DIR):
+	mkdir -p $(LOGS_DIR)
 
-backend: $(PIDS_DIR)
-	python -m backend.main & echo $$! > $(PIDS_DIR)/backend.pid
+start: stop $(PIDS_DIR) $(LOGS_DIR)
+	@$(PYTHON) -m backend.main > $(LOGS_DIR)/backend.log 2>&1 & echo $$! > $(PIDS_DIR)/backend.pid
+	@cd frontend && npm run dev > ../$(LOGS_DIR)/frontend.log 2>&1 & echo $$! > $(PIDS_DIR)/frontend.pid
+	@echo "Backend:  http://localhost:8001"
+	@echo "Frontend: http://localhost:5173"
 
-frontend: $(PIDS_DIR)
-	cd frontend && npm run dev & echo $$! > $(PIDS_DIR)/frontend.pid
+backend: $(PIDS_DIR) $(LOGS_DIR)
+	@$(PYTHON) -m backend.main > $(LOGS_DIR)/backend.log 2>&1 & echo $$! > $(PIDS_DIR)/backend.pid
+	@echo "Backend:  http://localhost:8001"
+
+frontend: $(PIDS_DIR) $(LOGS_DIR)
+	@cd frontend && npm run dev > ../$(LOGS_DIR)/frontend.log 2>&1 & echo $$! > $(PIDS_DIR)/frontend.pid
+	@echo "Frontend: http://localhost:5173"
 
 stop:
 	@if [ -f $(PIDS_DIR)/backend.pid ]; then \
-		kill $$(cat $(PIDS_DIR)/backend.pid) 2>/dev/null; \
-		rm $(PIDS_DIR)/backend.pid; \
+		kill -9 $$(cat $(PIDS_DIR)/backend.pid) 2>/dev/null; \
+		rm -f $(PIDS_DIR)/backend.pid; \
 	fi
 	@if [ -f $(PIDS_DIR)/frontend.pid ]; then \
-		kill $$(cat $(PIDS_DIR)/frontend.pid) 2>/dev/null; \
-		rm $(PIDS_DIR)/frontend.pid; \
+		kill -9 $$(cat $(PIDS_DIR)/frontend.pid) 2>/dev/null; \
+		rm -f $(PIDS_DIR)/frontend.pid; \
 	fi
+	@pkill -f "backend.main" 2>/dev/null || true
+	@pkill -f "vite.*frontend" 2>/dev/null || true
 
 restart: stop
-	sleep 1
-	$(MAKE) start
+	@sleep 1
+	@$(MAKE) start

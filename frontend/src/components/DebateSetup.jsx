@@ -3,16 +3,16 @@ import { api } from '../api';
 import './DebateSetup.css';
 
 export default function DebateSetup({ onDebateCreated }) {
-  const [model1, setModel1] = useState('');
-  const [model2, setModel2] = useState('');
+  const [model1, setModel1] = useState('openai/gpt-5.2');
+  const [model2, setModel2] = useState('anthropic/claude-sonnet-4.6');
   const [topic, setTopic] = useState('');
   const [keywords1, setKeywords1] = useState('');
   const [keywords2, setKeywords2] = useState('');
   const [pov1, setPov1] = useState('');
   const [pov2, setPov2] = useState('');
-  const [maxTurns, setMaxTurns] = useState(10);
+  const [maxTurns, setMaxTurns] = useState(5);
   const [enableJudge, setEnableJudge] = useState(false);
-  const [judgeModel, setJudgeModel] = useState('');
+  const [judgeModel, setJudgeModel] = useState('google/gemini-3-flash-preview');
   const [generatingPOV1, setGeneratingPOV1] = useState(false);
   const [generatingPOV2, setGeneratingPOV2] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -62,7 +62,7 @@ export default function DebateSetup({ onDebateCreated }) {
     if (!topic.trim()) validationErrors.push('Topic is required.');
     if (!pov1.trim()) validationErrors.push('Position 1 is required.');
     if (!pov2.trim()) validationErrors.push('Position 2 is required.');
-    if (maxTurns < 2 || maxTurns > 30) validationErrors.push('Max turns must be between 2 and 30.');
+    if (maxTurns < 1 || maxTurns > 15) validationErrors.push('Turns must be between 1 and 15.');
 
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
@@ -117,7 +117,10 @@ export default function DebateSetup({ onDebateCreated }) {
 
           {/* Models + Positions */}
           <div className="form-section">
-            <div className="form-section-label">Participants &amp; Positions</div>
+            <div className="form-section-label">
+              Participants &amp; Positions
+              <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="models-link">Browse models</a>
+            </div>
             <div className="sides-row">
               <div className="side-card side-card-a">
                 <div className="side-card-badge">
@@ -231,16 +234,17 @@ export default function DebateSetup({ onDebateCreated }) {
           <div className="form-section">
             <div className="form-section-label">Settings</div>
             <div className="turns-row">
-              <label>Max turns</label>
+              <label>Turns</label>
               <input
                 type="range"
                 value={maxTurns}
                 onChange={(e) => setMaxTurns(Number(e.target.value))}
-                min={2}
-                max={30}
+                min={1}
+                max={15}
                 step={1}
               />
               <span className="turns-value">{maxTurns}</span>
+              <span className="turns-hint">({maxTurns * 2} messages — each turn both sides speak once)</span>
             </div>
 
             <div className="judge-toggle-row">

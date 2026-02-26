@@ -19,8 +19,8 @@ with open(_config_path) as f:
 # Model used to generate POVs and debate titles
 POV_GENERATOR_MODEL = _config.get("pov_generator_model", "anthropic/claude-sonnet-4-5")
 
-# Default number of debate turns
-DEFAULT_MAX_TURNS = _config.get("default_max_turns", 10)
+# Default number of debate turns (each turn = both sides speak once)
+DEFAULT_MAX_TURNS = _config.get("default_max_turns", 5)
 
 # OpenRouter API endpoint
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"

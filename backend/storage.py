@@ -38,7 +38,7 @@ def create_debate(debate_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
     debate = {
         "id": debate_id,
         "created_at": datetime.utcnow().isoformat(),
-        "title": "New Debate",
+        "title": config.get("topic", "New Debate"),
         "config": config,
         "turns": [],
         "status": "pending",

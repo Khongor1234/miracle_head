@@ -5,6 +5,7 @@ export default function Sidebar({
   currentDebateId,
   onSelectDebate,
   onNewDebate,
+  onDeleteDebate,
 }) {
   return (
     <div className="sidebar">
@@ -44,8 +45,18 @@ export default function Sidebar({
               </div>
               <div className="conversation-meta">
                 <span className={`status-dot ${debate.status}`} />
-                {debate.turn_count} turns
+                {debate.turn_count} messages
               </div>
+              <button
+                className="delete-debate-btn"
+                title="Delete debate"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteDebate(debate.id);
+                }}
+              >
+                &#x2715;
+              </button>
             </div>
           ))
         )}

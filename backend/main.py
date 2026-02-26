@@ -17,6 +17,7 @@ from .debate import (
     generate_debate_title,
     generate_povs,
     run_debate_turn,
+    run_debate_turn_streaming,
     run_judge,
 )
 from .models import validate_models
@@ -79,6 +80,16 @@ async def get_conversation(debate_id: str):
     if debate is None:
         raise HTTPException(status_code=404, detail="Debate not found")
     return debate
+
+
+@app.delete("/api/conversations/{debate_id}", status_code=204)
+async def delete_conversation(debate_id: str):
+    """Delete a debate."""
+    import os
+    path = storage.get_debate_path(debate_id)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Debate not found")
+    os.remove(path)
 
 
 # ---------------------------------------------------------------------------
@@ -180,9 +191,11 @@ async def start_debate(debate_id: str):
 
             debate_history: List[Dict[str, Any]] = []
 
-            for turn_number in range(1, max_turns + 1):
-                # Alternate speakers: odd turns → model1, even turns → model2
-                if turn_number % 2 == 1:
+            total_messages = max_turns * 2  # each turn = both sides speak
+            for msg_index in range(1, total_messages + 1):
+                turn_number = (msg_index + 1) // 2  # round number (1-based)
+                # Alternate speakers: odd messages → model1, even messages → model2
+                if msg_index % 2 == 1:
                     speaker = "model1"
                     model = model1
                     speaker_name = model1_name
@@ -195,18 +208,37 @@ async def start_debate(debate_id: str):
                     system_prompt = system2
                     opponent_name = model1_name
 
-                yield f"data: {json.dumps({'type': 'turn_start', 'turn_number': turn_number, 'speaker': speaker, 'speaker_name': speaker_name})}\n\n"
+                yield f"data: {json.dumps({'type': 'turn_start', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'speaker_name': speaker_name})}\n\n"
 
-                content = await run_debate_turn(
-                    model=model,
-                    system_prompt=system_prompt,
-                    debate_history=debate_history,
-                    speaker_name=speaker_name,
-                    opponent_name=opponent_name,
-                )
+                # Stream tokens with retry logic
+                content = ""
+                max_attempts = 3
+                retry_delay = 2.0
 
-                if content is None:
-                    yield f"data: {json.dumps({'type': 'turn_error', 'turn_number': turn_number, 'speaker': speaker, 'message': f'Model {model} failed to respond'})}\n\n"
+                for attempt in range(1, max_attempts + 1):
+                    try:
+                        content = ""
+                        async for token in run_debate_turn_streaming(
+                            model=model,
+                            system_prompt=system_prompt,
+                            debate_history=debate_history,
+                            speaker_name=speaker_name,
+                            opponent_name=opponent_name,
+                            turn_number=msg_index,
+                            max_turns=total_messages,
+                        ):
+                            content += token
+                            yield f"data: {json.dumps({'type': 'token', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'token': token})}\n\n"
+                        break  # Success
+                    except Exception as e:
+                        print(f"Streaming error for {model} (attempt {attempt}/{max_attempts}): {e}")
+                        if attempt < max_attempts:
+                            await asyncio.sleep(retry_delay)
+                        else:
+                            content = ""
+
+                if not content:
+                    yield f"data: {json.dumps({'type': 'turn_error', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'message': f'Model {model} failed to respond'})}\n\n"
                     continue
 
                 turn = {
@@ -215,6 +247,7 @@ async def start_debate(debate_id: str):
                     "speaker_name": speaker_name,
                     "content": content,
                     "turn_number": turn_number,
+                    "msg_index": msg_index,
                 }
 
                 debate_history.append(turn)

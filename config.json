@@ -1,4 +1,4 @@
 {
   "pov_generator_model": "anthropic/claude-sonnet-4-5",
-  "default_max_turns": 10
+  "default_max_turns": 5
 }
