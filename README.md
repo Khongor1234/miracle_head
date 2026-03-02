@@ -115,9 +115,9 @@ The backend exposes a REST API at `http://localhost:8001`:
 | `POST` | `/api/debates` | Create a new debate |
 | `POST` | `/api/debates/{id}/start` | Stream the debate (SSE) |
 | `POST` | `/api/debates/{id}/judge` | Run the judge model |
-| `GET` | `/api/conversations` | List all past debates |
-| `GET` | `/api/conversations/{id}` | Get a specific debate |
-| `DELETE` | `/api/conversations/{id}` | Delete a debate |
+| `GET` | `/api/debates` | List all past debates |
+| `GET` | `/api/debates/{id}` | Get a specific debate |
+| `DELETE` | `/api/debates/{id}` | Delete a debate |
 
 ## Model Selection
 

@@ -9,7 +9,7 @@ export const api = {
    * List all debates.
    */
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+    const response = await fetch(`${API_BASE}/api/debates`);
     if (!response.ok) {
       throw new Error('Failed to list debates');
     }
@@ -20,7 +20,7 @@ export const api = {
    * Get a specific debate.
    */
   async getConversation(debateId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${debateId}`);
+    const response = await fetch(`${API_BASE}/api/debates/${debateId}`);
     if (!response.ok) {
       throw new Error('Failed to get debate');
     }
@@ -87,7 +87,7 @@ export const api = {
    * @param {string} debateId
    */
   async deleteDebate(debateId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${debateId}`, {
+    const response = await fetch(`${API_BASE}/api/debates/${debateId}`, {
       method: 'DELETE',
     });
     if (!response.ok) {

@@ -67,14 +67,14 @@ async def root():
 # Debates list / get
 # ---------------------------------------------------------------------------
 
-@app.get("/api/conversations")
-async def list_conversations():
+@app.get("/api/debates")
+async def list_debates():
     """List all debates (metadata only)."""
     return storage.list_conversations()
 
 
-@app.get("/api/conversations/{debate_id}")
-async def get_conversation(debate_id: str):
+@app.get("/api/debates/{debate_id}")
+async def get_debate(debate_id: str):
     """Get a specific debate."""
     debate = storage.get_conversation(debate_id)
     if debate is None:
@@ -82,8 +82,8 @@ async def get_conversation(debate_id: str):
     return debate
 
 
-@app.delete("/api/conversations/{debate_id}", status_code=204)
-async def delete_conversation(debate_id: str):
+@app.delete("/api/debates/{debate_id}", status_code=204)
+async def delete_debate_record(debate_id: str):
     """Delete a debate."""
     import os
     path = storage.get_debate_path(debate_id)
