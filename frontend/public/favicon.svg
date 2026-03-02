@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4a90e2"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="20" fill="url(#bg)"/>
+  <!-- Left bubble (upper-left) — solid white, tail angles toward lower-right -->
+  <path d="M13,5 H50 Q58,5 58,13 V34 Q58,42 50,42 H48 L67,55 L36,42 H13 Q5,42 5,34 V13 Q5,5 13,5 Z" fill="white"/>
+  <!-- Right bubble (lower-right) — translucent white, tail angles toward upper-left -->
+  <path d="M64,58 L33,45 L52,58 H50 Q42,58 42,66 V87 Q42,95 50,95 H87 Q95,95 95,87 V66 Q95,58 87,58 H64 Z" fill="rgba(255,255,255,0.82)"/>
+</svg>

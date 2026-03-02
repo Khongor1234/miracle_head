@@ -25,17 +25,17 @@
 .sidebar-brand-mark {
   width: 30px;
   height: 30px;
-  background: linear-gradient(135deg, var(--model-a) 0%, var(--model-b) 100%);
   border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.sidebar-brand-mark svg {
-  width: 14px;
-  height: 14px;
+.sidebar-brand-img {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  object-fit: cover;
+  display: block;
 }
 
 .sidebar-brand-name {

@@ -12,11 +12,7 @@ export default function Sidebar({
       <div className="sidebar-header">
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark">
-            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="6.5" width="5" height="1" rx="0.5" fill="white" opacity="0.9"/>
-              <rect x="8" y="6.5" width="5" height="1" rx="0.5" fill="white" opacity="0.9"/>
-              <circle cx="7" cy="7" r="1.5" fill="white"/>
-            </svg>
+            <img src="/llm_debate.jpg" alt="LLM Debate" className="sidebar-brand-img" />
           </div>
           <span className="sidebar-brand-name">LLM Debate</span>
         </div>
