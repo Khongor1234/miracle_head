@@ -2,7 +2,7 @@
 
 PIDS_DIR  := .pids
 LOGS_DIR  := .logs
-PYTHON    := .venv/bin/python
+PYTHON    := uv run python
 
 $(PIDS_DIR):
 	mkdir -p $(PIDS_DIR)

@@ -1,87 +1,126 @@
-# LLM Council
+# LLM Debate
 
-![llmcouncil](header.jpg)
+A web app that pits two LLMs against each other in a structured debate. Pick a topic, assign each model a point of view, and watch them argue it out turn by turn — with an optional judge model to score the result.
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+## How It Works
 
-In a bit more detail, here is what happens when you submit a query:
+1. **Setup** — Enter a debate topic (or let the AI suggest one), pick two models from OpenRouter, and assign each a point of view.
+2. **Debate** — The models argue back and forth for a configurable number of turns, streamed live to the UI.
+3. **Judge** (optional) — A third model evaluates the debate and declares a winner with a report card.
 
-1. **Stage 1: First opinions**. The user query is given to all LLMs individually, and the responses are collected. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
-2. **Stage 2: Review**. Each individual LLM is given the responses of the other LLMs. Under the hood, the LLM identities are anonymized so that the LLM can't play favorites when judging their outputs. The LLM is asked to rank them in accuracy and insight.
-3. **Stage 3: Final response**. The designated Chairman of the LLM Council takes all of the model's responses and compiles them into a single final answer that is presented to the user.
+Responses are streamed token-by-token so you see the debate unfold in real time.
 
-## Vibe Code Alert
+## Project Structure
 
-This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side in the process of [reading books together with LLMs](https://x.com/karpathy/status/1990577951671509438). It's nice and useful to see multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs. I'm not going to support it in any way, it's provided here as is for other people's inspiration and I don't intend to improve it. Code is ephemeral now and libraries are over, ask your LLM to change it in whatever way you like.
+```
+llm-debate/
+├── backend/              # FastAPI backend (Python)
+│   ├── main.py           # API routes and SSE streaming
+│   ├── debate.py         # Debate logic, POV generation, judge
+│   ├── openrouter.py     # OpenRouter API client
+│   ├── storage.py        # JSON-based persistence (data/conversations/)
+│   ├── models.py         # Model validation
+│   └── config.py         # Loads config.json and environment variables
+├── frontend/             # React + Vite frontend
+│   └── src/
+│       ├── App.jsx
+│       ├── api.js
+│       └── components/
+│           ├── DebateSetup.jsx   # Topic + model selection
+│           ├── DebateView.jsx    # Live debate stream
+│           ├── JudgeReport.jsx   # Judge verdict display
+│           └── Sidebar.jsx       # Conversation history
+├── data/conversations/   # Stored debates (auto-created)
+├── config.json           # Default model and turn settings
+├── Makefile              # Start/stop shortcuts
+└── .env                  # API key (not committed)
+```
+
+## Prerequisites
+
+- **[uv](https://docs.astral.sh/uv/)** — Python package and project manager
+- **Node.js 18+** and npm
+- An **[OpenRouter](https://openrouter.ai) API key**
+
+Install uv if you don't have it:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Clone and install dependencies
 
-The project uses [uv](https://docs.astral.sh/uv/) for project management.
-
-**Backend:**
 ```bash
+# Backend — uv creates the venv and installs everything from pyproject.toml
 uv sync
+
+# Frontend
+cd frontend && npm install
 ```
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-cd ..
-```
-
-### 2. Configure API Key
+### 2. Configure your API key
 
 Create a `.env` file in the project root:
 
+```
+OPENROUTER_API_KEY=your_key_here
+```
+
+### 3. (Optional) Adjust defaults in `config.json`
+
+```json
+{
+  "pov_generator_model": "anthropic/claude-sonnet-4-5",
+  "default_max_turns": 5
+}
+```
+
+- `pov_generator_model` — model used to auto-generate debate topics and points of view
+- `default_max_turns` — number of rounds (each turn = both models speak once)
+
+## Starting the App
+
+Use the Makefile to start both services in the background:
+
 ```bash
-OPENROUTER_API_KEY=sk-or-v1-...
+make start     # start backend + frontend
+make stop      # stop both
+make restart   # stop then start
 ```
 
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
+Or start them individually:
 
-### 3. Configure Models (Optional)
-
-Edit `backend/config.py` to customize the council:
-
-```python
-COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
-]
-
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
-```
-
-## Running the Application
-
-**Option 1: Use the start script**
 ```bash
-./start.sh
+make backend   # backend only  → http://localhost:8001
+make frontend  # frontend only → http://localhost:5173
 ```
 
-**Option 2: Run manually**
+Logs are written to `.logs/backend.log` and `.logs/frontend.log`.
 
-Terminal 1 (Backend):
+To run the backend manually (from the project root):
+
 ```bash
 uv run python -m backend.main
 ```
 
-Terminal 2 (Frontend):
-```bash
-cd frontend
-npm run dev
-```
+## API
 
-Then open http://localhost:5173 in your browser.
+The backend exposes a REST API at `http://localhost:8001`:
 
-## Tech Stack
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/generate-povs` | Generate opposing POVs for a topic |
+| `POST` | `/api/debates` | Create a new debate |
+| `POST` | `/api/debates/{id}/start` | Stream the debate (SSE) |
+| `POST` | `/api/debates/{id}/judge` | Run the judge model |
+| `GET` | `/api/conversations` | List all past debates |
+| `GET` | `/api/conversations/{id}` | Get a specific debate |
+| `DELETE` | `/api/conversations/{id}` | Delete a debate |
 
-- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
-- **Frontend:** React + Vite, react-markdown for rendering
-- **Storage:** JSON files in `data/conversations/`
-- **Package Management:** uv for Python, npm for JavaScript
+## Model Selection
+
+Any model available on [OpenRouter](https://openrouter.ai/models) can be used. Use the full `provider/model-name` identifier (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4-5`, `google/gemini-2.0-flash-001`).
+
+The two debater models and the optional judge model can all be different.
