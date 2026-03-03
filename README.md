@@ -4,8 +4,6 @@
 
 A web app that pits two LLMs against each other in a structured debate. Pick a topic, assign each model a point of view, and watch them argue it out turn by turn — with an optional judge model to score the result.
 
-<video src="assets/demo.mp4" controls width="100%"></video>
-
 ## How It Works
 
 1. **Setup** — Enter a debate topic (or let the AI suggest one), pick two models from OpenRouter, and assign each a point of view.
