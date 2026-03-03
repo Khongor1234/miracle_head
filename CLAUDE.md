@@ -1,166 +1,234 @@
-# CLAUDE.md - Technical Notes for LLM Council
+# CLAUDE.md - Technical Notes for LLM Debate
 
 This file contains technical details, architectural decisions, and important implementation notes for future development sessions.
 
 ## Project Overview
 
-LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively answer user questions. The key innovation is anonymized peer review in Stage 2, preventing models from playing favorites.
+LLM Debate is a turn-based debate system where two LLMs argue opposing positions on a topic. An optional third judge model evaluates the debate and declares a winner. The project was refactored from an earlier "LLM Council" 3-stage pipeline system.
 
 ## Architecture
 
 ### Backend Structure (`backend/`)
 
 **`config.py`**
-- Contains `COUNCIL_MODELS` (list of OpenRouter model identifiers)
-- Contains `CHAIRMAN_MODEL` (model that synthesizes final answer)
-- Uses environment variable `OPENROUTER_API_KEY` from `.env`
-- Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
+- Loads `OPENROUTER_API_KEY` from `.env`
+- Loads `POV_GENERATOR_MODEL` from `config.json` (default: `anthropic/claude-sonnet-4-5`)
+- Loads `DEFAULT_MAX_TURNS` from `config.json` (default: 5)
+- Storage path: `data/conversations/`
+- Backend runs on **port 8001**
 
 **`openrouter.py`**
-- `query_model()`: Single async model query
-- `query_models_parallel()`: Parallel queries using `asyncio.gather()`
-- Returns dict with 'content' and optional 'reasoning_details'
-- Graceful degradation: returns None on failure, continues with successful responses
+- `query_model()`: Single async model query via httpx
+- `query_model_streaming()`: Token-by-token streaming from OpenRouter API
+- `query_model_with_retry()`: Auto-retry wrapper (3 attempts, 2s delay)
+- `query_models_parallel()`: Concurrent queries using `asyncio.gather()`
+- All functions use `httpx.AsyncClient`
 
-**`council.py`** - The Core Logic
-- `stage1_collect_responses()`: Parallel queries to all council models
-- `stage2_collect_rankings()`:
-  - Anonymizes responses as "Response A, B, C, etc."
-  - Creates `label_to_model` mapping for de-anonymization
-  - Prompts models to evaluate and rank (with strict format requirements)
-  - Returns tuple: (rankings_list, label_to_model_dict)
-  - Each ranking includes both raw text and `parsed_ranking` list
-- `stage3_synthesize_final()`: Chairman synthesizes from all responses + rankings
-- `parse_ranking_from_text()`: Extracts "FINAL RANKING:" section, handles both numbered lists and plain format
-- `calculate_aggregate_rankings()`: Computes average rank position across all peer evaluations
+**`debate.py`** - The Core Logic
+- `build_debater_system_prompt()`: Creates system prompt with topic, POV, opponent info, and optional judging criteria
+- `build_turn_messages()`: Builds message array; maps current speaker's turns to "assistant" and opponent's to "user"
+- `run_debate_turn()`: Execute a single non-streaming turn
+- `run_debate_turn_streaming()`: Execute a single turn with token streaming
+- `generate_povs()`: Calls POV generator model to create two opposing positions
+- `generate_debate_title()`: Generates short debate title (runs async in background after debate starts)
+- `run_judge()`: Calls judge model, parses JSON scorecard with 5 facets + winner verdict
+  - Facets: Argumentation, Evidence & Reasoning, Rebuttal, Clarity, Persuasiveness
+  - Scores: 0–10 per model per facet
+
+**`models.py`** - Model Validation
+- `_fetch_openrouter_models()`: HTTP GET to OpenRouter `/api/v1/models`
+- `_get_models_cached()`: 1-hour TTL cache stored in `data/models_cache.json`
+- `validate_model()`: Check if a model_id exists on OpenRouter
+- `validate_models()`: Validate both debater models before creating a debate
 
 **`storage.py`**
-- JSON-based conversation storage in `data/conversations/`
-- Each conversation: `{id, created_at, messages[]}`
-- Assistant messages contain: `{role, stage1, stage2, stage3}`
-- Note: metadata (label_to_model, aggregate_rankings) is NOT persisted to storage, only returned via API
+- JSON-based storage in `data/conversations/`, one file per debate
+- `create_debate()`, `get_conversation()`, `save_debate()`, `add_debate_turn()`
+- `update_debate_status()`: Statuses are `pending`, `in_progress`, `completed`, `error`
+- `update_conversation_title()`: Updated asynchronously after debate completes
+- `save_judge_result()`: Persists judge scorecard to debate JSON
+- `list_conversations()`: Returns metadata only (id, created_at, title, turn_count, status)
 
 **`main.py`**
-- FastAPI app with CORS enabled for localhost:5173 and localhost:3000
-- POST `/api/conversations/{id}/message` returns metadata in addition to stages
-- Metadata includes: label_to_model mapping and aggregate_rankings
+- FastAPI app with CORS enabled for `localhost:5173` and `localhost:3000`
+- Endpoints:
+  - `GET /` — Health check
+  - `GET /api/debates` — List all debates
+  - `GET /api/debates/{id}` — Fetch debate details
+  - `POST /api/debates` — Create debate (validates models first)
+  - `POST /api/debates/{id}/start` — Stream debate via SSE
+  - `POST /api/debates/{id}/judge` — Run judge model
+  - `DELETE /api/debates/{id}` — Delete debate (204)
+  - `POST /api/generate-povs` — Generate opposing POVs for a topic
 
 ### Frontend Structure (`frontend/src/`)
 
 **`App.jsx`**
-- Main orchestration: manages conversations list and current conversation
-- Handles message sending and metadata storage
-- Important: metadata is stored in the UI state for display but not persisted to backend JSON
+- Main orchestrator: manages `debates[]`, `currentDebateId`, `currentDebate`, `showSetup`, `loadingTurn`
+- Token streaming with `useRef` buffering and 150ms flush interval (prevents React re-render thrash)
+- `streamDebate()`: Subscribes to SSE, handles events: `turn_start`, `token`, `turn_complete`, `debate_complete`, `title_complete`, `error`
+- Auto-judges after streaming if `judge_model` is configured
 
-**`components/ChatInterface.jsx`**
-- Multiline textarea (3 rows, resizable)
-- Enter to send, Shift+Enter for new line
-- User messages wrapped in markdown-content class for padding
+**`components/Sidebar.jsx`**
+- Logo + "New Debate" button
+- Debate list with title, turn count, status indicator dot
+- Per-debate delete button
 
-**`components/Stage1.jsx`**
-- Tab view of individual model responses
-- ReactMarkdown rendering with markdown-content wrapper
+**`components/DebateSetup.jsx`**
+- Inputs: model1, model2, topic, pov1, pov2, max_turns (1–15), optional judge_model
+- "Generate" buttons call backend to auto-generate POVs from the topic
+- Side A/B color-coded cards (blue/orange)
+- Validates before submission, displays field-level errors
 
-**`components/Stage2.jsx`**
-- **Critical Feature**: Tab view showing RAW evaluation text from each model
-- De-anonymization happens CLIENT-SIDE for display (models receive anonymous labels)
-- Shows "Extracted Ranking" below each evaluation so users can validate parsing
-- Aggregate rankings shown with average position and vote count
-- Explanatory text clarifies that boldface model names are for readability only
+**`components/DebateView.jsx`**
+- Renders debate header (topic + both sides with POVs)
+- Chat-bubble layout: model1 on left, model2 on right
+- During streaming: plain text + typing cursor (avoids ReactMarkdown re-parse lag)
+- After streaming: ReactMarkdown rendering
+- Auto-scrolls to bottom on new turns
+- Triggers judge section when debate is complete
 
-**`components/Stage3.jsx`**
-- Final synthesized answer from chairman
-- Green-tinted background (#f0fff0) to highlight conclusion
+**`components/JudgeReport.jsx`**
+- Verdict banner: winner name, total scores, summary
+- Scorecard table: 5 facets × 2 models with scores (0–10), bar visualization, and per-model notes
+- Total row with max possible score
+- Judge model attribution, winner-side highlighted
 
-**Styling (`*.css`)**
-- Light mode theme (not dark mode)
-- Primary color: #4a90e2 (blue)
-- Global markdown styling in `index.css` with `.markdown-content` class
-- 12px padding on all markdown content to prevent cluttered appearance
+**Styling**
+- **Dark theme**: background `#0b0b10`, text `#eceaf5`
+- Model A (blue): `#5ba3f5`; Model B (orange): `#f5924a`
+- Fonts: Playfair Display (display), Source Serif 4 (body), Outfit (UI)
+- Global markdown styling in `index.css` via `.markdown-content` class
 
 ## Key Design Decisions
 
-### Stage 2 Prompt Format
-The Stage 2 prompt is very specific to ensure parseable output:
-```
-1. Evaluate each response individually first
-2. Provide "FINAL RANKING:" header
-3. Numbered list format: "1. Response C", "2. Response A", etc.
-4. No additional text after ranking section
-```
+### Turn-Based Message Mapping
+Each debater only sees its own turns as "assistant" and opponent turns as "user". This creates a natural conversation perspective per model, without exposing the underlying multi-model architecture.
 
-This strict format allows reliable parsing while still getting thoughtful evaluations.
+### SSE Streaming
+Debate turns stream token-by-token via Server-Sent Events. The frontend buffers tokens using `useRef` and flushes to state every 150ms to avoid per-token React re-renders. During streaming, plain text is rendered (not ReactMarkdown) to prevent re-parse latency on every token.
 
-### De-anonymization Strategy
-- Models receive: "Response A", "Response B", etc.
-- Backend creates mapping: `{"Response A": "openai/gpt-5.1", ...}`
-- Frontend displays model names in **bold** for readability
-- Users see explanation that original evaluation used anonymous labels
-- This prevents bias while maintaining transparency
+### POV Generation
+A dedicated `pov_generator_model` (configurable in `config.json`) generates two opposing POVs given a topic. This is separate from the debater models to avoid conflicts of interest.
+
+### Judge System
+The optional judge is a third model that receives the full debate transcript and returns a structured JSON scorecard. Scores are per-facet (5 facets × 10 max = 50 points per model). The judge is called after the debate completes, either automatically or on demand.
+
+### Model Validation
+Both debater models are validated against OpenRouter's model list before a debate is created. The list is cached for 1 hour in `data/models_cache.json`.
 
 ### Error Handling Philosophy
-- Continue with successful responses if some models fail (graceful degradation)
-- Never fail the entire request due to single model failure
-- Log errors but don't expose to user unless all models fail
-
-### UI/UX Transparency
-- All raw outputs are inspectable via tabs
-- Parsed rankings shown below raw text for validation
-- Users can verify system's interpretation of model outputs
-- This builds trust and allows debugging of edge cases
+- Single turn failures don't abort the debate; they're reported via SSE `turn_error`
+- Retry logic in `query_model_with_retry()` handles transient API failures
+- All errors logged; only surfaced to user if unrecoverable
 
 ## Important Implementation Details
 
 ### Relative Imports
-All backend modules use relative imports (e.g., `from .config import ...`) not absolute imports. This is critical for Python's module system to work correctly when running as `python -m backend.main`.
+All backend modules use relative imports (`from .config import ...`). Run backend as `python -m backend.main` from project root, never from the backend directory.
 
 ### Port Configuration
-- Backend: 8001 (changed from 8000 to avoid conflict)
+- Backend: 8001
 - Frontend: 5173 (Vite default)
 - Update both `backend/main.py` and `frontend/src/api.js` if changing
 
-### Markdown Rendering
-All ReactMarkdown components must be wrapped in `<div className="markdown-content">` for proper spacing. This class is defined globally in `index.css`.
+### Running the Project
+```bash
+make start      # Start both backend and frontend
+make stop       # Kill both services
+make restart    # Stop then start
+```
+Logs go to `.logs/backend.log` and `.logs/frontend.log`. PIDs stored in `.pids/`.
 
-### Model Configuration
-Models are hardcoded in `backend/config.py`. Chairman can be same or different from council members. The current default is Gemini as chairman per user preference.
+### Markdown Rendering
+All ReactMarkdown components must be wrapped in `<div className="markdown-content">` for proper spacing. Defined globally in `index.css`.
+
+### Config File
+`config.json` in project root controls:
+- `pov_generator_model`: Model used for POV generation
+- `default_max_turns`: Default number of debate turns (user can override in UI)
+
+## Data Storage Schema
+
+Each debate stored as `data/conversations/{id}.json`:
+```json
+{
+  "id": "uuid",
+  "created_at": "ISO timestamp",
+  "title": "auto-generated title",
+  "config": {
+    "model1": "openai/gpt-5.2",
+    "model2": "anthropic/claude-sonnet-4-6",
+    "model1_name": "display name",
+    "model2_name": "display name",
+    "topic": "debate topic",
+    "pov1": "model1 position",
+    "pov2": "model2 position",
+    "max_turns": 5,
+    "judge_model": "model id or null"
+  },
+  "turns": [
+    {
+      "speaker": "model1|model2",
+      "model": "full model id",
+      "speaker_name": "display name",
+      "content": "debate text",
+      "turn_number": 1,
+      "msg_index": 1
+    }
+  ],
+  "status": "pending|in_progress|completed|error",
+  "judge_result": {
+    "facets": [{"name": "...", "model1_score": 8, "model2_score": 9, ...}],
+    "winner": "model name or Draw",
+    "summary": "judge summary",
+    "total_model1": 39,
+    "total_model2": 44,
+    "judge_model": "model id"
+  }
+}
+```
+
+## SSE Event Types
+
+From `POST /api/debates/{id}/start`:
+- `debate_start` — Debate begins
+- `turn_start` — New turn (speaker, speaker_name, turn_number, msg_index)
+- `token` — Single token from streaming response
+- `turn_complete` — Full turn object
+- `turn_error` — Turn failed (message)
+- `title_complete` — Auto-generated title ready
+- `debate_complete` — All turns finished
+- `error` — Unrecoverable error
 
 ## Common Gotchas
 
-1. **Module Import Errors**: Always run backend as `python -m backend.main` from project root, not from backend directory
-2. **CORS Issues**: Frontend must match allowed origins in `main.py` CORS middleware
-3. **Ranking Parse Failures**: If models don't follow format, fallback regex extracts any "Response X" patterns in order
-4. **Missing Metadata**: Metadata is ephemeral (not persisted), only available in API responses
-
-## Future Enhancement Ideas
-
-- Configurable council/chairman via UI instead of config file
-- Streaming responses instead of batch loading
-- Export conversations to markdown/PDF
-- Model performance analytics over time
-- Custom ranking criteria (not just accuracy/insight)
-- Support for reasoning models (o1, etc.) with special handling
-
-## Testing Notes
-
-Use `test_openrouter.py` to verify API connectivity and test different model identifiers before adding to council. The script tests both streaming and non-streaming modes.
+1. **Module Import Errors**: Always run `python -m backend.main` from project root
+2. **CORS Issues**: Frontend origin must be in `main.py` CORS middleware allow-list
+3. **Streaming Performance**: Never render streamed tokens directly in React state per-token; use ref + interval flush
+4. **Model Validation Failures**: OpenRouter model list cache may be stale; delete `data/models_cache.json` to force refresh
+5. **Judge JSON Parsing**: Judge prompt enforces strict JSON output; malformed responses fall back to error state
 
 ## Data Flow Summary
 
 ```
-User Query
+User configures debate (models, topic, POVs, max_turns)
     ↓
-Stage 1: Parallel queries → [individual responses]
+POST /api/debates → validate both models → create debate JSON
     ↓
-Stage 2: Anonymize → Parallel ranking queries → [evaluations + parsed rankings]
+POST /api/debates/{id}/start → SSE stream opens
     ↓
-Aggregate Rankings Calculation → [sorted by avg position]
+For each turn:
+  build_turn_messages() → query_model_streaming() → stream tokens via SSE
+  → turn_complete event → save to storage
     ↓
-Stage 3: Chairman synthesis with full context
+Background: generate_debate_title() → title_complete SSE event
     ↓
-Return: {stage1, stage2, stage3, metadata}
+debate_complete event
     ↓
-Frontend: Display with tabs + validation UI
+Optional: POST /api/debates/{id}/judge → run_judge() → scorecard
+    ↓
+Frontend: DebateView renders chat bubbles + JudgeReport
 ```
 
-The entire flow is async/parallel where possible to minimize latency.
+The entire flow is async; streaming is token-by-token via SSE.
