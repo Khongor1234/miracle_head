@@ -128,3 +128,7 @@ The backend exposes a REST API at `http://localhost:8001`:
 Any model available on [OpenRouter](https://openrouter.ai/models) can be used. Use the full `provider/model-name` identifier (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4-5`, `google/gemini-2.0-flash-001`).
 
 The two debater models and the optional judge model can all be different.
+
+## Acknowledgements
+
+This project was built on top of [Andrej Karpathy's llm-council](https://github.com/karpathy/llm-council), which introduced the idea of using multiple LLMs to collaboratively evaluate and rank responses.
