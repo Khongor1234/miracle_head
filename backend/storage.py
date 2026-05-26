@@ -1,10 +1,11 @@
-"""JSON-based storage for debates."""
+"""JSON-based storage for counseling conversations."""
 
 import json
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from .config import DATA_DIR
 
 
@@ -13,125 +14,114 @@ def ensure_data_dir():
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
-def get_debate_path(debate_id: str) -> str:
-    """Get the file path for a debate."""
-    return os.path.join(DATA_DIR, f"{debate_id}.json")
+def get_conversation_path(conversation_id: str) -> str:
+    """Get the file path for a conversation."""
+    return os.path.join(DATA_DIR, f"{conversation_id}.json")
 
 
-# Keep alias for compatibility
-get_conversation_path = get_debate_path
-
-
-def create_debate(debate_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Create a new debate with the given config.
-
-    Args:
-        debate_id: Unique identifier for the debate
-        config: Debate configuration (models, topic, povs, max_turns, etc.)
-
-    Returns:
-        New debate dict
-    """
+def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new counseling conversation."""
     ensure_data_dir()
-
-    debate = {
-        "id": debate_id,
+    conversation = {
+        "id": conversation_id,
         "created_at": datetime.utcnow().isoformat(),
-        "title": config.get("topic", "New Debate"),
+        "updated_at": datetime.utcnow().isoformat(),
+        "title": "New counseling session",
         "config": config,
-        "turns": [],
-        "status": "pending",
+        "messages": [],
+        "agent_rounds": [],
+        "status": "active",
     }
-
-    path = get_debate_path(debate_id)
-    with open(path, "w") as f:
-        json.dump(debate, f, indent=2)
-
-    return debate
+    save_conversation(conversation)
+    return conversation
 
 
 def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
-    """Load a debate from storage."""
-    path = get_debate_path(conversation_id)
+    """Load a conversation from storage."""
+    path = get_conversation_path(conversation_id)
     if not os.path.exists(path):
         return None
     with open(path, "r") as f:
         return json.load(f)
 
 
-def save_debate(debate: Dict[str, Any]):
-    """Save a debate to storage."""
+def save_conversation(conversation: Dict[str, Any]):
+    """Save a conversation to storage."""
     ensure_data_dir()
-    path = get_debate_path(debate["id"])
+    conversation["updated_at"] = datetime.utcnow().isoformat()
+    path = get_conversation_path(conversation["id"])
     with open(path, "w") as f:
-        json.dump(debate, f, indent=2)
-
-
-def add_debate_turn(debate_id: str, turn: Dict[str, Any]):
-    """
-    Append a turn to the debate.
-
-    Args:
-        debate_id: Debate identifier
-        turn: Turn dict with speaker, model, speaker_name, content, turn_number
-    """
-    debate = get_conversation(debate_id)
-    if debate is None:
-        raise ValueError(f"Debate {debate_id} not found")
-    debate["turns"].append(turn)
-    save_debate(debate)
-
-
-def update_debate_status(debate_id: str, status: str):
-    """Update the status of a debate ('pending', 'in_progress', 'completed', 'error')."""
-    debate = get_conversation(debate_id)
-    if debate is None:
-        raise ValueError(f"Debate {debate_id} not found")
-    debate["status"] = status
-    save_debate(debate)
+        json.dump(conversation, f, indent=2, ensure_ascii=False)
 
 
 def list_conversations() -> List[Dict[str, Any]]:
-    """
-    List all debates (metadata only).
-
-    Returns:
-        List of debate metadata dicts
-    """
+    """List all counseling conversations (metadata only)."""
     ensure_data_dir()
-
-    debates = []
+    conversations = []
     for filename in os.listdir(DATA_DIR):
-        if filename.endswith(".json"):
-            path = os.path.join(DATA_DIR, filename)
-            with open(path, "r") as f:
-                data = json.load(f)
-            debates.append({
-                "id": data["id"],
-                "created_at": data["created_at"],
-                "title": data.get("title", "New Debate"),
-                "turn_count": len(data.get("turns", [])),
-                "status": data.get("status", "pending"),
-            })
-
-    debates.sort(key=lambda x: x["created_at"], reverse=True)
-    return debates
-
-
-def update_conversation_title(conversation_id: str, title: str):
-    """Update the title of a debate."""
-    debate = get_conversation(conversation_id)
-    if debate is None:
-        raise ValueError(f"Debate {conversation_id} not found")
-    debate["title"] = title
-    save_debate(debate)
+        if not filename.endswith(".json"):
+            continue
+        path = os.path.join(DATA_DIR, filename)
+        with open(path, "r") as f:
+            data = json.load(f)
+        if "id" not in data:
+            continue
+        messages = data.get("messages", data.get("turns", []))
+        conversations.append({
+            "id": data["id"],
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at", data.get("created_at")),
+            "title": data.get("title", "New counseling session"),
+            "message_count": len(messages),
+            "turn_count": len(messages),
+            "status": data.get("status", "active"),
+        })
+    conversations.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
+    return conversations
 
 
-def save_judge_result(debate_id: str, judge_result: Dict[str, Any]):
-    """Persist a judge report card onto a debate."""
-    debate = get_conversation(debate_id)
-    if debate is None:
-        raise ValueError(f"Debate {debate_id} not found")
-    debate["judge_result"] = judge_result
-    save_debate(debate)
+def add_message(conversation_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
+    """Append a visible client/counselor message."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+    conversation.setdefault("messages", []).append(message)
+    if message["role"] == "client" and conversation.get("title") == "New counseling session":
+        content = message["content"].strip().replace("\n", " ")
+        conversation["title"] = content[:42] or "New counseling session"
+    save_conversation(conversation)
+    return message
+
+
+def add_agent_round(conversation_id: str, agent_round: Dict[str, Any]) -> Dict[str, Any]:
+    """Append an internal five-agent review round."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+    conversation.setdefault("agent_rounds", []).append(agent_round)
+    save_conversation(conversation)
+    return agent_round
+
+
+def update_message(conversation_id: str, message: Dict[str, Any]):
+    """Replace one visible message by id."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+    messages = conversation.setdefault("messages", [])
+    for index, current in enumerate(messages):
+        if current.get("id") == message.get("id"):
+            messages[index] = message
+            save_conversation(conversation)
+            return
+    raise ValueError(f"Message {message.get('id')} not found")
+
+
+def delete_conversation(conversation_id: str) -> bool:
+    """Delete a conversation file."""
+    path = get_conversation_path(conversation_id)
+    if not os.path.exists(path):
+        return False
+    os.remove(path)
+    return True
+

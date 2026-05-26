@@ -1,54 +1,54 @@
 import './Sidebar.css';
 
 export default function Sidebar({
-  debates,
-  currentDebateId,
-  onSelectDebate,
-  onNewDebate,
-  onDeleteDebate,
+  conversations,
+  currentConversationId,
+  onSelectConversation,
+  onNewConversation,
+  onDeleteConversation,
 }) {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark">
-            <img src="/llm_debate.jpg" alt="LLM Debate" className="sidebar-brand-img" />
+            <img src="/llm_debate.jpg" alt="Counseling Dialogue" className="sidebar-brand-img" />
           </div>
-          <span className="sidebar-brand-name">LLM Debate</span>
+          <span className="sidebar-brand-name">Counselor</span>
         </div>
-        <button className="new-conversation-btn" onClick={onNewDebate}>
+        <button className="new-conversation-btn" onClick={onNewConversation}>
           <span className="new-btn-icon">+</span>
-          New Debate
+          New Session
         </button>
       </div>
 
-      {debates.length > 0 && (
+      {conversations.length > 0 && (
         <div className="sidebar-section-label">History</div>
       )}
 
       <div className="conversation-list">
-        {debates.length === 0 ? (
-          <div className="no-conversations">No debates yet.<br />Start one above.</div>
+        {conversations.length === 0 ? (
+          <div className="no-conversations">No sessions yet.<br />Start one above.</div>
         ) : (
-          debates.map((debate) => (
+          conversations.map((conversation) => (
             <div
-              key={debate.id}
-              className={`conversation-item ${debate.id === currentDebateId ? 'active' : ''}`}
-              onClick={() => onSelectDebate(debate.id)}
+              key={conversation.id}
+              className={`conversation-item ${conversation.id === currentConversationId ? 'active' : ''}`}
+              onClick={() => onSelectConversation(conversation.id)}
             >
               <div className="conversation-title">
-                {debate.title || 'New Debate'}
+                {conversation.title || 'New counseling session'}
               </div>
               <div className="conversation-meta">
-                <span className={`status-dot ${debate.status}`} />
-                {debate.turn_count} messages
+                <span className={`status-dot ${conversation.status}`} />
+                {conversation.message_count ?? conversation.turn_count ?? 0} messages
               </div>
               <button
-                className="delete-debate-btn"
-                title="Delete debate"
+                className="delete-session-btn"
+                title="Delete session"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDeleteDebate(debate.id);
+                  onDeleteConversation(conversation.id);
                 }}
               >
                 &#x2715;

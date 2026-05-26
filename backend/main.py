@@ -1,4 +1,4 @@
-"""FastAPI backend for LLM Debate."""
+"""FastAPI backend for the counseling dialogue app."""
 
 import asyncio
 import json
@@ -8,309 +8,375 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from . import storage
-from .config import DEFAULT_MAX_TURNS
-from .debate import (
-    build_debater_system_prompt,
-    generate_debate_title,
-    generate_povs,
-    run_debate_turn,
-    run_debate_turn_streaming,
-    run_judge,
+from .config import DEFAULT_GEMINI_MODEL
+from .counseling import (
+    AGENTS,
+    AGENT_CHARACTERS,
+    build_agent_round,
+    build_round_result,
+    generate_candidate,
+    is_high_risk,
+    now_iso,
+    run_counseling_round,
+    score_candidates,
+    visible_context,
 )
-from .models import validate_models
+from .local_llm import LocalLLMError
 
-app = FastAPI(title="LLM Debate API")
+app = FastAPI(title="Counseling Dialogue API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ---------------------------------------------------------------------------
-# Request models
-# ---------------------------------------------------------------------------
-
-class GeneratePOVsRequest(BaseModel):
-    topic: str
-    keywords: Optional[str] = ""
+MAX_PERSONA_LENGTH = 2000
+DEFAULT_REVIEW_ROUNDS = 2
+MIN_REVIEW_ROUNDS = 1
+MAX_REVIEW_ROUNDS = 5
 
 
-class CreateDebateRequest(BaseModel):
-    model1: str
-    model2: str
-    model1_name: Optional[str] = None
-    model2_name: Optional[str] = None
-    topic: str
-    pov1: str
-    pov2: str
-    max_turns: Optional[int] = None
-    judge_model: Optional[str] = None
+class AgentRequest(BaseModel):
+    character: str
+    name: Optional[str] = None
+    persona: str
 
 
-# ---------------------------------------------------------------------------
-# Health check
-# ---------------------------------------------------------------------------
+class CreateConversationRequest(BaseModel):
+    model: Optional[str] = None
+    agents: Optional[List[AgentRequest]] = None
+    review_rounds: Optional[int] = None
+
+
+class CreateMessageRequest(BaseModel):
+    content: str
+
+
+def validate_agents(agents: Optional[List[AgentRequest]]) -> list[dict]:
+    if agents is None:
+        return [agent.copy() for agent in AGENTS]
+
+    errors = []
+    if len(agents) != len(AGENT_CHARACTERS):
+        errors.append(f"Exactly {len(AGENT_CHARACTERS)} agents are required.")
+
+    normalised = []
+    for index, character in enumerate(AGENT_CHARACTERS):
+        incoming = agents[index] if index < len(agents) else None
+        if incoming is None:
+            errors.append(f"Missing agent at position {index + 1}: {character}.")
+            continue
+        if incoming.character != character:
+            errors.append(f"Agent {index + 1} must be {character}.")
+
+        persona = (incoming.persona or "").strip()
+        if not persona:
+            errors.append(f"{character} persona is required.")
+        if len(persona) > MAX_PERSONA_LENGTH:
+            errors.append(f"{character} persona must be {MAX_PERSONA_LENGTH} characters or fewer.")
+
+        default_agent = AGENTS[index]
+        normalised.append({
+            "character": character,
+            "name": default_agent["name"],
+            "persona": persona,
+        })
+
+    if errors:
+        raise HTTPException(status_code=400, detail={"errors": errors})
+    return normalised
+
+
+def conversation_agents(conversation: dict) -> list[dict]:
+    agents = conversation.get("config", {}).get("agents")
+    if isinstance(agents, list) and len(agents) == len(AGENT_CHARACTERS):
+        return agents
+    return [agent.copy() for agent in AGENTS]
+
+
+def validate_review_rounds(review_rounds: Optional[int]) -> int:
+    value = DEFAULT_REVIEW_ROUNDS if review_rounds is None else review_rounds
+    if not isinstance(value, int) or value < MIN_REVIEW_ROUNDS or value > MAX_REVIEW_ROUNDS:
+        raise HTTPException(
+            status_code=400,
+            detail={"errors": [f"Review rounds must be an integer from {MIN_REVIEW_ROUNDS} to {MAX_REVIEW_ROUNDS}."]},
+        )
+    return value
+
+
+def conversation_review_rounds(conversation: dict) -> int:
+    try:
+        return validate_review_rounds(conversation.get("config", {}).get("review_rounds"))
+    except HTTPException:
+        return DEFAULT_REVIEW_ROUNDS
+
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "LLM Debate API"}
+    return {"status": "ok", "service": "Counseling Dialogue API"}
 
 
-# ---------------------------------------------------------------------------
-# Debates list / get
-# ---------------------------------------------------------------------------
+@app.get("/api/settings")
+async def get_settings():
+    return {
+        "default_model": DEFAULT_GEMINI_MODEL,
+        "agents": AGENTS,
+    }
 
-@app.get("/api/debates")
-async def list_debates():
-    """List all debates (metadata only)."""
+
+@app.get("/api/conversations")
+async def list_conversations():
     return storage.list_conversations()
 
 
-@app.get("/api/debates/{debate_id}")
-async def get_debate(debate_id: str):
-    """Get a specific debate."""
-    debate = storage.get_conversation(debate_id)
-    if debate is None:
-        raise HTTPException(status_code=404, detail="Debate not found")
-    return debate
-
-
-@app.delete("/api/debates/{debate_id}", status_code=204)
-async def delete_debate_record(debate_id: str):
-    """Delete a debate."""
-    import os
-    path = storage.get_debate_path(debate_id)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Debate not found")
-    os.remove(path)
-
-
-# ---------------------------------------------------------------------------
-# POV generation
-# ---------------------------------------------------------------------------
-
-@app.post("/api/generate-povs")
-async def generate_povs_endpoint(request: GeneratePOVsRequest):
-    """Generate two opposing POVs for a topic."""
-    result = await generate_povs(request.topic, request.keywords or "")
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Create debate
-# ---------------------------------------------------------------------------
-
-@app.post("/api/debates", status_code=201)
-async def create_debate(request: CreateDebateRequest):
-    """Validate models and create a new debate record."""
-    validation = await validate_models(request.model1, request.model2)
-    if not validation["valid"]:
-        raise HTTPException(status_code=400, detail={"errors": validation["errors"]})
-
-    debate_id = str(uuid.uuid4())
-    max_turns = request.max_turns if request.max_turns is not None else DEFAULT_MAX_TURNS
-
-    # Derive display names if not provided
-    model1_name = request.model1_name or request.model1.split("/")[-1]
-    model2_name = request.model2_name or request.model2.split("/")[-1]
-
+@app.post("/api/conversations", status_code=201)
+async def create_conversation(request: CreateConversationRequest):
+    conversation_id = str(uuid.uuid4())
+    agents = validate_agents(request.agents)
+    review_rounds = validate_review_rounds(request.review_rounds)
     config = {
-        "model1": request.model1,
-        "model2": request.model2,
-        "model1_name": model1_name,
-        "model2_name": model2_name,
-        "topic": request.topic,
-        "pov1": request.pov1,
-        "pov2": request.pov2,
-        "max_turns": max_turns,
-        "judge_model": request.judge_model or None,
+        "model": (request.model or DEFAULT_GEMINI_MODEL).strip(),
+        "agents": agents,
+        "review_rounds": review_rounds,
+    }
+    return storage.create_conversation(conversation_id, config)
+
+
+@app.get("/api/conversations/{conversation_id}")
+async def get_conversation(conversation_id: str):
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation
+
+
+@app.delete("/api/conversations/{conversation_id}", status_code=204)
+async def delete_conversation(conversation_id: str):
+    if not storage.delete_conversation(conversation_id):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+@app.post("/api/conversations/{conversation_id}/messages")
+async def create_message(conversation_id: str, request: CreateMessageRequest):
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    content = request.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail={"errors": ["Message is required."]})
+
+    client_message = {
+        "id": str(uuid.uuid4()),
+        "role": "client",
+        "content": content,
+        "created_at": now_iso(),
+    }
+    storage.add_message(conversation_id, client_message)
+
+    conversation = storage.get_conversation(conversation_id)
+    model = conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL
+    agents = conversation_agents(conversation)
+    review_rounds = conversation_review_rounds(conversation)
+
+    try:
+        agent_round = await run_counseling_round(
+            model=model,
+            messages=conversation.get("messages", []),
+            client_message=client_message,
+            agents=agents,
+            review_rounds=review_rounds,
+        )
+    except LocalLLMError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Counseling round failed: {exc}")
+
+    storage.add_agent_round(conversation_id, agent_round)
+
+    counselor_message = {
+        "id": str(uuid.uuid4()),
+        "role": "counselor",
+        "content": agent_round["winner"]["reply"],
+        "created_at": now_iso(),
+        "source_round_id": agent_round["id"],
+        "source_agent": agent_round["winner"]["character"],
+    }
+    storage.add_message(conversation_id, counselor_message)
+
+    conversation = storage.get_conversation(conversation_id)
+    return {
+        "client_message": client_message,
+        "counselor_message": counselor_message,
+        "agent_round": agent_round,
+        "conversation": conversation,
     }
 
-    debate = storage.create_debate(debate_id, config)
-    return debate
+
+def stream_event(event_type: str, payload: dict) -> str:
+    return json.dumps(
+        {"type": event_type, "payload": payload},
+        ensure_ascii=False,
+    ) + "\n"
 
 
-# ---------------------------------------------------------------------------
-# Start / stream debate
-# ---------------------------------------------------------------------------
-
-@app.post("/api/debates/{debate_id}/start")
-async def start_debate(debate_id: str):
-    """Stream the debate turn-by-turn via SSE."""
-    debate = storage.get_conversation(debate_id)
-    if debate is None:
-        raise HTTPException(status_code=404, detail="Debate not found")
-
-    if debate.get("status") not in ("pending", "error"):
-        raise HTTPException(status_code=400, detail="Debate already started or completed")
-
-    async def event_generator():
-        cfg = debate["config"]
-        model1 = cfg["model1"]
-        model2 = cfg["model2"]
-        model1_name = cfg["model1_name"]
-        model2_name = cfg["model2_name"]
-        topic = cfg["topic"]
-        pov1 = cfg["pov1"]
-        pov2 = cfg["pov2"]
-        max_turns = cfg["max_turns"]
-
-        judged = bool(cfg.get("judge_model"))
-        system1 = build_debater_system_prompt(
-            name=model1_name,
-            topic=topic,
-            pov=pov1,
-            opponent_name=model2_name,
-            opponent_pov=pov2,
-            max_turns=max_turns,
-            judged=judged,
-        )
-        system2 = build_debater_system_prompt(
-            name=model2_name,
-            topic=topic,
-            pov=pov2,
-            opponent_name=model1_name,
-            opponent_pov=pov1,
-            max_turns=max_turns,
-            judged=judged,
-        )
-
-        try:
-            storage.update_debate_status(debate_id, "in_progress")
-            yield f"data: {json.dumps({'type': 'debate_start', 'debate_id': debate_id})}\n\n"
-
-            # Start title generation in background
-            title_task = asyncio.create_task(generate_debate_title(topic))
-
-            debate_history: List[Dict[str, Any]] = []
-
-            total_messages = max_turns * 2  # each turn = both sides speak
-            for msg_index in range(1, total_messages + 1):
-                turn_number = (msg_index + 1) // 2  # round number (1-based)
-                # Alternate speakers: odd messages → model1, even messages → model2
-                if msg_index % 2 == 1:
-                    speaker = "model1"
-                    model = model1
-                    speaker_name = model1_name
-                    system_prompt = system1
-                    opponent_name = model2_name
-                else:
-                    speaker = "model2"
-                    model = model2
-                    speaker_name = model2_name
-                    system_prompt = system2
-                    opponent_name = model1_name
-
-                yield f"data: {json.dumps({'type': 'turn_start', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'speaker_name': speaker_name})}\n\n"
-
-                # Stream tokens with retry logic
-                content = ""
-                max_attempts = 3
-                retry_delay = 2.0
-
-                for attempt in range(1, max_attempts + 1):
-                    try:
-                        content = ""
-                        async for token in run_debate_turn_streaming(
-                            model=model,
-                            system_prompt=system_prompt,
-                            debate_history=debate_history,
-                            speaker_name=speaker_name,
-                            opponent_name=opponent_name,
-                            turn_number=msg_index,
-                            max_turns=total_messages,
-                        ):
-                            content += token
-                            yield f"data: {json.dumps({'type': 'token', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'token': token})}\n\n"
-                        break  # Success
-                    except Exception as e:
-                        print(f"Streaming error for {model} (attempt {attempt}/{max_attempts}): {e}")
-                        if attempt < max_attempts:
-                            await asyncio.sleep(retry_delay)
-                        else:
-                            content = ""
-
-                if not content:
-                    yield f"data: {json.dumps({'type': 'turn_error', 'turn_number': turn_number, 'msg_index': msg_index, 'speaker': speaker, 'message': f'Model {model} failed to respond'})}\n\n"
-                    continue
-
-                turn = {
-                    "speaker": speaker,
-                    "model": model,
-                    "speaker_name": speaker_name,
-                    "content": content,
-                    "turn_number": turn_number,
-                    "msg_index": msg_index,
-                }
-
-                debate_history.append(turn)
-                storage.add_debate_turn(debate_id, turn)
-
-                yield f"data: {json.dumps({'type': 'turn_complete', 'turn': turn})}\n\n"
-
-            # Finalize title
-            title = await title_task
-            storage.update_conversation_title(debate_id, title)
-            storage.update_debate_status(debate_id, "completed")
-
-            yield f"data: {json.dumps({'type': 'title_complete', 'title': title})}\n\n"
-            yield f"data: {json.dumps({'type': 'debate_complete'})}\n\n"
-
-        except Exception as e:
-            storage.update_debate_status(debate_id, "error")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        },
+async def indexed_candidate(model, index, agent, context, content, high_risk, round_number, previous_round):
+    candidate = await generate_candidate(
+        model,
+        agent,
+        context,
+        content,
+        high_risk,
+        round_number,
+        previous_round,
     )
+    return index, candidate
 
 
-# ---------------------------------------------------------------------------
-# Judge debate
-# ---------------------------------------------------------------------------
+async def indexed_score(model, index, agent, context, content, candidates, high_risk, round_number):
+    score = await score_candidates(model, agent, context, content, candidates, high_risk, round_number)
+    return index, score
 
-@app.post("/api/debates/{debate_id}/judge")
-async def judge_debate(debate_id: str):
-    """Run the configured judge model on a completed debate."""
-    debate = storage.get_conversation(debate_id)
-    if debate is None:
-        raise HTTPException(status_code=404, detail="Debate not found")
 
-    if debate.get("status") != "completed":
-        raise HTTPException(status_code=400, detail="Debate must be completed before judging")
+@app.post("/api/conversations/{conversation_id}/messages/stream")
+async def create_message_stream(conversation_id: str, request: CreateMessageRequest):
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
-    judge_model = debate["config"].get("judge_model")
-    if not judge_model:
-        raise HTTPException(status_code=400, detail="No judge model configured for this debate")
+    content = request.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail={"errors": ["Message is required."]})
 
-    cfg = debate["config"]
-    try:
-        result = await run_judge(
-            judge_model=judge_model,
-            topic=cfg["topic"],
-            model1_name=cfg["model1_name"],
-            pov1=cfg["pov1"],
-            model2_name=cfg["model2_name"],
-            pov2=cfg["pov2"],
-            turns=debate.get("turns", []),
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    client_message = {
+        "id": str(uuid.uuid4()),
+        "role": "client",
+        "content": content,
+        "created_at": now_iso(),
+    }
+    storage.add_message(conversation_id, client_message)
 
-    storage.save_judge_result(debate_id, result)
-    return result
+    conversation = storage.get_conversation(conversation_id)
+    model = conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL
+    agents = conversation_agents(conversation)
+    review_rounds = conversation_review_rounds(conversation)
+
+    async def generate_events():
+        yield stream_event("client_message", {"client_message": client_message})
+
+        context = visible_context(conversation.get("messages", []))
+        high_risk = is_high_risk(content)
+        rounds = []
+        previous_round = None
+        candidate_tasks = []
+        scoring_tasks = []
+        try:
+            for round_number in range(1, review_rounds + 1):
+                yield stream_event("round_started", {
+                    "round_number": round_number,
+                    "review_rounds": review_rounds,
+                    "agents": agents,
+                    "high_risk": high_risk,
+                    "model": model,
+                })
+
+                candidates_by_index = [None] * len(agents)
+                candidate_tasks = [
+                    asyncio.create_task(
+                        indexed_candidate(
+                            model,
+                            index,
+                            agent,
+                            context,
+                            content,
+                            high_risk,
+                            round_number,
+                            previous_round,
+                        )
+                    )
+                    for index, agent in enumerate(agents)
+                ]
+                for task in asyncio.as_completed(candidate_tasks):
+                    index, candidate = await task
+                    candidates_by_index[index] = candidate
+                    yield stream_event("candidate_ready", {
+                        "round_number": round_number,
+                        "index": index,
+                        "candidate": candidate,
+                    })
+
+                candidates = [candidate for candidate in candidates_by_index if candidate is not None]
+                yield stream_event("scoring_started", {
+                    "round_number": round_number,
+                    "candidate_count": len(candidates),
+                })
+
+                peer_scores_by_index = [None] * len(agents)
+                scoring_tasks = [
+                    asyncio.create_task(
+                        indexed_score(model, index, agent, context, content, candidates, high_risk, round_number)
+                    )
+                    for index, agent in enumerate(agents)
+                ]
+                for task in asyncio.as_completed(scoring_tasks):
+                    index, score = await task
+                    peer_scores_by_index[index] = score
+                    yield stream_event("score_ready", {
+                        "round_number": round_number,
+                        "index": index,
+                        "score": score,
+                    })
+
+                peer_scores = [score for score in peer_scores_by_index if score is not None]
+                round_result = build_round_result(round_number, high_risk, candidates, peer_scores)
+                rounds.append(round_result)
+                previous_round = round_result
+                yield stream_event("round_complete", {
+                    "round_number": round_number,
+                    "round": round_result,
+                })
+
+            agent_round = build_agent_round(client_message, high_risk, review_rounds, rounds)
+            storage.add_agent_round(conversation_id, agent_round)
+
+            counselor_message = {
+                "id": str(uuid.uuid4()),
+                "role": "counselor",
+                "content": agent_round["winner"]["reply"],
+                "created_at": now_iso(),
+                "source_round_id": agent_round["id"],
+                "source_agent": agent_round["winner"]["character"],
+            }
+            storage.add_message(conversation_id, counselor_message)
+
+            updated_conversation = storage.get_conversation(conversation_id)
+            yield stream_event("winner_selected", {
+                "round_number": review_rounds,
+                "agent_round": agent_round,
+                "counselor_message": counselor_message,
+                "conversation": updated_conversation,
+            })
+        except LocalLLMError as exc:
+            for task in candidate_tasks + scoring_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
+            yield stream_event("error", {"message": str(exc)})
+        except Exception as exc:
+            for task in candidate_tasks + scoring_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
+            yield stream_event("error", {"message": f"Counseling round failed: {exc}"})
+
+    return StreamingResponse(generate_events(), media_type="application/x-ndjson")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
 {
-  "pov_generator_model": "anthropic/claude-sonnet-4-5",
-  "default_max_turns": 5
+  "default_llm_model": "kokoro-chat"
 }

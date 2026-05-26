@@ -1,146 +1,70 @@
-# LLM Debate
+# Counseling Dialogue
 
-<img src="frontend/public/llm_debate.jpg" alt="LLM Debate" width="180" />
+A local counseling dialogue prototype powered by a local vLLM OpenAI-compatible API. The visible chat is a client/counselor conversation. Behind each counselor response, five internal Inside Out-style agents propose and score possible replies; the highest-scoring reply is shown to the client.
 
-A web app that pits two LLMs against each other in a structured debate. Pick a topic, assign each model a point of view, and watch them argue it out turn by turn — with an optional judge model to score the result.
+This is a supportive role-play prototype, not a licensed clinical tool.
 
 ## How It Works
 
-1. **Setup** — Enter a debate topic (or let the AI suggest one), pick two models from OpenRouter, and assign each a point of view.
-2. **Debate** — The models argue back and forth for a configurable number of turns, streamed live to the UI.
-3. **Judge** (optional) — A third model evaluates the debate and declares a winner with a report card.
+1. The client sends a message in the chat UI.
+2. Five internal agents generate Japanese counselor reply candidates: Disgust, Fear, Joy, Sadness, and Anger.
+3. The five agents score each candidate on empathy, safety, clarity, helpful next step, and appropriateness.
+4. The highest-scoring candidate is saved and shown as the counselor reply.
+5. The visible conversation and the internal agent review are stored locally as JSON.
 
-Responses are streamed token-by-token so you see the debate unfold in real time.
-
-## Screenshots
-
-Configure the topic, pick two models, assign positions, and set the number of turns.
-
-![Debate setup](assets/llm_debate_0.png)
-
-Watch the models argue back and forth in real time, streamed token by token.
-
-![Live debate](assets/llm_debate_1.png)
-
-An optional judge model scores each side across multiple criteria and declares a winner.
-
-![Judge verdict](assets/llm_debate_2.png)
-
-## Project Structure
-
-```
-llm-debate/
-├── backend/              # FastAPI backend (Python)
-│   ├── main.py           # API routes and SSE streaming
-│   ├── debate.py         # Debate logic, POV generation, judge
-│   ├── openrouter.py     # OpenRouter API client
-│   ├── storage.py        # JSON-based persistence (data/conversations/)
-│   ├── models.py         # Model validation
-│   └── config.py         # Loads config.json and environment variables
-├── frontend/             # React + Vite frontend
-│   └── src/
-│       ├── App.jsx
-│       ├── api.js
-│       └── components/
-│           ├── DebateSetup.jsx   # Topic + model selection
-│           ├── DebateView.jsx    # Live debate stream
-│           ├── JudgeReport.jsx   # Judge verdict display
-│           └── Sidebar.jsx       # Conversation history
-├── data/conversations/   # Stored debates (auto-created)
-├── config.json           # Default model and turn settings
-├── Makefile              # Start/stop shortcuts
-└── .env                  # API key (not committed)
-```
-
-## Prerequisites
-
-- **[uv](https://docs.astral.sh/uv/)** — Python package and project manager
-- **Node.js 18+** and npm
-- An **[OpenRouter](https://openrouter.ai) API key**
-
-Install uv if you don't have it:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-## Setup
-
-### 1. Clone and install dependencies
-
-```bash
-# Backend — uv creates the venv and installs everything from pyproject.toml
-uv sync
-
-# Frontend
-cd frontend && npm install
-```
-
-### 2. Configure your API key
+## Local LLM
 
 Create a `.env` file in the project root:
 
-```
-OPENROUTER_API_KEY=your_key_here
+```env
+LOCAL_LLM_URL=http://localhost:8000
+LOCAL_LLM_MODEL=kokoro-chat
 ```
 
-### 3. (Optional) Adjust defaults in `config.json`
+The backend calls `${LOCAL_LLM_URL}/v1/chat/completions`. The frontend never asks for or stores API keys.
+
+## Setup
+
+```bash
+uv sync
+cd frontend && npm install
+```
+
+## Run
+
+```bash
+make start
+```
+
+Open `http://localhost:5173`.
+
+Stop both services:
+
+```bash
+make stop
+```
+
+## Configuration
+
+`config.json`:
 
 ```json
 {
-  "pov_generator_model": "anthropic/claude-sonnet-4-5",
-  "default_max_turns": 5
+  "default_llm_model": "kokoro-chat"
 }
 ```
 
-- `pov_generator_model` — model used to auto-generate debate topics and points of view
-- `default_max_turns` — number of rounds (each turn = both models speak once)
-
-## Starting the App
-
-Use the Makefile to start both services in the background:
-
-```bash
-make start     # start backend + frontend
-make stop      # stop both
-make restart   # stop then start
-```
-
-Or start them individually:
-
-```bash
-make backend   # backend only  → http://localhost:8001
-make frontend  # frontend only → http://localhost:5173
-```
-
-Logs are written to `.logs/backend.log` and `.logs/frontend.log`.
-
-To run the backend manually (from the project root):
-
-```bash
-uv run python -m backend.main
-```
-
-## API
-
-The backend exposes a REST API at `http://localhost:8001`:
+## Backend API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/generate-povs` | Generate opposing POVs for a topic |
-| `POST` | `/api/debates` | Create a new debate |
-| `POST` | `/api/debates/{id}/start` | Stream the debate (SSE) |
-| `POST` | `/api/debates/{id}/judge` | Run the judge model |
-| `GET` | `/api/debates` | List all past debates |
-| `GET` | `/api/debates/{id}` | Get a specific debate |
-| `DELETE` | `/api/debates/{id}` | Delete a debate |
+| `GET` | `/api/settings` | Default model and agent definitions |
+| `GET` | `/api/conversations` | List saved sessions |
+| `POST` | `/api/conversations` | Create a session |
+| `GET` | `/api/conversations/{id}` | Get a saved session |
+| `DELETE` | `/api/conversations/{id}` | Delete a saved session |
+| `POST` | `/api/conversations/{id}/messages` | Add a client message and generate counselor response |
 
-## Model Selection
+## Safety
 
-Any model available on [OpenRouter](https://openrouter.ai/models) can be used. Use the full `provider/model-name` identifier (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4-5`, `google/gemini-2.0-flash-001`).
-
-The two debater models and the optional judge model can all be different.
-
-## Acknowledgements
-
-This project was built on top of [Andrej Karpathy's llm-council](https://github.com/karpathy/llm-council), which introduced the idea of using multiple LLMs to collaboratively evaluate and rank responses.
+Messages containing terms such as `死にたい`, `自殺`, or `消えたい` trigger a crisis-safety prompt path. The generated response is instructed to validate the client, ask about immediate danger, and encourage contacting emergency/local crisis support or a trusted person.

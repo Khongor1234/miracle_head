@@ -129,7 +129,7 @@
   position: relative;
 }
 
-.delete-debate-btn {
+.delete-session-btn {
   position: absolute;
   right: 6px;
   top: 50%;
@@ -151,11 +151,11 @@
   padding: 0;
 }
 
-.conversation-item:hover .delete-debate-btn {
+.conversation-item:hover .delete-session-btn {
   opacity: 1;
 }
 
-.delete-debate-btn:hover {
+.delete-session-btn:hover {
   background: rgba(248, 113, 113, 0.2);
   border-color: rgba(248, 113, 113, 0.4);
   color: #f87171;
