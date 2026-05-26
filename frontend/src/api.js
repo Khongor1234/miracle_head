@@ -4,6 +4,10 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
+const BASE_HEADERS = {
+  'ngrok-skip-browser-warning': '1',
+};
+
 async function parseError(response, fallback) {
   const data = await response.json().catch(() => ({}));
   const err = new Error(data.detail || fallback);
@@ -13,13 +17,13 @@ async function parseError(response, fallback) {
 
 export const api = {
   async getSettings() {
-    const response = await fetch(`${API_BASE}/api/settings`);
+    const response = await fetch(`${API_BASE}/api/settings`, { headers: BASE_HEADERS });
     if (!response.ok) throw new Error('Failed to load settings');
     return response.json();
   },
 
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+    const response = await fetch(`${API_BASE}/api/conversations`, { headers: BASE_HEADERS });
     if (!response.ok) throw new Error('Failed to list conversations');
     return response.json();
   },
@@ -27,7 +31,7 @@ export const api = {
   async createConversation(config = {}) {
     const response = await fetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
     if (!response.ok) throw await parseError(response, 'Failed to create conversation');
@@ -35,7 +39,7 @@ export const api = {
   },
 
   async getConversation(conversationId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}`);
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}`, { headers: BASE_HEADERS });
     if (!response.ok) throw new Error('Failed to get conversation');
     return response.json();
   },
@@ -43,6 +47,7 @@ export const api = {
   async deleteConversation(conversationId) {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}`, {
       method: 'DELETE',
+      headers: BASE_HEADERS,
     });
     if (!response.ok) throw new Error('Failed to delete conversation');
   },
@@ -50,7 +55,7 @@ export const api = {
   async sendMessage(conversationId, content) {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');
@@ -60,7 +65,7 @@ export const api = {
   async sendMessageStream(conversationId, content, onEvent) {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');
