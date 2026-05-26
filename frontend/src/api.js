@@ -2,7 +2,7 @@
  * API client for the counseling dialogue backend.
  */
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
 async function parseError(response, fallback) {
   const data = await response.json().catch(() => ({}));
