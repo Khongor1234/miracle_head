@@ -118,11 +118,14 @@ function App() {
   const ensureConversation = async () => {
     if (currentConversation) return currentConversation;
     const sessionAgents = agents.length ? agents : defaultAgents;
-    const conversation = await api.createConversation({
+    const config = {
       model: model.trim() || 'kokoro-chat',
-      agents: sessionAgents,
       review_rounds: reviewRounds,
-    });
+    };
+    if (sessionAgents.length === 5 && sessionAgents.every((agent) => agent.persona?.trim())) {
+      config.agents = sessionAgents;
+    }
+    const conversation = await api.createConversation(config);
     setCurrentConversation(conversation);
     setCurrentConversationId(conversation.id);
     setConversations((prev) => [

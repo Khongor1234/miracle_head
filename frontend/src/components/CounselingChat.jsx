@@ -33,7 +33,8 @@ export default function CounselingChat({
   const rounds = conversation?.agent_rounds ?? [];
   const activeAgents = agents?.length ? agents : defaultAgents;
   const personasLocked = messages.length > 0 || sending;
-  const personaError = !personasLocked && (
+  const hasPersonaConfig = activeAgents.length > 0;
+  const personaError = !personasLocked && hasPersonaConfig && (
     activeAgents.length !== 5 || activeAgents.some((agent) => !agent.persona?.trim())
   );
   const latestSavedRound = rounds.length ? rounds[rounds.length - 1] : null;
