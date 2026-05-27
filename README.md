@@ -17,7 +17,7 @@ This is a supportive role-play prototype, not a licensed clinical tool.
 Create a `.env` file in the project root:
 
 ```env
-DEFAULT_LLM_MODEL=gemini-3.1-flash-lite-preview
+DEFAULT_LLM_MODEL=gemini-2.5-flash-lite
 GEMINI_API_KEY=your_google_ai_studio_api_key_here
 LOCAL_LLM_URL=http://localhost:8000
 LOCAL_LLM_MODEL=kokoro-chat
@@ -54,7 +54,7 @@ make stop
 
 ```json
 {
-  "default_llm_model": "gemini-3.1-flash-lite-preview"
+  "default_llm_model": "gemini-2.5-flash-lite"
 }
 ```
 

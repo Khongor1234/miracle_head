@@ -19,7 +19,7 @@ with open(_config_path) as f:
 # endpoint code and saved conversations remain compatible.
 DEFAULT_GEMINI_MODEL = os.getenv(
     "DEFAULT_LLM_MODEL",
-    _config.get("default_llm_model", _config.get("default_gemini_model", "gemini-3.1-flash-lite-preview")),
+    _config.get("default_llm_model", _config.get("default_gemini_model", "gemini-2.5-flash-lite")),
 )
 
 # Gemini API endpoint
