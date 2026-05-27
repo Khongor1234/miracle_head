@@ -25,5 +25,8 @@ DEFAULT_GEMINI_MODEL = os.getenv(
 # Gemini API endpoint
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-# Data directory for conversation storage
-DATA_DIR = "data/conversations"
+# Data directories for JSON storage. On a Linux server, set these to a
+# persistent path such as /var/lib/llm-debate/conversations and
+# /var/lib/llm-debate/dialogues.
+DATA_DIR = os.getenv("DATA_DIR", "data/conversations")
+DIALOGUE_DIR = os.getenv("DIALOGUE_DIR", str(Path(DATA_DIR).parent / "dialogues"))

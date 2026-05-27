@@ -7,10 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .config import DATA_DIR
+from .config import DATA_DIR, DIALOGUE_DIR
 
 APP_ROLES = {"client", "counselor"}
-DIALOGUE_DIR = os.path.join(os.path.dirname(DATA_DIR), "dialogues")
 
 
 def ensure_data_dir():

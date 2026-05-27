@@ -21,6 +21,8 @@ DEFAULT_LLM_MODEL=gemini-2.5-flash-lite
 GEMINI_API_KEY=your_google_ai_studio_api_key_here
 LOCAL_LLM_URL=http://localhost:8000
 LOCAL_LLM_MODEL=kokoro-chat
+DATA_DIR=data/conversations
+DIALOGUE_DIR=data/dialogues
 ```
 
 The frontend model field controls which backend is used. Model names starting with `gemini` or `models/gemini` are sent to the Gemini API. Other model names are sent to the local OpenAI-compatible endpoint at `${LOCAL_LLM_URL}/v1/chat/completions`.
@@ -46,6 +48,47 @@ Stop both services:
 
 ```bash
 make stop
+```
+
+## Linux Server Storage
+
+For persistent JSON storage on a Linux server, point the backend at server-owned directories:
+
+```env
+DATA_DIR=/var/lib/llm-debate/conversations
+DIALOGUE_DIR=/var/lib/llm-debate/dialogues
+```
+
+Create the folders and give the backend user write access:
+
+```bash
+sudo mkdir -p /var/lib/llm-debate/conversations /var/lib/llm-debate/dialogues
+sudo chown -R $USER:$USER /var/lib/llm-debate
+```
+
+The full app session JSON is saved to `DATA_DIR`. The simplified dataset-style JSON is saved to `DIALOGUE_DIR`:
+
+```json
+{
+  "dialogue": [
+    {
+      "role": "client",
+      "time": "2026-05-27T18:00:00",
+      "utterance": "こんにちは"
+    },
+    {
+      "role": "counselor",
+      "time": "2026-05-27T18:00:05",
+      "utterance": "こんにちは。相談員です。"
+    }
+  ]
+}
+```
+
+Example backend command:
+
+```bash
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8001
 ```
 
 ## Configuration
