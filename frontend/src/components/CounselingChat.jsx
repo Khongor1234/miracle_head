@@ -294,7 +294,14 @@ export default function CounselingChat({
               <div className="persona-grid">
                 {activeAgents.map((agent) => (
                   <label className={`persona-card ${agentClass(agent.character)}`} key={agent.character}>
-                    <span>{agent.character}</span>
+                    <div className="persona-card-head">
+                      <img
+                        src={CHARACTER_IMGS[agent.character]}
+                        alt={agent.character}
+                        className="persona-avatar-mini"
+                      />
+                      <span>{agent.character}</span>
+                    </div>
                     <textarea
                       value={agent.persona}
                       onChange={(event) => updatePersona(agent.character, event.target.value)}

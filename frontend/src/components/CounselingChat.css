@@ -775,36 +775,76 @@
 
 .persona-grid { display: flex; flex-direction: column; gap: 8px; }
 
+/* ─── Character accent colours ──────────────────────────────── */
+.persona-card.agent-joy     { --agent-color: #c09020; --agent-bg: rgba(255, 220, 80, 0.10); }
+.persona-card.agent-sadness { --agent-color: #4a7fc0; --agent-bg: rgba(74, 127, 192, 0.10); }
+.persona-card.agent-anger   { --agent-color: #c04040; --agent-bg: rgba(192, 64, 64, 0.10); }
+.persona-card.agent-fear    { --agent-color: #7a4ab8; --agent-bg: rgba(122, 74, 184, 0.10); }
+.persona-card.agent-disgust { --agent-color: #3a9060; --agent-bg: rgba(58, 144, 96, 0.10); }
+
 .persona-card {
-  --agent-color: var(--hq-blue-2);
+  --agent-color: var(--hq-purple);
+  --agent-bg: rgba(210, 198, 242, 0.20);
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 10px 12px;
-  border: 1px solid var(--hq-border);
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-left: 3px solid var(--agent-color);
-  border-radius: 8px;
-  background: rgba(210, 198, 242, 0.30);
+  border-radius: 12px;
+  background: var(--agent-bg);
+  transition: box-shadow 0.2s;
 }
 
-.persona-card span { color: var(--agent-color); font-size: 11px; font-weight: 800; }
+.persona-card:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agent-color) 30%, transparent);
+}
+
+/* ─── Card header (avatar + name) ──────────────────────────── */
+.persona-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.persona-avatar-mini {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  object-position: bottom;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.60);
+  border: 1.5px solid color-mix(in srgb, var(--agent-color) 35%, transparent);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.persona-card-head span {
+  color: var(--agent-color);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 .persona-card textarea {
   width: 100%;
   min-height: 100px;
   resize: vertical;
-  border: 1px solid var(--hq-border-2);
-  border-radius: 6px;
-  background: rgba(200, 185, 240, 0.22);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.50);
   color: var(--hq-text-1);
-  padding: 8px;
+  padding: 9px 10px;
   font: inherit;
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 12.5px;
+  line-height: 1.5;
   outline: none;
+  transition: border-color 0.15s;
 }
 
-.persona-card textarea:focus { border-color: var(--agent-color); }
+.persona-card textarea:focus { border-color: var(--agent-color); background: rgba(255,255,255,0.75); }
 .persona-card textarea:disabled { color: var(--hq-text-2); opacity: 0.76; resize: none; }
 
 .persona-error {
