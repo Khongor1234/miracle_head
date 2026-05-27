@@ -847,6 +847,24 @@
 .persona-card textarea:focus { border-color: var(--agent-color); background: rgba(255,255,255,0.75); }
 .persona-card textarea:disabled { color: var(--hq-text-2); opacity: 0.76; resize: none; }
 
+.persona-card textarea::-webkit-scrollbar {
+  width: 4px;
+}
+.persona-card textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+.persona-card textarea::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--agent-color) 35%, transparent);
+  border-radius: 99px;
+}
+.persona-card textarea::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--agent-color) 60%, transparent);
+}
+.persona-card textarea {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--agent-color) 35%, transparent) transparent;
+}
+
 .persona-error {
   margin-top: 8px;
   color: #fca5a5;
