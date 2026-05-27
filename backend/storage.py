@@ -2,11 +2,15 @@
 
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .config import DATA_DIR
+
+APP_ROLES = {"client", "counselor"}
+DIALOGUE_DIR = os.path.join(os.path.dirname(DATA_DIR), "dialogues")
 
 
 def ensure_data_dir():
@@ -14,9 +18,67 @@ def ensure_data_dir():
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
+def ensure_dialogue_dir():
+    """Ensure the simplified dialogue export directory exists."""
+    Path(DIALOGUE_DIR).mkdir(parents=True, exist_ok=True)
+
+
 def get_conversation_path(conversation_id: str) -> str:
     """Get the file path for a conversation."""
     return os.path.join(DATA_DIR, f"{conversation_id}.json")
+
+
+def get_dialogue_path(conversation_id: str) -> str:
+    """Get the file path for the simplified dialogue JSON."""
+    return os.path.join(DIALOGUE_DIR, f"{conversation_id}.json")
+
+
+def clean_utterance(value: Any) -> str:
+    """Keep dialogue exports focused on visible speech, even if an old reply stored raw JSON."""
+    text = str(value or "")
+    current = text.strip()
+    for _ in range(3):
+        try:
+            parsed = json.loads(current)
+        except (TypeError, json.JSONDecodeError):
+            break
+        if isinstance(parsed, str):
+            current = parsed.strip()
+            continue
+        if isinstance(parsed, dict) and "reply" in parsed:
+            return str(parsed.get("reply") or "").strip()
+        break
+
+    match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(f'"{match.group(1)}"').strip()
+        except json.JSONDecodeError:
+            return match.group(1).strip()
+    return text
+
+
+def build_dialogue(messages: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Convert app messages to the simple dataset-style dialogue format."""
+    dialogue = []
+    for message in messages:
+        role = message.get("role")
+        if role not in APP_ROLES:
+            continue
+        dialogue.append({
+            "role": role,
+            "time": message.get("created_at") or message.get("time") or "",
+            "utterance": clean_utterance(message.get("content", message.get("utterance", ""))),
+        })
+    return dialogue
+
+
+def save_dialogue(conversation: Dict[str, Any]):
+    """Write a companion JSON containing only client/counselor dialogue."""
+    ensure_dialogue_dir()
+    path = get_dialogue_path(conversation["id"])
+    with open(path, "w") as f:
+        json.dump({"dialogue": conversation.get("dialogue", [])}, f, indent=2, ensure_ascii=False)
 
 
 def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -29,6 +91,7 @@ def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[st
         "title": "New counseling session",
         "config": config,
         "messages": [],
+        "dialogue": [],
         "agent_rounds": [],
         "status": "active",
     }
@@ -49,9 +112,11 @@ def save_conversation(conversation: Dict[str, Any]):
     """Save a conversation to storage."""
     ensure_data_dir()
     conversation["updated_at"] = datetime.utcnow().isoformat()
+    conversation["dialogue"] = build_dialogue(conversation.get("messages", []))
     path = get_conversation_path(conversation["id"])
     with open(path, "w") as f:
         json.dump(conversation, f, indent=2, ensure_ascii=False)
+    save_dialogue(conversation)
 
 
 def list_conversations() -> List[Dict[str, Any]]:
@@ -66,7 +131,7 @@ def list_conversations() -> List[Dict[str, Any]]:
             data = json.load(f)
         if "id" not in data:
             continue
-        messages = data.get("messages", data.get("turns", []))
+        messages = data.get("messages", data.get("turns", data.get("dialogue", [])))
         conversations.append({
             "id": data["id"],
             "created_at": data.get("created_at"),
@@ -133,4 +198,7 @@ def delete_conversation(conversation_id: str) -> bool:
     if not os.path.exists(path):
         return False
     os.remove(path)
+    dialogue_path = get_dialogue_path(conversation_id)
+    if os.path.exists(dialogue_path):
+        os.remove(dialogue_path)
     return True
