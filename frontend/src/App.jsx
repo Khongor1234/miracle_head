@@ -40,7 +40,7 @@ function App() {
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
-  const [model, setModel] = useState('kokoro-chat');
+  const [model, setModel] = useState('gemini-3.1-flash-lite-preview');
   const [agents, setAgents] = useState([]);
   const [defaultAgents, setDefaultAgents] = useState([]);
   const [reviewRounds, setReviewRounds] = useState(DEFAULT_REVIEW_ROUNDS);
@@ -119,7 +119,7 @@ function App() {
     if (currentConversation) return currentConversation;
     const sessionAgents = agents.length ? agents : defaultAgents;
     const config = {
-      model: model.trim() || 'kokoro-chat',
+      model: model.trim() || 'gemini-3.1-flash-lite-preview',
       review_rounds: reviewRounds,
     };
     if (sessionAgents.length === 5 && sessionAgents.every((agent) => agent.persona?.trim())) {
@@ -157,11 +157,12 @@ function App() {
       rounds: [],
     });
     try {
+      const selectedModel = model.trim() || 'gemini-3.1-flash-lite-preview';
       const conversation = await ensureConversation();
       activeConversationId = conversation.id;
       setLiveRound((prev) => ({
         ...prev,
-        model: conversation.config?.model || model,
+        model: selectedModel,
       }));
       const pendingClient = {
         id: `pending-${Date.now()}`,
@@ -174,7 +175,7 @@ function App() {
         messages: [...(prev?.messages || []), pendingClient],
       }));
 
-      await api.sendMessageStream(conversation.id, content, (event) => {
+      await api.sendMessageStream(conversation.id, content, selectedModel, (event) => {
         const payload = event.payload || {};
 
         if (event.type === 'client_message') {
@@ -264,6 +265,7 @@ function App() {
         if (event.type === 'winner_selected') {
           setLiveRound(payload.agent_round);
           setCurrentConversation(payload.conversation);
+          if (payload.conversation?.config?.model) setModel(payload.conversation.config.model);
         }
       });
       setCurrentConversationId(conversation.id);

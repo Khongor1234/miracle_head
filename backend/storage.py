@@ -93,6 +93,16 @@ def add_message(conversation_id: str, message: Dict[str, Any]) -> Dict[str, Any]
     return message
 
 
+def update_conversation_config(conversation_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    """Update stored conversation config values."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+    conversation.setdefault("config", {}).update(updates)
+    save_conversation(conversation)
+    return conversation
+
+
 def add_agent_round(conversation_id: str, agent_round: Dict[str, Any]) -> Dict[str, Any]:
     """Append an internal five-agent review round."""
     conversation = get_conversation(conversation_id)
@@ -124,4 +134,3 @@ def delete_conversation(conversation_id: str) -> bool:
         return False
     os.remove(path)
     return True
-

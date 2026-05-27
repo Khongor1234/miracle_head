@@ -35,6 +35,9 @@ async def query_gemini(
     if not GEMINI_API_KEY:
         raise GeminiError("GEMINI_API_KEY is not set in .env")
 
+    model = (model or "").strip()
+    if model.startswith("models/"):
+        model = model.removeprefix("models/")
     url = f"{GEMINI_API_URL}/models/{model}:generateContent"
     headers = {
         "Content-Type": "application/json",

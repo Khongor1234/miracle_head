@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List
 
-from .local_llm import LocalLLMError, query_local_llm
+from .llm import LLMError, query_llm
 
 
 AGENTS = [
@@ -358,14 +358,14 @@ async def generate_candidate(
     previous_round: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     try:
-        raw = await query_local_llm(
+        raw = await query_llm(
             model,
             candidate_prompt(agent, conversation_context, client_text, high_risk, round_number, previous_round),
             temperature=0.55,
             max_output_tokens=512,
             response_mime_type="application/json",
         )
-    except LocalLLMError:
+    except LLMError:
         raw = (
             "今ここで話してくれてありがとうございます。"
             "まず安全を一緒に確認したいです。今すぐ自分を傷つけそうな危険はありますか。"
@@ -396,7 +396,7 @@ async def score_candidates(
     round_number: int = 1,
 ) -> Dict[str, Any]:
     try:
-        raw = await query_local_llm(
+        raw = await query_llm(
             model,
             scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number),
             temperature=0.15,
@@ -404,7 +404,7 @@ async def score_candidates(
             response_mime_type="application/json",
         )
         data = parse_json_object(raw)
-    except (LocalLLMError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+    except (LLMError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         return fallback_peer_scores(judge_agent, candidates, high_risk, str(exc))
     scores = data.get("scores", [])
     by_character = {score.get("character"): score for score in scores if score.get("character")}

@@ -52,21 +52,21 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete conversation');
   },
 
-  async sendMessage(conversationId, content) {
+  async sendMessage(conversationId, content, model) {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, model }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');
     return response.json();
   },
 
-  async sendMessageStream(conversationId, content, onEvent) {
+  async sendMessageStream(conversationId, content, model, onEvent) {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/stream`, {
       method: 'POST',
       headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, model }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');
     if (!response.body) throw new Error('Streaming is not supported by this browser.');

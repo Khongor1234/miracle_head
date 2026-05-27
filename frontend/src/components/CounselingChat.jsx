@@ -32,7 +32,7 @@ export default function CounselingChat({
   const messages = conversation?.messages ?? [];
   const rounds = conversation?.agent_rounds ?? [];
   const activeAgents = agents?.length ? agents : defaultAgents;
-  const personasLocked = messages.length > 0 || sending;
+  const personasLocked = sending;
   const hasPersonaConfig = activeAgents.length > 0;
   const personaError = !personasLocked && hasPersonaConfig && (
     activeAgents.length !== 5 || activeAgents.some((agent) => !agent.persona?.trim())
@@ -110,9 +110,8 @@ export default function CounselingChat({
             <label htmlFor="model">LLM model</label>
             <input
               id="model"
-              value={conversation?.config?.model || model}
+              value={model}
               onChange={(e) => onModelChange(e.target.value)}
-              disabled={Boolean(conversation?.id)}
             />
           </div>
         </header>
@@ -202,7 +201,7 @@ export default function CounselingChat({
               <div className="persona-editor-head">
                 <div>
                   <span>Editing Status</span>
-                  <strong>{personasLocked ? 'Locked for this session' : 'Editable before first message'}</strong>
+                  <strong>{personasLocked ? 'Locked while sending' : 'Editable'}</strong>
                 </div>
                 <button type="button" onClick={resetPersonas} disabled={personasLocked || !defaultAgents.length}>
                   Reset
@@ -230,7 +229,7 @@ export default function CounselingChat({
               <div className="round-control">
                 <div>
                   <span>Review rounds</span>
-                  <strong>{personasLocked ? `${reviewRounds} rounds locked` : 'Choose 1 to 5 rounds'}</strong>
+                  <strong>{personasLocked ? `${reviewRounds} rounds locked while sending` : 'Choose 1 to 5 rounds'}</strong>
                 </div>
                 <div className="round-options" role="group" aria-label="Review rounds">
                   {[1, 2, 3, 4, 5].map((roundNumber) => (

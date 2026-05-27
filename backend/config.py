@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Legacy Gemini API key. Local vLLM is used by the counseling engine now.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Load config from config.json at project root
@@ -18,7 +17,10 @@ with open(_config_path) as f:
 
 # Default model for counselor agents. Keep the old constant name so existing
 # endpoint code and saved conversations remain compatible.
-DEFAULT_GEMINI_MODEL = _config.get("default_llm_model", _config.get("default_gemini_model", "kokoro-chat"))
+DEFAULT_GEMINI_MODEL = os.getenv(
+    "DEFAULT_LLM_MODEL",
+    _config.get("default_llm_model", _config.get("default_gemini_model", "gemini-3.1-flash-lite-preview")),
+)
 
 # Gemini API endpoint
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"

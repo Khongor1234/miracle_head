@@ -24,7 +24,7 @@ from .counseling import (
     score_candidates,
     visible_context,
 )
-from .local_llm import LocalLLMError
+from .llm import LLMError
 
 app = FastAPI(title="Counseling Dialogue API")
 
@@ -57,6 +57,7 @@ class CreateConversationRequest(BaseModel):
 
 class CreateMessageRequest(BaseModel):
     content: str
+    model: Optional[str] = None
 
 
 def validate_agents(agents: Optional[List[AgentRequest]]) -> list[dict]:
@@ -182,7 +183,9 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
     storage.add_message(conversation_id, client_message)
 
     conversation = storage.get_conversation(conversation_id)
-    model = conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL
+    model = (request.model or conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL).strip()
+    if model != conversation.get("config", {}).get("model"):
+        conversation = storage.update_conversation_config(conversation_id, {"model": model})
     agents = conversation_agents(conversation)
     review_rounds = conversation_review_rounds(conversation)
 
@@ -194,7 +197,7 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
             agents=agents,
             review_rounds=review_rounds,
         )
-    except LocalLLMError as exc:
+    except LLMError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Counseling round failed: {exc}")
@@ -264,7 +267,9 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
     storage.add_message(conversation_id, client_message)
 
     conversation = storage.get_conversation(conversation_id)
-    model = conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL
+    model = (request.model or conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL).strip()
+    if model != conversation.get("config", {}).get("model"):
+        conversation = storage.update_conversation_config(conversation_id, {"model": model})
     agents = conversation_agents(conversation)
     review_rounds = conversation_review_rounds(conversation)
 
@@ -363,7 +368,7 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                 "counselor_message": counselor_message,
                 "conversation": updated_conversation,
             })
-        except LocalLLMError as exc:
+        except LLMError as exc:
             for task in candidate_tasks + scoring_tasks:
                 if not task.done():
                     task.cancel()

@@ -12,16 +12,20 @@ This is a supportive role-play prototype, not a licensed clinical tool.
 4. The highest-scoring candidate is saved and shown as the counselor reply.
 5. The visible conversation and the internal agent review are stored locally as JSON.
 
-## Local LLM
+## LLM Configuration
 
 Create a `.env` file in the project root:
 
 ```env
+DEFAULT_LLM_MODEL=gemini-3.1-flash-lite-preview
+GEMINI_API_KEY=your_google_ai_studio_api_key_here
 LOCAL_LLM_URL=http://localhost:8000
 LOCAL_LLM_MODEL=kokoro-chat
 ```
 
-The backend calls `${LOCAL_LLM_URL}/v1/chat/completions`. The frontend never asks for or stores API keys.
+The frontend model field controls which backend is used. Model names starting with `gemini` or `models/gemini` are sent to the Gemini API. Other model names are sent to the local OpenAI-compatible endpoint at `${LOCAL_LLM_URL}/v1/chat/completions`.
+
+The frontend never asks for or stores API keys.
 
 ## Setup
 
@@ -50,7 +54,7 @@ make stop
 
 ```json
 {
-  "default_llm_model": "kokoro-chat"
+  "default_llm_model": "gemini-3.1-flash-lite-preview"
 }
 ```
 
