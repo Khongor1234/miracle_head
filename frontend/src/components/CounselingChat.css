@@ -266,11 +266,21 @@
 }
 
 /* ─── Agent color accents ──────────────────────────────────── */
-.agent-disgust { --agent-color: #5ccf7e; }
-.agent-fear    { --agent-color: #b58cff; }
-.agent-joy     { --agent-color: #ffd166; }
-.agent-sadness { --agent-color: #5ba3f5; }
-.agent-anger   { --agent-color: #f45b69; }
+.agent-disgust { --agent-color: #5ccf7e; --agent-bg: rgba(92, 207, 126, 0.10); }
+.agent-fear    { --agent-color: #b58cff; --agent-bg: rgba(181, 140, 255, 0.10); }
+.agent-joy     { --agent-color: #ffd166; --agent-bg: rgba(255, 209, 102, 0.10); }
+.agent-sadness { --agent-color: #5ba3f5; --agent-bg: rgba(91, 163, 245, 0.10); }
+.agent-anger   { --agent-color: #f45b69; --agent-bg: rgba(244, 91, 105, 0.10); }
+
+/* ─── Review mini avatar ───────────────────────────────────── */
+.review-avatar-mini {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: var(--agent-bg, rgba(200, 185, 240, 0.25));
+  flex-shrink: 0;
+}
 
 /* ─── Pending dots ─────────────────────────────────────────── */
 .pending {
@@ -543,9 +553,25 @@
 }
 
 .winner-card {
+  --agent-color: var(--hq-purple);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 12px;
+  row-gap: 0;
+  align-items: start;
   background: rgba(190, 172, 235, 0.35);
-  border: 1px solid rgba(168, 125, 232, 0.30);
+  border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
+  border-left: 3px solid var(--agent-color);
   box-shadow: 0 0 20px rgba(123, 95, 212, 0.10);
+}
+
+.winner-card .review-avatar-mini {
+  grid-row: 1 / 4;
+  grid-column: 1;
+  align-self: center;
+  width: 40px;
+  height: 40px;
 }
 
 .winner-card span, .winner-card small {
@@ -557,11 +583,12 @@
 .winner-card strong {
   display: block;
   font-size: 18px;
-  color: var(--hq-text-1);
+  color: var(--agent-color);
   margin: 2px 0;
 }
 
 .winner-card p {
+  grid-column: 1 / 3;
   margin-top: 8px;
   color: var(--hq-text-2);
   font-size: 13px;
@@ -602,9 +629,10 @@
 
 .live-agent {
   --agent-color: var(--hq-blue-2);
+  --agent-bg: rgba(200, 185, 240, 0.20);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   padding: 6px 0;
   color: var(--agent-color);
 }
@@ -647,8 +675,9 @@
 
 .discussion-item {
   --agent-color: var(--hq-blue-2);
+  --agent-bg: rgba(200, 185, 240, 0.25);
   border-left: 3px solid var(--agent-color);
-  background: rgba(200, 185, 240, 0.25);
+  background: var(--agent-bg);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 7px;
@@ -672,20 +701,23 @@
 
 .candidate-card {
   --agent-color: var(--hq-blue-2);
-  border: 1px solid var(--hq-border);
+  --agent-bg: rgba(210, 198, 242, 0.30);
+  border: 1px solid color-mix(in srgb, var(--agent-color) 22%, transparent);
   border-left: 3px solid var(--agent-color);
   border-radius: 8px;
   padding: 11px 12px;
-  background: rgba(210, 198, 242, 0.30);
+  background: var(--agent-bg);
 }
 
 .candidate-head {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   color: var(--agent-color);
   margin-bottom: 6px;
 }
+
+.candidate-head strong { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
 
 .candidate-head span { text-align: right; }
 .candidate-head small { display: block; color: var(--hq-text-3); font-size: 9px; }
@@ -726,20 +758,21 @@
 
 .ranking-row {
   --agent-color: var(--hq-blue-2);
+  --agent-bg: rgba(205, 192, 240, 0.28);
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
   border-left: 3px solid var(--agent-color);
   border-radius: 7px;
-  background: rgba(205, 192, 240, 0.28);
+  background: var(--agent-bg);
 }
 
 .ranking-row span { color: var(--hq-text-3); font-size: 11px; font-weight: 700; }
 .ranking-row strong { color: var(--agent-color); font-size: 13px; }
 .ranking-row b { color: var(--hq-text-1); font-size: 13px; }
-.ranking-row small { grid-column: 2 / 4; color: var(--hq-text-3); font-size: 10px; }
+.ranking-row small { grid-column: 3 / 5; color: var(--hq-text-3); font-size: 10px; }
 
 /* ─── Persona drawer ───────────────────────────────────────── */
 .persona-editor { border: none; background: transparent; }

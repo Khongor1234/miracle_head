@@ -347,6 +347,9 @@ export default function CounselingChat({
                 <div className="live-title">エージェントが検討中...</div>
                 {activeAgents.map((agent) => (
                   <div className={`live-agent ${agentClass(agent.character)}`} key={agent.character}>
+                    {CHARACTER_IMGS[agent.character] && (
+                      <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="review-avatar-mini" />
+                    )}
                     <span>{agent.character}</span>
                     <b /><b /><b />
                   </div>
@@ -380,6 +383,9 @@ export default function CounselingChat({
                           key={`${round.round_number}-${item.character}-${item.type}-${index}`}
                         >
                           <div className="discussion-meta">
+                            {CHARACTER_IMGS[item.character] && (
+                              <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="review-avatar-mini" />
+                            )}
                             <strong>{item.character}</strong>
                             <span>{item.title}</span>
                           </div>
@@ -393,6 +399,9 @@ export default function CounselingChat({
                       {(round.candidates || []).map((candidate) => (
                         <div className={`candidate-card ${agentClass(candidate.character)}`} key={`${round.round_number}-${candidate.character}`}>
                           <div className="candidate-head">
+                            {CHARACTER_IMGS[candidate.character] && (
+                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="review-avatar-mini" />
+                            )}
                             <strong>{candidate.character}</strong>
                           </div>
                           <p>{displayText(candidate.reply)}</p>
@@ -406,7 +415,10 @@ export default function CounselingChat({
                 {finalWinnerReady && (
                   <div className="final-result">
                     <div className="section-label">最終結果</div>
-                    <div className="winner-card">
+                    <div className={`winner-card ${agentClass(reviewRound.winner.character)}`}>
+                      {CHARACTER_IMGS[reviewRound.winner.character] && (
+                        <img src={CHARACTER_IMGS[reviewRound.winner.character]} alt={reviewRound.winner.character} className="review-avatar-mini" />
+                      )}
                       <span>勝者</span>
                       <strong>{reviewRound.winner.character}</strong>
                       <small>{formatScore(scoreValue(reviewRound.winner))} 加重スコア</small>
@@ -417,6 +429,9 @@ export default function CounselingChat({
                         {finalTotals.map((candidate, index) => (
                           <div className={`ranking-row ${agentClass(candidate.character)}`} key={`final-${candidate.character}`}>
                             <span>#{index + 1}</span>
+                            {CHARACTER_IMGS[candidate.character] && (
+                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="review-avatar-mini" />
+                            )}
                             <strong>{candidate.character}</strong>
                             <b>{formatScore(scoreValue(candidate))}</b>
                             <small>4エージェントの加重平均</small>
