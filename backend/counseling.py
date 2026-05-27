@@ -330,9 +330,9 @@ Requirements:
 - Sound like a supportive counselor, not a debate participant.
 - Do not mention the five agents, scoring, internal discussion, or your character name.
 - Do not use markdown.
+- Do not wrap the reply in JSON or any other format.
 
-Respond with only valid JSON:
-{{"reply": "<Japanese counselor reply>"}}"""
+Respond with only the counselor reply text in Japanese. Nothing else."""
 
 
 def scoring_prompt(
@@ -418,9 +418,11 @@ async def generate_candidate(
         candidate_prompt(agent, conversation_context, client_text, high_risk, round_number, previous_round),
         temperature=0.55,
         max_output_tokens=512,
-        response_mime_type="application/json",
     )
-    reply = extract_reply_text(raw)
+    reply = _strip_json_fences(raw).strip()
+    # If the model still returned JSON despite the prompt, extract the reply field
+    if reply.startswith("{"):
+        reply = extract_reply_text(raw)
     if not reply:
         reply = "そうなんですね。今ここで話してくれてありがとうございます。"
     return {
