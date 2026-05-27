@@ -383,7 +383,7 @@
 .review-handle,
 .persona-handle {
   position: fixed;
-  top: 14px;
+  top: max(68px, calc(env(safe-area-inset-top) + 56px));
   right: 18px;
   z-index: 50;
   display: flex;
