@@ -209,15 +209,49 @@ def _strip_json_fences(text: str) -> str:
     return "\n".join(json_lines).strip() or text
 
 
+def _normalise_json_object(value: Any) -> Dict[str, Any]:
+    for _ in range(3):
+        if isinstance(value, dict):
+            return value
+        if not isinstance(value, str):
+            break
+        value = json.loads(_strip_json_fences(value).strip())
+    if isinstance(value, dict):
+        return value
+    raise TypeError("Expected a JSON object.")
+
+
 def parse_json_object(text: str) -> Dict[str, Any]:
-    content = _strip_json_fences(text)
+    content = _strip_json_fences(text).strip()
     try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", content, re.DOTALL)
-        if match:
-            return json.loads(match.group())
+        return _normalise_json_object(json.loads(content))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        decoder = json.JSONDecoder()
+        for match in re.finditer(r"\{", content):
+            try:
+                parsed, _ = decoder.raw_decode(content[match.start():])
+                return _normalise_json_object(parsed)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
         raise
+
+
+def extract_reply_text(raw: str) -> str:
+    try:
+        data = parse_json_object(raw)
+        reply = data.get("reply", "")
+        if isinstance(reply, (dict, list)):
+            return json.dumps(reply, ensure_ascii=False)
+        return str(reply).strip()
+    except Exception:
+        content = _strip_json_fences(raw).strip()
+        match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', content, re.DOTALL)
+        if match:
+            try:
+                return json.loads(f'"{match.group(1)}"').strip()
+            except json.JSONDecodeError:
+                return match.group(1).strip()
+        return content
 
 
 def candidate_prompt(
@@ -364,11 +398,7 @@ async def generate_candidate(
         max_output_tokens=512,
         response_mime_type="application/json",
     )
-    try:
-        data = parse_json_object(raw)
-        reply = str(data.get("reply", "")).strip()
-    except Exception:
-        reply = raw.strip()
+    reply = extract_reply_text(raw)
     if not reply:
         reply = "そうなんですね。今ここで話してくれてありがとうございます。"
     return {

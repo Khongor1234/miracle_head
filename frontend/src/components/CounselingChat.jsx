@@ -9,6 +9,34 @@ const formatScore = (value) => {
   if (!Number.isFinite(number)) return '0';
   return number.toFixed(2).replace(/\.00$/, '');
 };
+const displayText = (value) => {
+  const text = String(value ?? '');
+  let current = text.trim();
+  for (let index = 0; index < 3; index += 1) {
+    try {
+      const parsed = JSON.parse(current);
+      if (typeof parsed === 'string') {
+        current = parsed.trim();
+        continue;
+      }
+      if (parsed && typeof parsed === 'object' && typeof parsed.reply !== 'undefined') {
+        return String(parsed.reply).trim();
+      }
+      break;
+    } catch {
+      break;
+    }
+  }
+  const match = text.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/s);
+  if (match) {
+    try {
+      return JSON.parse(`"${match[1]}"`).trim();
+    } catch {
+      return match[1].trim();
+    }
+  }
+  return text;
+};
 
 export default function CounselingChat({
   conversation,
@@ -132,7 +160,7 @@ export default function CounselingChat({
                     selected by {message.source_agent}
                   </div>
                 )}
-                {message.content}
+                {displayText(message.content)}
               </div>
             </div>
           ))}
@@ -291,7 +319,7 @@ export default function CounselingChat({
                             <strong>{item.character}</strong>
                             <span>{item.title}</span>
                           </div>
-                          <p>{item.content}</p>
+                          <p>{displayText(item.content)}</p>
                         </div>
                       ))}
                     </div>
@@ -303,7 +331,7 @@ export default function CounselingChat({
 		                          <div className="candidate-head">
 		                            <strong>{candidate.character}</strong>
 		                          </div>
-		                          <p>{candidate.reply}</p>
+		                          <p>{displayText(candidate.reply)}</p>
                         </div>
                       ))}
 	                    </div>
@@ -339,7 +367,7 @@ export default function CounselingChat({
                       <span>Winner</span>
                       <strong>{reviewRound.winner.character}</strong>
                       <small>{formatScore(scoreValue(reviewRound.winner))} weighted score</small>
-                      <p>{reviewRound.winner.reply}</p>
+                      <p>{displayText(reviewRound.winner.reply)}</p>
                     </div>
                     {(finalTotals || []).length > 0 && (
                       <div className="final-ranking">
