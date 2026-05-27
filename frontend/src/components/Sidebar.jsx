@@ -1,3 +1,4 @@
+import { useLang } from '../LanguageContext';
 import './Sidebar.css';
 
 export default function Sidebar({
@@ -7,6 +8,9 @@ export default function Sidebar({
   onNewConversation,
   onDeleteConversation,
 }) {
+  const { t } = useLang();
+  const s = t.sidebar;
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -18,17 +22,19 @@ export default function Sidebar({
         </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           <span className="new-btn-icon">+</span>
-          新しい相談
+          {s.newBtn}
         </button>
       </div>
 
       {conversations.length > 0 && (
-        <div className="sidebar-section-label">履歴</div>
+        <div className="sidebar-section-label">{s.historyLabel}</div>
       )}
 
       <div className="conversation-list">
         {conversations.length === 0 ? (
-          <div className="no-conversations">相談履歴がありません。<br />上から新しい相談を始めましょう。</div>
+          <div className="no-conversations">
+            {s.emptyLine1}<br />{s.emptyLine2}
+          </div>
         ) : (
           conversations.map((conversation) => (
             <div
@@ -37,11 +43,11 @@ export default function Sidebar({
               onClick={() => onSelectConversation(conversation.id)}
             >
               <div className="conversation-title">
-                {conversation.title || '新しいカウンセリング'}
+                {conversation.title || s.defaultTitle}
               </div>
               <div className="conversation-meta">
                 <span className={`status-dot ${conversation.status}`} />
-                {conversation.message_count ?? conversation.turn_count ?? 0} メッセージ
+                {conversation.message_count ?? conversation.turn_count ?? 0} {s.messages}
               </div>
               <button
                 className="delete-session-btn"

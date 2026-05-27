@@ -66,6 +66,35 @@
   margin-top: 2px;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-controls .lang-toggle {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid rgba(130, 100, 200, 0.25);
+  border-radius: 100px;
+  background: transparent;
+  color: #9080b8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
+}
+
+.header-controls .lang-toggle:hover {
+  border-color: #8b6dd4;
+  color: #5a4480;
+  background: rgba(139, 109, 212, 0.08);
+}
+
 .model-control {
   display: flex;
   align-items: center;

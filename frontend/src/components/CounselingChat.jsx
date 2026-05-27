@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLang } from '../LanguageContext';
 import './CounselingChat.css';
 
 const CHARACTER_IMGS = {
@@ -22,7 +23,6 @@ const displayText = (value) => {
   let current = text.trim();
   for (let index = 0; index < 4; index += 1) {
     if (!current) break;
-    // Try standard JSON parse first
     try {
       const parsed = JSON.parse(current);
       if (typeof parsed === 'string') { current = parsed.trim(); continue; }
@@ -32,7 +32,6 @@ const displayText = (value) => {
       }
       break;
     } catch { /* fall through to sanitized parse */ }
-    // Sanitize literal (unescaped) newlines inside string values and retry
     try {
       const sanitized = current.replace(/(?<!\\)\n/g, '\\n');
       const parsed = JSON.parse(sanitized);
@@ -44,13 +43,12 @@ const displayText = (value) => {
     } catch { /* ignore */ }
     break;
   }
-  // If still looks like raw JSON, extract with regex as last resort
   if (current.trimStart().startsWith('{')) {
     const match = current.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/s);
     if (match) {
       try { return JSON.parse(`"${match[1]}"`).trim(); } catch { return match[1].trim(); }
     }
-    return text; // fallback to original if regex also fails
+    return text;
   }
   return current || text;
 };
@@ -68,9 +66,7 @@ function CounselorAvatar({ sourceAgent }) {
 }
 
 function ClientAvatar() {
-  return (
-    <div className="avatar-initials">You</div>
-  );
+  return <div className="avatar-initials">You</div>;
 }
 
 function SendIcon() {
@@ -95,6 +91,9 @@ export default function CounselingChat({
   liveRound,
   error,
 }) {
+  const { lang, setLang, t } = useLang();
+  const c = t.chat;
+
   const [draft, setDraft] = useState('');
   const [reviewOpen, setReviewOpen] = useState(true);
   const [personaOpen, setPersonaOpen] = useState(false);
@@ -173,23 +172,32 @@ export default function CounselingChat({
         {/* ── Header ── */}
         <header className="chat-header">
           <div className="chat-header-title">
-            <h1>AIカウンセリング</h1>
-            <p>5つの感情エージェントが内部で検討し、最善の回答を届けます</p>
+            <h1>{c.title}</h1>
+            <p>{c.subtitle}</p>
           </div>
-          <div className="model-control">
-            <label htmlFor="model-input">モデル</label>
-            <select
-              id="model-input"
-              value={model}
-              onChange={(e) => onModelChange(e.target.value)}
-              disabled={sending}
+          <div className="header-controls">
+            <button
+              className="lang-toggle"
+              type="button"
+              onClick={() => setLang(lang === 'ja' ? 'en' : 'ja')}
             >
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-              <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-            </select>
+              {lang === 'ja' ? 'EN' : '日本語'}
+            </button>
+            <div className="model-control">
+              <label htmlFor="model-input">{c.modelLabel}</label>
+              <select
+                id="model-input"
+                value={model}
+                onChange={(e) => onModelChange(e.target.value)}
+                disabled={sending}
+              >
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+              </select>
+            </div>
           </div>
         </header>
 
@@ -198,10 +206,10 @@ export default function CounselingChat({
           {messages.length === 0 && (
             <div className="empty-chat">
               <div className="empty-chat-avatar">
-                <img src="/characters/joy.png" alt="カウンセラー" />
+                <img src="/characters/joy.png" alt={c.counselorName} />
               </div>
-              <p className="empty-chat-label">カウンセラー</p>
-              <p>こんにちは。今ここで話したいことを、そのまま書いてください。</p>
+              <p className="empty-chat-label">{c.counselorName}</p>
+              <p>{c.counselorGreeting}</p>
             </div>
           )}
 
@@ -214,7 +222,7 @@ export default function CounselingChat({
               <div className="bubble">
                 {message.source_agent && message.role === 'counselor' && (
                   <div className={`source-agent ${agentClass(message.source_agent)}`}>
-                    {message.source_agent} が選ばれました
+                    {message.source_agent} {c.selectedAgent}
                   </div>
                 )}
                 {displayText(message.content)}
@@ -241,11 +249,11 @@ export default function CounselingChat({
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="相談内容を入力してください..."
+            placeholder={c.placeholder}
             rows={1}
             onKeyDown={handleKeyDown}
           />
-          <button className="send-btn" type="submit" disabled={sending || !draft.trim() || personaError} aria-label="送信">
+          <button className="send-btn" type="submit" disabled={sending || !draft.trim() || personaError} aria-label={c.sendLabel}>
             <SendIcon />
           </button>
         </form>
@@ -257,7 +265,7 @@ export default function CounselingChat({
         onClick={openPersonas}
         type="button"
       >
-        {personaError ? '⚠ ' : ''}エージェント設定
+        {personaError ? '⚠ ' : ''}{c.agentSettingsBtn}
       </button>
 
       <button
@@ -265,17 +273,17 @@ export default function CounselingChat({
         onClick={openReview}
         type="button"
       >
-        5エージェントレビュー
+        {c.reviewBtn}
       </button>
 
       {/* ── Persona drawer ── */}
       <aside className={`persona-drawer ${personaOpen ? 'open' : 'closed'}`}>
         <div className="review-head">
           <div>
-            <span>設定</span>
-            <strong>エージェント設定</strong>
+            <span>{c.settingsLabel}</span>
+            <strong>{c.agentSettingsTitle}</strong>
           </div>
-          <button onClick={() => setPersonaOpen(false)} type="button">閉じる</button>
+          <button onClick={() => setPersonaOpen(false)} type="button">{c.closeBtn}</button>
         </div>
 
         {personaOpen && (
@@ -283,11 +291,11 @@ export default function CounselingChat({
             <section className={`persona-editor ${personasLocked ? 'locked' : ''}`}>
               <div className="persona-editor-head">
                 <div>
-                  <span>編集状態</span>
-                  <strong>{personasLocked ? '送信中はロック' : '編集可能'}</strong>
+                  <span>{c.editStatusLabel}</span>
+                  <strong>{personasLocked ? c.locked : c.editable}</strong>
                 </div>
                 <button type="button" onClick={resetPersonas} disabled={personasLocked || !defaultAgents.length}>
-                  リセット
+                  {c.resetBtn}
                 </button>
               </div>
 
@@ -313,16 +321,16 @@ export default function CounselingChat({
               </div>
 
               {personaError && (
-                <div className="persona-error">セッション開始前に5つすべてのエージェントペルソナが必要です。</div>
+                <div className="persona-error">{c.personaError}</div>
               )}
 
               <div className="round-control">
                 <div>
-                  <span>レビューラウンド</span>
-                  <strong>固定 2ラウンド</strong>
+                  <span>{c.reviewRoundsLabel}</span>
+                  <strong>{c.reviewRoundsFixed}</strong>
                 </div>
                 <div className="round-options fixed">
-                  <span>2ラウンド</span>
+                  <span>{c.reviewRoundsValue}</span>
                 </div>
               </div>
             </section>
@@ -334,17 +342,17 @@ export default function CounselingChat({
       <aside className={`agent-review ${reviewOpen ? 'open' : 'closed'}`}>
         <div className="review-head">
           <div>
-            <span>{isLiveReview ? 'ライブ討議中' : '最新の保存済み討議'}</span>
-            <strong>5エージェントレビュー</strong>
+            <span>{isLiveReview ? c.liveDiscussionLabel : c.savedDiscussionLabel}</span>
+            <strong>{c.reviewTitle}</strong>
           </div>
-          <button onClick={() => setReviewOpen(false)} type="button">閉じる</button>
+          <button onClick={() => setReviewOpen(false)} type="button">{c.closeBtn}</button>
         </div>
 
         {reviewOpen && (
           <div className="review-content">
             {sending && (
               <div className="discussion-live">
-                <div className="live-title">エージェントが検討中...</div>
+                <div className="live-title">{c.deliberating}</div>
                 {activeAgents.map((agent) => (
                   <div className={`live-agent ${agentClass(agent.character)}`} key={agent.character}>
                     {CHARACTER_IMGS[agent.character] && (
@@ -358,24 +366,24 @@ export default function CounselingChat({
             )}
 
             {!reviewRound ? (
-              <div className="review-empty">最初のメッセージを送信すると、エージェントの内部討議がここに表示されます。</div>
+              <div className="review-empty">{c.emptyReview}</div>
             ) : (
               <>
                 {reviewRound.high_risk && (
-                  <div className="risk-badge">⚠ 危機介入モードが有効です</div>
+                  <div className="risk-badge">{c.crisisMode}</div>
                 )}
 
                 {displayRounds.map((round) => (
                   <div className="round-section" key={round.round_number}>
                     <div className="round-head">
-                      <strong>ラウンド {round.round_number}</strong>
-                      <span>{round.round_number > 1 ? '他エージェントの意見を見て修正' : '各エージェントの初回回答'}</span>
+                      <strong>{c.roundLabel} {round.round_number}</strong>
+                      <span>{round.round_number > 1 ? c.roundRevised : c.roundInitial}</span>
                     </div>
 
                     <div className="discussion-section">
-                      <div className="section-label">{isLiveReview ? 'ライブ討議' : '内部討議'}</div>
+                      <div className="section-label">{isLiveReview ? c.liveDiscussion : c.internalDiscussion}</div>
                       {discussionItems(round).length === 0 && (
-                        <div className="review-empty compact">最初のエージェント回答を待機中...</div>
+                        <div className="review-empty compact">{c.waitingAgent}</div>
                       )}
                       {discussionItems(round).map((item, index) => (
                         <div
@@ -395,7 +403,7 @@ export default function CounselingChat({
                     </div>
 
                     <div className="candidate-list">
-                      <div className="section-label">候補回答</div>
+                      <div className="section-label">{c.candidatesLabel}</div>
                       {(round.candidates || []).map((candidate) => (
                         <div className={`candidate-card ${agentClass(candidate.character)}`} key={`${round.round_number}-${candidate.character}`}>
                           <div className="candidate-head">
@@ -414,14 +422,14 @@ export default function CounselingChat({
 
                 {finalWinnerReady && (
                   <div className="final-result">
-                    <div className="section-label">最終結果</div>
+                    <div className="section-label">{c.finalResultLabel}</div>
                     <div className={`winner-card ${agentClass(reviewRound.winner.character)}`}>
                       {CHARACTER_IMGS[reviewRound.winner.character] && (
                         <img src={CHARACTER_IMGS[reviewRound.winner.character]} alt={reviewRound.winner.character} className="review-avatar-mini" />
                       )}
-                      <span>勝者</span>
+                      <span>{c.winner}</span>
                       <strong>{reviewRound.winner.character}</strong>
-                      <small>{formatScore(scoreValue(reviewRound.winner))} 加重スコア</small>
+                      <small>{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</small>
                       <p>{displayText(reviewRound.winner.reply)}</p>
                     </div>
                     {(finalTotals || []).length > 0 && (
@@ -434,7 +442,7 @@ export default function CounselingChat({
                             )}
                             <strong>{candidate.character}</strong>
                             <b>{formatScore(scoreValue(candidate))}</b>
-                            <small>4エージェントの加重平均</small>
+                            <small>{c.weightedAvg}</small>
                           </div>
                         ))}
                       </div>
