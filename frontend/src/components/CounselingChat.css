@@ -54,14 +54,14 @@
 
 .chat-header-title h1 {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   color: #2a1a50;
   line-height: 1.2;
 }
 
 .chat-header-title p {
-  font-size: 12px;
+  font-size: 13px;
   color: #8070a8;
   margin-top: 2px;
 }
@@ -83,15 +83,15 @@
 }
 
 .model-control select {
-  height: 34px;
-  width: 190px;
+  height: 36px;
+  width: 200px;
   border: 1px solid rgba(160, 140, 210, 0.30);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.60);
   color: #2a1a50;
   padding: 0 10px;
-  font-family: var(--font-ui);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: 14px;
   outline: none;
   cursor: pointer;
   appearance: none;
@@ -166,7 +166,7 @@
 
 .empty-chat p {
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.65;
   color: var(--hq-text-2);
 }
@@ -227,11 +227,11 @@
 /* ─── Bubbles ──────────────────────────────────────────────── */
 .bubble {
   max-width: min(520px, 75%);
-  padding: 13px 17px;
+  padding: 14px 18px;
   border-radius: 18px;
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
 }
