@@ -26,10 +26,10 @@
   justify-content: center;
   height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(140, 110, 200, 0.30);
   border-radius: 999px;
-  background: rgba(10, 10, 16, 0.88);
-  color: #f4f1fb;
+  background: rgba(255, 255, 255, 0.75);
+  color: #2a1a50;
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 700;
@@ -51,7 +51,7 @@
   z-index: 88;
   border: 0;
   padding: 0;
-  background: rgba(8, 9, 12, 0.32);
+  background: rgba(100, 80, 160, 0.20);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;

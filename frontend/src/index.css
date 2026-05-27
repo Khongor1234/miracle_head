@@ -1,32 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Backgrounds */
-  --bg-0: #0b0b10;
-  --bg-1: #111118;
-  --bg-2: #17171f;
-  --bg-3: #1e1e28;
-  --bg-4: #252533;
-  --bg-5: #2e2e3f;
+  /* Backgrounds — lavender calm */
+  --bg-0: #ece6f8;
+  --bg-1: #e4dcf5;
+  --bg-2: #dbd2f0;
+  --bg-3: #d1c7ea;
+  --bg-4: #c7bce4;
+  --bg-5: #bdb0de;
 
-  /* Model A — electric blue */
-  --model-a: #5ba3f5;
-  --model-a-dim: rgba(91, 163, 245, 0.10);
-  --model-a-border: rgba(91, 163, 245, 0.25);
+  /* Accent — soft lavender purple */
+  --model-a: #8b6dd4;
+  --model-a-dim: rgba(139, 109, 212, 0.12);
+  --model-a-border: rgba(139, 109, 212, 0.28);
 
-  /* Model B — warm amber */
-  --model-b: #f5924a;
-  --model-b-dim: rgba(245, 146, 74, 0.10);
-  --model-b-border: rgba(245, 146, 74, 0.25);
+  --model-b: #a07cc8;
+  --model-b-dim: rgba(160, 124, 200, 0.12);
+  --model-b-border: rgba(160, 124, 200, 0.25);
 
   /* Text */
-  --text-1: #eceaf5;
-  --text-2: #9896b0;
-  --text-3: #5c5a72;
+  --text-1: #1e1240;
+  --text-2: #5a4480;
+  --text-3: #9080b8;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.06);
-  --border-2: rgba(255, 255, 255, 0.11);
+  --border: rgba(130, 100, 200, 0.12);
+  --border-2: rgba(130, 100, 200, 0.22);
 
   /* Typography */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;

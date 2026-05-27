@@ -437,13 +437,13 @@
   z-index: 45;
   width: min(380px, calc(100vw - 20px));
   height: 100dvh;
-  background: rgba(8, 6, 35, 0.97);
+  background: rgba(235, 228, 252, 0.97);
   color: var(--hq-text-1);
-  border-left: 1px solid var(--hq-border);
+  border-left: 1px solid rgba(170, 150, 220, 0.25);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: -12px 0 48px rgba(0, 0, 0, 0.50);
+  box-shadow: -8px 0 40px rgba(100, 80, 180, 0.15);
   transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(14px);
 }
@@ -466,8 +466,8 @@
   gap: 12px;
   padding: 16px 18px;
   padding-top: max(16px, env(safe-area-inset-top));
-  border-bottom: 1px solid var(--hq-border);
-  background: rgba(13, 10, 50, 0.95);
+  border-bottom: 1px solid rgba(170, 150, 220, 0.20);
+  background: rgba(225, 216, 248, 0.95);
 }
 
 .review-head span {
@@ -534,7 +534,7 @@
 }
 
 .winner-card {
-  background: rgba(123, 95, 212, 0.12);
+  background: rgba(190, 172, 235, 0.35);
   border: 1px solid rgba(168, 125, 232, 0.30);
   box-shadow: 0 0 20px rgba(123, 95, 212, 0.10);
 }
@@ -562,7 +562,7 @@
 .final-result {
   margin-top: 16px;
   margin-bottom: 0;
-  background: rgba(123, 95, 212, 0.06);
+  background: rgba(200, 185, 240, 0.25);
   border: 1px solid var(--hq-border);
 }
 
@@ -578,7 +578,7 @@
   padding: 12px;
   border: 1px solid var(--hq-border);
   border-radius: 8px;
-  background: rgba(123, 95, 212, 0.06);
+  background: rgba(200, 185, 240, 0.25);
   margin-bottom: 12px;
 }
 
@@ -639,7 +639,7 @@
 .discussion-item {
   --agent-color: var(--hq-blue-2);
   border-left: 3px solid var(--agent-color);
-  background: rgba(123, 95, 212, 0.06);
+  background: rgba(200, 185, 240, 0.25);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 7px;
@@ -667,7 +667,7 @@
   border-left: 3px solid var(--agent-color);
   border-radius: 8px;
   padding: 11px 12px;
-  background: rgba(123, 95, 212, 0.05);
+  background: rgba(210, 198, 242, 0.30);
 }
 
 .candidate-head {
@@ -689,7 +689,7 @@
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 7px;
-  background: rgba(123, 95, 212, 0.05);
+  background: rgba(210, 198, 242, 0.30);
 }
 
 .peer-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
@@ -705,7 +705,7 @@
 .peer-score-list div, .score-grid div {
   padding: 5px 4px;
   border-radius: 5px;
-  background: rgba(123, 95, 212, 0.08);
+  background: rgba(200, 185, 240, 0.22);
   text-align: center;
 }
 
@@ -724,7 +724,7 @@
   padding: 8px 10px;
   border-left: 3px solid var(--agent-color);
   border-radius: 7px;
-  background: rgba(123, 95, 212, 0.07);
+  background: rgba(205, 192, 240, 0.28);
 }
 
 .ranking-row span { color: var(--hq-text-3); font-size: 11px; font-weight: 700; }
@@ -745,7 +745,7 @@
   margin-bottom: 12px;
   border: 1px solid var(--hq-border);
   border-radius: 8px;
-  background: rgba(123, 95, 212, 0.06);
+  background: rgba(200, 185, 240, 0.25);
 }
 
 .persona-editor-head span { display: block; color: var(--hq-text-3); font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -775,7 +775,7 @@
   border: 1px solid var(--hq-border);
   border-left: 3px solid var(--agent-color);
   border-radius: 8px;
-  background: rgba(123, 95, 212, 0.05);
+  background: rgba(210, 198, 242, 0.30);
 }
 
 .persona-card span { color: var(--agent-color); font-size: 11px; font-weight: 800; }
@@ -786,7 +786,7 @@
   resize: vertical;
   border: 1px solid var(--hq-border-2);
   border-radius: 6px;
-  background: rgba(123, 95, 212, 0.08);
+  background: rgba(200, 185, 240, 0.22);
   color: var(--hq-text-1);
   padding: 8px;
   font: inherit;
@@ -810,7 +810,7 @@
   padding: 12px 14px;
   border: 1px solid var(--hq-border);
   border-radius: 8px;
-  background: rgba(123, 95, 212, 0.05);
+  background: rgba(210, 198, 242, 0.30);
 }
 
 .round-control > div:first-child { margin-bottom: 8px; }
@@ -827,7 +827,7 @@
   height: 32px;
   border: 1px solid var(--hq-border-2);
   border-radius: 7px;
-  background: rgba(123, 95, 212, 0.08);
+  background: rgba(200, 185, 240, 0.22);
   color: var(--hq-text-2);
   font-size: 12px;
   font-weight: 800;
@@ -839,7 +839,7 @@
   height: 32px;
   border: 1px solid var(--hq-border-2);
   border-radius: 7px;
-  background: rgba(123, 95, 212, 0.06);
+  background: rgba(200, 185, 240, 0.25);
   color: var(--hq-text-2);
   font: inherit;
   font-weight: 800;
