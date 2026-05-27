@@ -42,7 +42,7 @@ function App() {
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
-  const [model, setModel] = useState('gemini-2.5-flash-lite');
+  const [model, setModel] = useState('gemini-2.5-flash');
   const [agents, setAgents] = useState([]);
   const [defaultAgents, setDefaultAgents] = useState([]);
   const [reviewRounds, setReviewRounds] = useState(DEFAULT_REVIEW_ROUNDS);
@@ -125,7 +125,7 @@ function App() {
     if (currentConversation) return currentConversation;
     const sessionAgents = agents.length ? agents : defaultAgents;
     const config = {
-      model: model.trim() || 'gemini-2.5-flash-lite',
+      model: model.trim() || 'gemini-2.5-flash',
       review_rounds: reviewRounds,
     };
     if (sessionAgents.length === 5 && sessionAgents.every((agent) => agent.persona?.trim())) {
@@ -163,7 +163,7 @@ function App() {
       rounds: [],
     });
     try {
-      const selectedModel = model.trim() || 'gemini-2.5-flash-lite';
+      const selectedModel = model.trim() || 'gemini-2.5-flash';
       const conversation = await ensureConversation();
       activeConversationId = conversation.id;
       setLiveRound((prev) => ({
