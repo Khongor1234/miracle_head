@@ -236,21 +236,43 @@ def parse_json_object(text: str) -> Dict[str, Any]:
         raise
 
 
+def _unwrap_reply(value: Any) -> str:
+    """Recursively unwrap a reply value that may itself be JSON-encoded."""
+    text = str(value).strip() if not isinstance(value, str) else value.strip()
+    for _ in range(3):
+        if not text.startswith("{"):
+            return text
+        try:
+            inner = json.loads(text)
+            if isinstance(inner, dict) and "reply" in inner:
+                text = str(inner["reply"]).strip()
+                continue
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+        break
+    return text
+
+
 def extract_reply_text(raw: str) -> str:
     try:
         data = parse_json_object(raw)
         reply = data.get("reply", "")
         if isinstance(reply, (dict, list)):
             return json.dumps(reply, ensure_ascii=False)
-        return str(reply).strip()
+        return _unwrap_reply(str(reply).strip())
     except Exception:
         content = _strip_json_fences(raw).strip()
-        match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', content, re.DOTALL)
+        # Sanitize literal newlines inside JSON string values before matching
+        sanitized = re.sub(r'(?<!\\)\n', r'\\n', content)
+        match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', sanitized, re.DOTALL)
         if match:
             try:
                 return json.loads(f'"{match.group(1)}"').strip()
             except json.JSONDecodeError:
-                return match.group(1).strip()
+                return match.group(1).replace("\\n", "\n").strip()
+        # Last resort: return raw content only if it's not JSON-shaped
+        if content.startswith("{"):
+            return ""
         return content
 
 

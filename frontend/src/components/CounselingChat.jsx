@@ -20,21 +20,39 @@ const formatScore = (value) => {
 const displayText = (value) => {
   const text = String(value ?? '');
   let current = text.trim();
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < 4; index += 1) {
+    if (!current) break;
+    // Try standard JSON parse first
     try {
       const parsed = JSON.parse(current);
       if (typeof parsed === 'string') { current = parsed.trim(); continue; }
       if (parsed && typeof parsed === 'object' && typeof parsed.reply !== 'undefined') {
-        return String(parsed.reply).trim();
+        current = String(parsed.reply).trim();
+        continue;
       }
       break;
-    } catch { break; }
+    } catch { /* fall through to sanitized parse */ }
+    // Sanitize literal (unescaped) newlines inside string values and retry
+    try {
+      const sanitized = current.replace(/(?<!\\)\n/g, '\\n');
+      const parsed = JSON.parse(sanitized);
+      if (typeof parsed === 'string') { current = parsed.trim(); continue; }
+      if (parsed && typeof parsed === 'object' && typeof parsed.reply !== 'undefined') {
+        current = String(parsed.reply).trim();
+        continue;
+      }
+    } catch { /* ignore */ }
+    break;
   }
-  const match = text.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/s);
-  if (match) {
-    try { return JSON.parse(`"${match[1]}"`).trim(); } catch { return match[1].trim(); }
+  // If still looks like raw JSON, extract with regex as last resort
+  if (current.trimStart().startsWith('{')) {
+    const match = current.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/s);
+    if (match) {
+      try { return JSON.parse(`"${match[1]}"`).trim(); } catch { return match[1].trim(); }
+    }
+    return text; // fallback to original if regex also fails
   }
-  return text;
+  return current || text;
 };
 
 function CounselorAvatar({ sourceAgent }) {
