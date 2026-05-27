@@ -66,7 +66,7 @@ sudo mkdir -p /var/lib/llm-debate/conversations /var/lib/llm-debate/dialogues
 sudo chown -R $USER:$USER /var/lib/llm-debate
 ```
 
-The full app session JSON is saved to `DATA_DIR`. The simplified dataset-style JSON is saved to `DIALOGUE_DIR`:
+The full app session JSON is saved to `DATA_DIR`. The simplified dataset-style JSON is saved to `DIALOGUE_DIR` with numeric filenames such as `1.json`, `2.json`, and `3.json`:
 
 ```json
 {

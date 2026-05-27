@@ -29,7 +29,42 @@ def get_conversation_path(conversation_id: str) -> str:
 
 def get_dialogue_path(conversation_id: str) -> str:
     """Get the file path for the simplified dialogue JSON."""
-    return os.path.join(DIALOGUE_DIR, f"{conversation_id}.json")
+    conversation = get_conversation(conversation_id)
+    file_number = dialogue_file_number(conversation) if conversation else None
+    filename = f"{file_number}.json" if file_number else f"{conversation_id}.json"
+    return os.path.join(DIALOGUE_DIR, filename)
+
+
+def dialogue_file_number(conversation: Dict[str, Any]) -> Optional[int]:
+    value = conversation.get("dialogue_file_number")
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
+def next_dialogue_file_number() -> int:
+    """Return the next numeric filename for simplified dialogue exports."""
+    ensure_dialogue_dir()
+    numbers = []
+    for filename in os.listdir(DIALOGUE_DIR):
+        match = re.fullmatch(r"(\d+)\.json", filename)
+        if match:
+            numbers.append(int(match.group(1)))
+    ensure_data_dir()
+    for filename in os.listdir(DATA_DIR):
+        if not filename.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(DATA_DIR, filename), "r") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        number = dialogue_file_number(data)
+        if number:
+            numbers.append(number)
+    return max(numbers, default=0) + 1
 
 
 def clean_utterance(value: Any) -> str:
@@ -75,7 +110,9 @@ def build_dialogue(messages: List[Dict[str, Any]]) -> List[Dict[str, str]]:
 def save_dialogue(conversation: Dict[str, Any]):
     """Write a companion JSON containing only client/counselor dialogue."""
     ensure_dialogue_dir()
-    path = get_dialogue_path(conversation["id"])
+    file_number = dialogue_file_number(conversation)
+    filename = f"{file_number}.json" if file_number else f"{conversation['id']}.json"
+    path = os.path.join(DIALOGUE_DIR, filename)
     with open(path, "w") as f:
         json.dump({"dialogue": conversation.get("dialogue", [])}, f, indent=2, ensure_ascii=False)
 
@@ -87,6 +124,7 @@ def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[st
         "id": conversation_id,
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat(),
+        "dialogue_file_number": next_dialogue_file_number(),
         "title": "New counseling session",
         "config": config,
         "messages": [],
@@ -193,11 +231,17 @@ def update_message(conversation_id: str, message: Dict[str, Any]):
 
 def delete_conversation(conversation_id: str) -> bool:
     """Delete a conversation file."""
+    conversation = get_conversation(conversation_id)
     path = get_conversation_path(conversation_id)
     if not os.path.exists(path):
         return False
     os.remove(path)
-    dialogue_path = get_dialogue_path(conversation_id)
-    if os.path.exists(dialogue_path):
-        os.remove(dialogue_path)
+    file_number = dialogue_file_number(conversation) if conversation else None
+    dialogue_paths = []
+    if file_number:
+        dialogue_paths.append(os.path.join(DIALOGUE_DIR, f"{file_number}.json"))
+    dialogue_paths.append(os.path.join(DIALOGUE_DIR, f"{conversation_id}.json"))
+    for dialogue_path in dialogue_paths:
+        if os.path.exists(dialogue_path):
+            os.remove(dialogue_path)
     return True
