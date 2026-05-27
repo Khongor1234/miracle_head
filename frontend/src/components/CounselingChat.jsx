@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import './CounselingChat.css';
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
+const scoreValue = (item) => item?.weighted_total ?? item?.average_weighted_total ?? item?.total ?? item?.average_total ?? 0;
 const discussionItems = (round) => (round.discussion || []).filter((item) => item.type === 'candidate');
+const formatScore = (value) => {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return '0';
+  return number.toFixed(2).replace(/\.00$/, '');
+};
 
 export default function CounselingChat({
   conversation,
@@ -51,6 +57,9 @@ export default function CounselingChat({
     reviewRound?.winner
     && (!isLiveReview || displayRounds.length >= (reviewRound.review_rounds || reviewRounds || 1)),
   );
+  const finalTotals = reviewRound?.totals?.length
+    ? reviewRound.totals
+    : (displayRounds[displayRounds.length - 1]?.totals || []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -298,16 +307,52 @@ export default function CounselingChat({
                         </div>
                       ))}
 	                    </div>
+
+                    {(round.peer_scores || []).length > 0 && (
+                      <div className="peer-section">
+                        <div className="section-label">Peer Scores</div>
+                        {(round.peer_scores || []).map((judgeResult) => (
+                          <div className={`peer-card ${agentClass(judgeResult.judge)}`} key={`${round.round_number}-${judgeResult.judge}`}>
+                            <div className="peer-head">
+                              <strong>{judgeResult.judge}</strong>
+                              <span>scored other agents</span>
+                            </div>
+                            <div className="peer-score-list">
+                              {(judgeResult.scores || []).map((score) => (
+                                <div key={`${judgeResult.judge}-${score.character}`}>
+                                  <span>{score.character}</span>
+                                  <b>{formatScore(scoreValue(score))}</b>
+                                  <small>weighted</small>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 	                  </div>
 	                ))}
                 {finalWinnerReady && (
                   <div className="final-result">
-                    <div className="section-label">Final Counselor Response</div>
+                    <div className="section-label">Final Result</div>
                     <div className="winner-card">
-                      <span>Synthesized from round 2</span>
-                      <strong>Final response</strong>
+                      <span>Winner</span>
+                      <strong>{reviewRound.winner.character}</strong>
+                      <small>{formatScore(scoreValue(reviewRound.winner))} weighted score</small>
                       <p>{reviewRound.winner.reply}</p>
                     </div>
+                    {(finalTotals || []).length > 0 && (
+                      <div className="final-ranking">
+                        {finalTotals.map((candidate, index) => (
+                          <div className={`ranking-row ${agentClass(candidate.character)}`} key={`final-${candidate.character}`}>
+                            <span>#{index + 1}</span>
+                            <strong>{candidate.character}</strong>
+                            <b>{formatScore(scoreValue(candidate))}</b>
+                            <small>weighted avg from 4 peer agents</small>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 	              </>

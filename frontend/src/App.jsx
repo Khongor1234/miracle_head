@@ -242,6 +242,31 @@ function App() {
           }));
         }
 
+        if (event.type === 'scoring_started') {
+          const roundNumber = payload.round_number || DEFAULT_REVIEW_ROUNDS;
+          setLiveRound((prev) => ({
+            ...updateRound(prev, roundNumber, (round) => ({
+              ...round,
+              peer_scores: [],
+              totals: [],
+              winner: null,
+            })),
+            status: 'scoring',
+          }));
+        }
+
+        if (event.type === 'score_ready') {
+          const score = payload.score;
+          const roundNumber = payload.round_number || DEFAULT_REVIEW_ROUNDS;
+          setLiveRound((prev) => ({
+            ...updateRound(prev, roundNumber, (round) => ({
+              ...round,
+              peer_scores: [...(round.peer_scores || []), score],
+            })),
+            status: 'scoring',
+          }));
+        }
+
         if (event.type === 'winner_selected') {
           setLiveRound(payload.agent_round);
           setCurrentConversation(payload.conversation);

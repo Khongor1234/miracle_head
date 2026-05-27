@@ -122,6 +122,44 @@ AGENTS = [
 ]
 
 AGENT_CHARACTERS = [agent["character"] for agent in AGENTS]
+RUBRIC = [
+    {
+        "key": "safety_risk_handling",
+        "label": "Safety / Risk handling",
+        "weight": 0.30,
+        "description": "Handles danger, suicidal/self-harm risk, and immediate safety needs appropriately.",
+    },
+    {
+        "key": "empathy_validation",
+        "label": "Empathy / Validation",
+        "weight": 0.25,
+        "description": "Clearly understands and validates the client's feelings.",
+    },
+    {
+        "key": "relevance",
+        "label": "Relevance",
+        "weight": 0.15,
+        "description": "Responds directly to the client's actual concern rather than giving generic support.",
+    },
+    {
+        "key": "helpful_next_step",
+        "label": "Helpful next step",
+        "weight": 0.15,
+        "description": "Offers one small, realistic next step when appropriate.",
+    },
+    {
+        "key": "natural_counselor_tone",
+        "label": "Natural counselor tone",
+        "weight": 0.10,
+        "description": "Sounds natural, gentle, and counselor-like in Japanese.",
+    },
+    {
+        "key": "boundaries_no_harm",
+        "label": "Boundaries / No harm",
+        "weight": 0.05,
+        "description": "Avoids diagnosis, blame, false promises, and unsafe advice.",
+    },
+]
 SELF_HARM_PATTERNS = [
     "死にたい",
     "自殺",
@@ -234,55 +272,80 @@ Requirements:
 - 1 to 3 short sentences.
 - Use the client/counselor chat history above; do not respond as if this is the first turn unless it truly is.
 - Sound like a supportive counselor, not a debate participant.
-- Do not mention the five agents, internal discussion, or your character name.
+- Do not mention the five agents, scoring, internal discussion, or your character name.
 - Do not use markdown.
 
 Respond with only valid JSON:
 {{"reply": "<Japanese counselor reply>"}}"""
 
 
-def synthesis_prompt(
+def scoring_prompt(
+    judge_agent: Dict[str, str],
     conversation_context: str,
     client_text: str,
     candidates: List[Dict[str, Any]],
     high_risk: bool,
+    round_number: int = 2,
 ) -> str:
+    candidates_to_score = [
+        candidate for candidate in candidates
+        if candidate.get("character") != judge_agent["character"]
+    ]
     candidate_lines = "\n".join(
         f"{candidate['character']}: {candidate['reply']}"
-        for candidate in candidates
+        for candidate in candidates_to_score
     )
     safety = ""
     if high_risk:
-        safety = """
-The client may be expressing suicidal ideation or self-harm risk.
-Your final reply must:
-- validate the pain directly and calmly,
-- ask whether they are in immediate danger,
-- encourage not being alone and contacting emergency/local crisis support or a trusted person now,
-- avoid shame, debate, diagnosis, or detailed advice.
-"""
+        safety = "Because this may involve self-harm risk, heavily penalize replies that do not acknowledge safety or urgent support.\n"
 
-    return f"""You are the final counselor response synthesizer.
+    rubric_lines = "\n".join(
+        f"- {item['key']} ({item['label']}), 0-10, weight {int(item['weight'] * 100)}%: {item['description']}"
+        for item in RUBRIC
+    )
 
-Full visible client/counselor chat history so far:
+    return f"""You are {judge_agent['name']} ({judge_agent['character']}), one of five internal counselor review agents.
+Persona lens: {judge_agent['persona']}
+Review round: {round_number}
+
+Full visible client/counselor chat history:
 {conversation_context}
 
 Latest client message:
 {client_text}
 
-Five internal counselor agents produced these revised replies:
+Candidate replies to score. Your own candidate is intentionally excluded:
 {candidate_lines}
 
 {safety}
-Task:
-- Synthesize the strongest parts of the five revised replies into one final counselor response in Japanese.
-- Be warm, practical, and directly relevant to the client's latest message.
-- Do not mention the agents, synthesis, scoring, or internal discussion.
-- Do not use markdown.
-- 1 to 3 short sentences.
+Task: score only these other four candidates from 0 to 10 on each criterion.
+Do not score your own character. If your own character appears in the response by mistake, it will be ignored.
+Use only JSON. Do not explain outside JSON.
+{rubric_lines}
 
 Respond with only valid JSON:
-{{"reply": "<Japanese final counselor reply>"}}"""
+{{
+  "scores": [
+    {{
+      "character": "<one of the other four candidate character names>",
+      "safety_risk_handling": <0-10>,
+      "empathy_validation": <0-10>,
+      "relevance": <0-10>,
+      "helpful_next_step": <0-10>,
+      "natural_counselor_tone": <0-10>,
+      "boundaries_no_harm": <0-10>,
+      "note": "<short reason>"
+    }}
+  ]
+}}"""
+
+
+def clamp_score(value: Any) -> int:
+    try:
+        numeric = int(round(float(value)))
+    except (TypeError, ValueError):
+        numeric = 0
+    return max(0, min(10, numeric))
 
 
 async def generate_candidate(
@@ -294,21 +357,13 @@ async def generate_candidate(
     round_number: int = 1,
     previous_round: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    try:
-        raw = await query_llm(
-            model,
-            candidate_prompt(agent, conversation_context, client_text, high_risk, round_number, previous_round),
-            temperature=0.55,
-            max_output_tokens=512,
-            response_mime_type="application/json",
-        )
-    except LLMError:
-        raw = (
-            "今ここで話してくれてありがとうございます。"
-            "まず安全を一緒に確認したいです。今すぐ自分を傷つけそうな危険はありますか。"
-            if high_risk
-            else "今ここで話してくれてありがとうございます。もう少し、そのつらさについて聞かせてください。"
-        )
+    raw = await query_llm(
+        model,
+        candidate_prompt(agent, conversation_context, client_text, high_risk, round_number, previous_round),
+        temperature=0.55,
+        max_output_tokens=512,
+        response_mime_type="application/json",
+    )
     try:
         data = parse_json_object(raw)
         reply = str(data.get("reply", "")).strip()
@@ -323,31 +378,129 @@ async def generate_candidate(
     }
 
 
-async def synthesize_final_reply(
+async def score_candidates(
     model: str,
+    judge_agent: Dict[str, str],
     conversation_context: str,
     client_text: str,
     candidates: List[Dict[str, Any]],
     high_risk: bool,
-) -> str:
+    round_number: int = 2,
+) -> Dict[str, Any]:
     try:
         raw = await query_llm(
             model,
-            synthesis_prompt(conversation_context, client_text, candidates, high_risk),
-            temperature=0.35,
-            max_output_tokens=512,
+            scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number),
+            temperature=0.15,
+            max_output_tokens=1600,
             response_mime_type="application/json",
         )
+        data = parse_json_object(raw)
     except LLMError:
         raise
-    try:
-        data = parse_json_object(raw)
-        reply = str(data.get("reply", "")).strip()
-    except Exception:
-        reply = raw.strip()
-    if not reply:
-        raise LLMError("Final synthesizer returned an empty response.")
-    return enforce_high_risk_floor(reply, high_risk)
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        return fallback_peer_scores(judge_agent, candidates, high_risk, str(exc))
+    scores = data.get("scores", [])
+    by_character = {score.get("character"): score for score in scores if score.get("character")}
+    normalised = []
+    for candidate in candidates:
+        if candidate["character"] == judge_agent["character"]:
+            continue
+        score = by_character.get(candidate["character"], {})
+        row = {"character": candidate["character"], "judge": judge_agent["character"]}
+        for criterion in RUBRIC:
+            key = criterion["key"]
+            row[key] = clamp_score(score.get(key, 0))
+        row["raw_total"] = sum(row[criterion["key"]] for criterion in RUBRIC)
+        row["weighted_total"] = round(
+            sum(row[criterion["key"]] * criterion["weight"] for criterion in RUBRIC),
+            2,
+        )
+        row["total"] = row["weighted_total"]
+        row["note"] = str(score.get("note", "")).strip()
+        normalised.append(row)
+    return {
+        "judge": judge_agent["character"],
+        "scores": normalised,
+    }
+
+
+def fallback_peer_scores(
+    judge_agent: Dict[str, str],
+    candidates: List[Dict[str, Any]],
+    high_risk: bool,
+    reason: str,
+) -> Dict[str, Any]:
+    normalised = []
+    for candidate in candidates:
+        if candidate["character"] == judge_agent["character"]:
+            continue
+        reply = candidate.get("reply", "")
+        lowered = reply.lower()
+        has_safety = any(term in reply for term in ["危険", "緊急", "救急", "支援", "ひとり", "連絡", "助け", "安全"])
+        has_empathy = any(term in reply for term in ["つら", "苦し", "大変", "しんど", "話して", "聞かせて"])
+        has_next_step = any(term in reply for term in ["今", "連絡", "確認", "話", "教えて", "一緒", "できますか"])
+        unsafe = any(term in lowered for term in ["kill yourself", "suicide method"]) or "自傷は自然" in reply
+
+        row = {
+            "character": candidate["character"],
+            "judge": judge_agent["character"],
+            "safety_risk_handling": 8 if has_safety else (2 if high_risk else 6),
+            "empathy_validation": 8 if has_empathy else 5,
+            "relevance": 7 if len(reply.strip()) >= 12 else 4,
+            "helpful_next_step": 7 if has_next_step else 4,
+            "natural_counselor_tone": 7 if reply.strip() else 0,
+            "boundaries_no_harm": 2 if unsafe else 8,
+            "note": f"Fallback score used because scoring JSON parsing failed: {reason[:120]}",
+        }
+        row["raw_total"] = sum(row[criterion["key"]] for criterion in RUBRIC)
+        row["weighted_total"] = round(
+            sum(row[criterion["key"]] * criterion["weight"] for criterion in RUBRIC),
+            2,
+        )
+        row["total"] = row["weighted_total"]
+        normalised.append(row)
+    return {
+        "judge": judge_agent["character"],
+        "scores": normalised,
+        "fallback": True,
+    }
+
+
+def score_value(row: Dict[str, Any] | None) -> float:
+    if not row:
+        return 0
+    return row.get("weighted_total", row.get("total", 0)) or 0
+
+
+def aggregate_scores(candidates: List[Dict[str, Any]], peer_scores: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    aggregates = []
+    for candidate in candidates:
+        rows = [
+            row
+            for judge_result in peer_scores
+            for row in judge_result.get("scores", [])
+            if row.get("character") == candidate["character"]
+        ]
+        average_weighted_total = round(
+            sum(score_value(row) for row in rows) / len(rows),
+            2,
+        ) if rows else 0
+        average_raw_total = round(
+            sum(row.get("raw_total", row.get("total", 0)) for row in rows) / len(rows),
+            2,
+        ) if rows else 0
+        aggregates.append({
+            "character": candidate["character"],
+            "name": candidate["name"],
+            "reply": candidate["reply"],
+            "average_weighted_total": average_weighted_total,
+            "average_raw_total": average_raw_total,
+            "average_total": average_weighted_total,
+            "scores": rows,
+        })
+    aggregates.sort(key=lambda item: item.get("average_weighted_total", item.get("average_total", 0)), reverse=True)
+    return aggregates
 
 
 def previous_round_summary(round_result: Dict[str, Any], current_character: str) -> str:
@@ -372,8 +525,9 @@ def previous_round_summary(round_result: Dict[str, Any], current_character: str)
 
 def build_discussion_log(
     candidates: List[Dict[str, Any]],
+    peer_scores: List[Dict[str, Any]] | None = None,
+    winner: Dict[str, Any] | None = None,
 ) -> List[Dict[str, Any]]:
-    """Create a readable internal discussion timeline for the UI."""
     discussion = []
     for candidate in candidates:
         discussion.append({
@@ -381,6 +535,29 @@ def build_discussion_log(
             "character": candidate["character"],
             "title": "Candidate reply",
             "content": candidate["reply"],
+        })
+
+    for judge_result in peer_scores or []:
+        scores = judge_result.get("scores", [])
+        if not scores:
+            continue
+        top_score = max(scores, key=score_value)
+        discussion.append({
+            "type": "evaluation",
+            "character": judge_result["judge"],
+            "title": f"Preferred {top_score.get('character')}",
+            "content": top_score.get("note") or f"Weighted score: {score_value(top_score)}",
+            "score": score_value(top_score),
+            "target": top_score.get("character"),
+        })
+
+    if winner:
+        discussion.append({
+            "type": "winner",
+            "character": winner["character"],
+            "title": "Selected counselor response",
+            "content": winner["reply"],
+            "score": winner.get("average_weighted_total", winner.get("average_total", 0)),
         })
     return discussion
 
@@ -417,12 +594,18 @@ async def run_counseling_round(
             generate_candidate(model, agent, context, client_text, high_risk, round_number, previous_round)
             for agent in active_agents
         ])
-        round_result = build_round_result(round_number, candidates)
+        if round_number == review_rounds:
+            peer_scores = await asyncio.gather(*[
+                score_candidates(model, agent, context, client_text, candidates, high_risk, round_number)
+                for agent in active_agents
+            ])
+            round_result = build_scored_round_result(round_number, high_risk, candidates, peer_scores)
+        else:
+            round_result = build_round_result(round_number, candidates)
         rounds.append(round_result)
         previous_round = round_result
 
-    final_reply = await synthesize_final_reply(model, context, client_text, rounds[-1]["candidates"], high_risk)
-    return build_agent_round(client_message, high_risk, review_rounds, rounds, final_reply)
+    return build_agent_round(client_message, high_risk, review_rounds, rounds)
 
 
 def build_round_result(
@@ -439,20 +622,41 @@ def build_round_result(
     }
 
 
+def build_scored_round_result(
+    round_number: int,
+    high_risk: bool,
+    candidates: List[Dict[str, Any]],
+    peer_scores: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    totals = aggregate_scores(candidates, peer_scores)
+    winner = totals[0]
+    selected_reply = enforce_high_risk_floor(winner["reply"], high_risk)
+    selected_winner = {
+        "character": winner["character"],
+        "name": winner["name"],
+        "average_weighted_total": winner["average_weighted_total"],
+        "average_raw_total": winner["average_raw_total"],
+        "average_total": winner["average_total"],
+        "reply": selected_reply,
+    }
+
+    return {
+        "round_number": round_number,
+        "candidates": candidates,
+        "peer_scores": peer_scores,
+        "totals": totals,
+        "discussion": build_discussion_log(candidates, peer_scores, selected_winner),
+        "winner": selected_winner,
+    }
+
+
 def build_agent_round(
     client_message: Dict[str, Any],
     high_risk: bool,
     review_rounds: int,
     rounds: List[Dict[str, Any]],
-    final_reply: str,
 ) -> Dict[str, Any]:
     final_round = rounds[-1]
-    winner = {
-        "character": "Synthesizer",
-        "name": "Synthesizer",
-        "synthetic": True,
-        "reply": final_reply,
-    }
 
     return {
         "id": str(uuid.uuid4()),
@@ -462,8 +666,8 @@ def build_agent_round(
         "review_rounds": review_rounds,
         "rounds": rounds,
         "candidates": final_round["candidates"],
-        "peer_scores": [],
-        "totals": [],
+        "peer_scores": final_round["peer_scores"],
+        "totals": final_round["totals"],
         "discussion": final_round["discussion"],
-        "winner": winner,
+        "winner": final_round["winner"],
     }
