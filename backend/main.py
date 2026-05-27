@@ -21,7 +21,7 @@ from .counseling import (
     is_high_risk,
     now_iso,
     run_counseling_round,
-    score_candidates,
+    synthesize_final_reply,
     visible_context,
 )
 from .llm import LLMError
@@ -103,13 +103,7 @@ def conversation_agents(conversation: dict) -> list[dict]:
 
 
 def validate_review_rounds(review_rounds: Optional[int]) -> int:
-    value = DEFAULT_REVIEW_ROUNDS if review_rounds is None else review_rounds
-    if not isinstance(value, int) or value < MIN_REVIEW_ROUNDS or value > MAX_REVIEW_ROUNDS:
-        raise HTTPException(
-            status_code=400,
-            detail={"errors": [f"Review rounds must be an integer from {MIN_REVIEW_ROUNDS} to {MAX_REVIEW_ROUNDS}."]},
-        )
-    return value
+    return DEFAULT_REVIEW_ROUNDS
 
 
 def conversation_review_rounds(conversation: dict) -> int:
@@ -243,11 +237,6 @@ async def indexed_candidate(model, index, agent, context, content, high_risk, ro
     return index, candidate
 
 
-async def indexed_score(model, index, agent, context, content, candidates, high_risk, round_number):
-    score = await score_candidates(model, agent, context, content, candidates, high_risk, round_number)
-    return index, score
-
-
 @app.post("/api/conversations/{conversation_id}/messages/stream")
 async def create_message_stream(conversation_id: str, request: CreateMessageRequest):
     conversation = storage.get_conversation(conversation_id)
@@ -281,7 +270,6 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
         rounds = []
         previous_round = None
         candidate_tasks = []
-        scoring_tasks = []
         try:
             for round_number in range(1, review_rounds + 1):
                 yield stream_event("round_started", {
@@ -318,29 +306,7 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                     })
 
                 candidates = [candidate for candidate in candidates_by_index if candidate is not None]
-                yield stream_event("scoring_started", {
-                    "round_number": round_number,
-                    "candidate_count": len(candidates),
-                })
-
-                peer_scores_by_index = [None] * len(agents)
-                scoring_tasks = [
-                    asyncio.create_task(
-                        indexed_score(model, index, agent, context, content, candidates, high_risk, round_number)
-                    )
-                    for index, agent in enumerate(agents)
-                ]
-                for task in asyncio.as_completed(scoring_tasks):
-                    index, score = await task
-                    peer_scores_by_index[index] = score
-                    yield stream_event("score_ready", {
-                        "round_number": round_number,
-                        "index": index,
-                        "score": score,
-                    })
-
-                peer_scores = [score for score in peer_scores_by_index if score is not None]
-                round_result = build_round_result(round_number, high_risk, candidates, peer_scores)
+                round_result = build_round_result(round_number, candidates)
                 rounds.append(round_result)
                 previous_round = round_result
                 yield stream_event("round_complete", {
@@ -348,7 +314,8 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                     "round": round_result,
                 })
 
-            agent_round = build_agent_round(client_message, high_risk, review_rounds, rounds)
+            final_reply = await synthesize_final_reply(model, context, content, rounds[-1]["candidates"], high_risk)
+            agent_round = build_agent_round(client_message, high_risk, review_rounds, rounds, final_reply)
             storage.add_agent_round(conversation_id, agent_round)
 
             counselor_message = {
@@ -369,16 +336,16 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                 "conversation": updated_conversation,
             })
         except LLMError as exc:
-            for task in candidate_tasks + scoring_tasks:
+            for task in candidate_tasks:
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
+            await asyncio.gather(*candidate_tasks, return_exceptions=True)
             yield stream_event("error", {"message": str(exc)})
         except Exception as exc:
-            for task in candidate_tasks + scoring_tasks:
+            for task in candidate_tasks:
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
+            await asyncio.gather(*candidate_tasks, return_exceptions=True)
             yield stream_event("error", {"message": f"Counseling round failed: {exc}"})
 
     return StreamingResponse(generate_events(), media_type="application/x-ndjson")

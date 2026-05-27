@@ -1,6 +1,6 @@
 # Counseling Dialogue
 
-A local counseling dialogue prototype powered by a local vLLM OpenAI-compatible API. The visible chat is a client/counselor conversation. Behind each counselor response, five internal Inside Out-style agents propose and score possible replies; the highest-scoring reply is shown to the client.
+A counseling dialogue prototype powered by Gemini or a local OpenAI-compatible API. The visible chat is a client/counselor conversation. Behind each counselor response, five internal Inside Out-style agents propose replies, revise them after seeing the other agents, and a final synthesizer produces one counselor response for the client.
 
 This is a supportive role-play prototype, not a licensed clinical tool.
 
@@ -8,8 +8,8 @@ This is a supportive role-play prototype, not a licensed clinical tool.
 
 1. The client sends a message in the chat UI.
 2. Five internal agents generate Japanese counselor reply candidates: Disgust, Fear, Joy, Sadness, and Anger.
-3. The five agents score each candidate on empathy, safety, clarity, helpful next step, and appropriateness.
-4. The highest-scoring candidate is saved and shown as the counselor reply.
+3. The five agents run a second round that reflects on the other agents' first-round replies.
+4. A final synthesizer combines the revised replies into one counselor response.
 5. The visible conversation and the internal agent review are stored locally as JSON.
 
 ## LLM Configuration

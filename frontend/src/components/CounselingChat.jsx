@@ -2,13 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './CounselingChat.css';
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
-const scoreValue = (item) => item?.weighted_total ?? item?.average_weighted_total ?? item?.total ?? item?.average_total ?? 0;
 const discussionItems = (round) => (round.discussion || []).filter((item) => item.type === 'candidate');
-const formatScore = (value) => {
-  const number = Number(value || 0);
-  if (!Number.isFinite(number)) return '0';
-  return number.toFixed(2).replace(/\.00$/, '');
-};
 
 export default function CounselingChat({
   conversation,
@@ -18,7 +12,6 @@ export default function CounselingChat({
   reviewRounds,
   onModelChange,
   onAgentsChange,
-  onReviewRoundsChange,
   onSendMessage,
   sending,
   liveRound,
@@ -58,9 +51,6 @@ export default function CounselingChat({
     reviewRound?.winner
     && (!isLiveReview || displayRounds.length >= (reviewRound.review_rounds || reviewRounds || 1)),
   );
-  const finalTotals = reviewRound?.totals?.length
-    ? reviewRound.totals
-    : (displayRounds[displayRounds.length - 1]?.totals || []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -229,20 +219,10 @@ export default function CounselingChat({
               <div className="round-control">
                 <div>
                   <span>Review rounds</span>
-                  <strong>{personasLocked ? `${reviewRounds} rounds locked while sending` : 'Choose 1 to 5 rounds'}</strong>
+                  <strong>Fixed 2-round reflection</strong>
                 </div>
-                <div className="round-options" role="group" aria-label="Review rounds">
-                  {[1, 2, 3, 4, 5].map((roundNumber) => (
-                    <button
-                      className={reviewRounds === roundNumber ? 'active' : ''}
-                      disabled={personasLocked}
-                      key={roundNumber}
-                      onClick={() => onReviewRoundsChange(roundNumber)}
-                      type="button"
-                    >
-                      {roundNumber}
-                    </button>
-                  ))}
+                <div className="round-options fixed" aria-label="Review rounds">
+                  <span>2 rounds</span>
                 </div>
               </div>
             </section>
@@ -301,7 +281,6 @@ export default function CounselingChat({
                           <div className="discussion-meta">
                             <strong>{item.character}</strong>
                             <span>{item.title}</span>
-                            {typeof item.score !== 'undefined' && <em>{item.score}</em>}
                           </div>
                           <p>{item.content}</p>
                         </div>
@@ -323,27 +302,12 @@ export default function CounselingChat({
 	                ))}
                 {finalWinnerReady && (
                   <div className="final-result">
-                    <div className="section-label">Final Result</div>
+                    <div className="section-label">Final Counselor Response</div>
                     <div className="winner-card">
-                      <span>Winner</span>
-                      <strong>{reviewRound.winner.character}</strong>
-                      <small>{formatScore(scoreValue(reviewRound.winner))} weighted score</small>
+                      <span>Synthesized from round 2</span>
+                      <strong>Final response</strong>
                       <p>{reviewRound.winner.reply}</p>
                     </div>
-                    {(finalTotals || []).length > 0 && (
-                      <div className="final-ranking">
-                        {finalTotals.map((candidate, index) => (
-                          <div className={`ranking-row ${agentClass(candidate.character)}`} key={`final-${candidate.character}`}>
-                            <span>#{index + 1}</span>
-                            <strong>{candidate.character}</strong>
-                            <b>{formatScore(scoreValue(candidate))}</b>
-                            <small>
-                              weighted avg from 4 peer agents
-                            </small>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
 	              </>

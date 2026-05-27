@@ -212,6 +212,25 @@
   gap: 6px;
 }
 
+.round-options.fixed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.round-options.fixed span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .round-options button {
   height: 34px;
   border: 1px solid var(--border-2);

@@ -93,7 +93,7 @@ function App() {
       setLiveRound(null);
       if (conversation.config?.model) setModel(conversation.config.model);
       if (conversation.config?.agents) setAgents(cloneAgents(conversation.config.agents));
-      setReviewRounds(conversation.config?.review_rounds || DEFAULT_REVIEW_ROUNDS);
+      setReviewRounds(DEFAULT_REVIEW_ROUNDS);
     } catch (err) {
       setError(err.message || 'Failed to load conversation.');
     }
@@ -234,26 +234,6 @@ function App() {
           }));
         }
 
-        if (event.type === 'scoring_started') {
-          const roundNumber = payload.round_number || 1;
-          setLiveRound((prev) => ({
-            ...updateRound(prev, roundNumber, (round) => round),
-            status: 'scoring',
-          }));
-        }
-
-        if (event.type === 'score_ready') {
-          const score = payload.score;
-          const roundNumber = payload.round_number || 1;
-          setLiveRound((prev) => ({
-            ...updateRound(prev, roundNumber, (round) => ({
-              ...round,
-              peer_scores: [...(round.peer_scores || []), score],
-            })),
-            status: 'scoring',
-          }));
-        }
-
         if (event.type === 'round_complete') {
           const roundNumber = payload.round_number || 1;
           setLiveRound((prev) => ({
@@ -299,7 +279,6 @@ function App() {
           reviewRounds={reviewRounds}
           onModelChange={setModel}
           onAgentsChange={setAgents}
-          onReviewRoundsChange={setReviewRounds}
           onSendMessage={handleSendMessage}
           sending={sending}
           liveRound={liveRound}
