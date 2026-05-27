@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import CounselingChat from './components/CounselingChat';
 import { api } from './api';
@@ -47,6 +47,8 @@ function App() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [liveRound, setLiveRound] = useState(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const touchStartRef = useRef(null);
 
   const refreshList = async () => {
     const list = await api.listConversations();
@@ -82,6 +84,7 @@ function App() {
     setReviewRounds(DEFAULT_REVIEW_ROUNDS);
     setLiveRound(null);
     setError('');
+    setMobileSidebarOpen(false);
   };
 
   const handleSelectConversation = async (id) => {
@@ -94,6 +97,7 @@ function App() {
       if (conversation.config?.model) setModel(conversation.config.model);
       if (conversation.config?.agents) setAgents(cloneAgents(conversation.config.agents));
       setReviewRounds(DEFAULT_REVIEW_ROUNDS);
+      setMobileSidebarOpen(false);
     } catch (err) {
       setError(err.message || 'Failed to load conversation.');
     }
@@ -286,8 +290,54 @@ function App() {
     }
   };
 
+  const handleTouchStart = (event) => {
+    const touch = event.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  };
+
+  const handleTouchEnd = (event) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaY) > 80 || Math.abs(deltaX) < 70) return;
+
+    if (mobileSidebarOpen && deltaX < 0) {
+      setMobileSidebarOpen(false);
+      return;
+    }
+
+    if (!mobileSidebarOpen && start.x < 28 && deltaX > 0) {
+      setMobileSidebarOpen(true);
+    }
+  };
+
   return (
-    <div className="app">
+    <div
+      className={`app ${mobileSidebarOpen ? 'sidebar-open' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <button
+        className="mobile-history-toggle"
+        type="button"
+        onClick={() => setMobileSidebarOpen(true)}
+        aria-label="Open history"
+      >
+        History
+      </button>
+      <button
+        className="mobile-sidebar-backdrop"
+        type="button"
+        onClick={() => setMobileSidebarOpen(false)}
+        aria-label="Close history"
+      />
       <Sidebar
         conversations={conversations}
         currentConversationId={currentConversationId}

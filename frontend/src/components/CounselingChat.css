@@ -920,6 +920,12 @@
 .agent-sadness { --agent-color: #5ba3f5; }
 .agent-anger { --agent-color: #f45b69; }
 
+@media (max-width: 860px) {
+  .chat-header {
+    padding-top: max(64px, calc(env(safe-area-inset-top) + 54px));
+  }
+}
+
 @media (max-width: 720px) {
   .chat-header,
   .message-form {

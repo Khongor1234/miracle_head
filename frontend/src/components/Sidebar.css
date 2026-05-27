@@ -229,3 +229,54 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+@media (max-width: 860px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 96;
+    width: min(84vw, 320px);
+    max-width: 320px;
+    height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    border-right-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 22px 0 52px rgba(0, 0, 0, 0.34);
+    transform: translateX(-102%);
+    transition: transform 0.24s ease;
+    will-change: transform;
+  }
+
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-header {
+    padding: 18px 16px 14px;
+  }
+
+  .conversation-list {
+    padding: 6px 10px max(24px, env(safe-area-inset-bottom));
+  }
+
+  .conversation-item {
+    padding: 13px 12px;
+    margin-bottom: 5px;
+  }
+
+  .conversation-title {
+    font-size: 15px;
+  }
+
+  .conversation-meta {
+    font-size: 12px;
+  }
+
+  .delete-session-btn {
+    opacity: 1;
+    width: 28px;
+    height: 28px;
+    right: 10px;
+    border-radius: 8px;
+  }
+}
