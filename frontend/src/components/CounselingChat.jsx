@@ -369,28 +369,6 @@ export default function CounselingChat({
                       ))}
                     </div>
 
-                    {(round.peer_scores || []).length > 0 && (
-                      <div className="peer-section">
-                        <div className="section-label">ピアスコア</div>
-                        {(round.peer_scores || []).map((judgeResult) => (
-                          <div className={`peer-card ${agentClass(judgeResult.judge)}`} key={`${round.round_number}-${judgeResult.judge}`}>
-                            <div className="peer-head">
-                              <strong>{judgeResult.judge}</strong>
-                              <span>他エージェントを採点</span>
-                            </div>
-                            <div className="peer-score-list">
-                              {(judgeResult.scores || []).map((score) => (
-                                <div key={`${judgeResult.judge}-${score.character}`}>
-                                  <span>{score.character}</span>
-                                  <b>{formatScore(scoreValue(score))}</b>
-                                  <small>加重</small>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))}
 
