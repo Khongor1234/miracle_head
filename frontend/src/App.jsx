@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import CounselingChat from './components/CounselingChat';
+import LandingPage from './components/LandingPage';
 import { api } from './api';
 import './App.css';
 
@@ -37,6 +38,7 @@ const updateRound = (current, roundNumber, updater) => {
 };
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
@@ -318,6 +320,10 @@ function App() {
     }
   };
 
+  if (showLanding) {
+    return <LandingPage onEnter={() => setShowLanding(false)} />;
+  }
+
   return (
     <div
       className={`app ${mobileSidebarOpen ? 'sidebar-open' : ''}`}
@@ -328,9 +334,9 @@ function App() {
         className="mobile-history-toggle"
         type="button"
         onClick={() => setMobileSidebarOpen(true)}
-        aria-label="Open history"
+        aria-label="履歴を開く"
       >
-        History
+        履歴
       </button>
       <button
         className="mobile-sidebar-backdrop"
