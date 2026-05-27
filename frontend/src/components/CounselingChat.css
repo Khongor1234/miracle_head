@@ -90,7 +90,7 @@
   background: rgba(255, 255, 255, 0.60);
   color: #2a1a50;
   padding: 0 10px;
-  font: inherit;
+  font-family: var(--font-ui);
   font-size: 13px;
   outline: none;
   cursor: pointer;
@@ -397,27 +397,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(170, 150, 215, 0.35);
+  border: 1px solid rgba(170, 150, 215, 0.22);
   border-radius: 100px;
-  background: rgba(255, 255, 255, 0.80);
-  color: #3a2868;
-  padding: 8px 14px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  background: rgba(240, 234, 255, 0.45);
+  color: #6a50a8;
+  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.02em;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.30), 0 0 0 1px rgba(123, 95, 212, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  backdrop-filter: blur(10px);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .review-handle:hover,
 .persona-handle:hover {
-  border-color: var(--hq-purple);
-  background: rgba(255, 255, 255, 0.90);
-  box-shadow: 0 4px 18px rgba(120, 60, 180, 0.20), 0 0 0 1px var(--hq-purple);
+  border-color: rgba(140, 110, 200, 0.45);
+  background: rgba(240, 234, 255, 0.70);
+  color: #3a2868;
+  box-shadow: 0 2px 12px rgba(120, 60, 180, 0.12);
 }
 
 .persona-handle {
