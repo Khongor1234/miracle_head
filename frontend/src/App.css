@@ -20,7 +20,7 @@
   display: flex;
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
-  top: max(12px, env(safe-area-inset-top));
+  top: max(68px, calc(env(safe-area-inset-top) + 56px));
   z-index: 80;
   align-items: center;
   justify-content: center;
