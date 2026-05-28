@@ -409,7 +409,11 @@ async def text_to_speech(request: TTSRequest):
         )
 
     if not resp.is_success:
-        raise HTTPException(status_code=502, detail="TTS service error")
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        raise HTTPException(status_code=502, detail=f"ElevenLabs error {resp.status_code}: {detail}")
 
     return Response(content=resp.content, media_type="audio/mpeg")
 
