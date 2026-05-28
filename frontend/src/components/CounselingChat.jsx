@@ -98,6 +98,8 @@ export default function CounselingChat({
   const [reviewOpen, setReviewOpen] = useState(true);
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
+  const [expandedReplies, setExpandedReplies] = useState({});
+  const [discussionExpanded, setDiscussionExpanded] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -143,6 +145,9 @@ export default function CounselingChat({
     const entry = finalTotals.find((t) => t.character === character);
     return entry != null ? scoreValue(entry) : null;
   };
+  const candidateForAgent = (character) => round1Candidates.find((c) => c.character === character);
+  const toggleReply = (character) => setExpandedReplies((prev) => ({ ...prev, [character]: !prev[character] }));
+  const latestDiscussion = displayRounds.length ? discussionItems(displayRounds[displayRounds.length - 1]) : [];
   const maxScore = finalTotals.length ? Math.max(...finalTotals.map((t) => scoreValue(t))) : 1;
   const winnerCharacter = reviewRound?.winner?.character;
 
@@ -322,19 +327,39 @@ export default function CounselingChat({
                         </span>
                       )}
                     </div>
-                    {activeAgents.map((agent) => (
-                      <div className={`panel-agent-row ${agentClass(agent.character)}`} key={agent.character}>
-                        {CHARACTER_IMGS[agent.character] && (
-                          <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
-                        )}
-                        <span className="panel-agent-name">{agent.character}</span>
-                        {agentR1Done(agent.character) ? (
-                          <span className="panel-check">✓</span>
-                        ) : sending ? (
-                          <span className="panel-thinking"><b /><b /><b /></span>
-                        ) : null}
-                      </div>
-                    ))}
+                    {activeAgents.map((agent) => {
+                      const candidate = candidateForAgent(agent.character);
+                      const replyText = candidate ? displayText(candidate.reply) : null;
+                      const replyExpanded = expandedReplies[agent.character];
+                      return (
+                        <div key={agent.character}>
+                          <div
+                            className={`panel-agent-row ${agentClass(agent.character)}${replyText ? ' clickable' : ''}`}
+                            onClick={() => replyText && toggleReply(agent.character)}
+                          >
+                            {CHARACTER_IMGS[agent.character] && (
+                              <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
+                            )}
+                            <span className="panel-agent-name">{agent.character}</span>
+                            {agentR1Done(agent.character) ? (
+                              <>
+                                <span className="panel-check">✓</span>
+                                {replyText && (
+                                  <span className="panel-chevron">{replyExpanded ? '▲' : '▼'}</span>
+                                )}
+                              </>
+                            ) : sending ? (
+                              <span className="panel-thinking"><b /><b /><b /></span>
+                            ) : null}
+                          </div>
+                          {replyText && replyExpanded && (
+                            <div className={`panel-agent-reply ${agentClass(agent.character)}`}>
+                              <p>{replyText}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <div className={`panel-round-card${!round1AllDone ? ' dimmed' : ''}`}>
@@ -344,6 +369,34 @@ export default function CounselingChat({
                         {finalWinnerReady ? c.roundDone : round1AllDone && sending ? c.roundScoring : c.roundWaiting}
                       </span>
                     </div>
+                    {latestDiscussion.length > 0 && (
+                      <div className="panel-discussion-section">
+                        <button
+                          className="panel-discussion-toggle"
+                          type="button"
+                          onClick={() => setDiscussionExpanded((v) => !v)}
+                        >
+                          <span>{c.discussionLabel ?? '議論'}</span>
+                          <span className="panel-discussion-count">{latestDiscussion.length}</span>
+                          <span className="panel-chevron">{discussionExpanded ? '▲' : '▼'}</span>
+                        </button>
+                        {discussionExpanded && latestDiscussion.map((item, i) => (
+                          <div
+                            className={`panel-discussion-item ${agentClass(item.character)}`}
+                            key={`d-${i}`}
+                          >
+                            <div className="panel-discussion-meta">
+                              {CHARACTER_IMGS[item.character] && (
+                                <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
+                              )}
+                              <strong>{item.character}</strong>
+                              {item.title && <span>{item.title}</span>}
+                            </div>
+                            <p>{displayText(item.content)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {activeAgents.map((agent) => {
                       const score = agentScore(agent.character);
                       const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
