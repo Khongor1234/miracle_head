@@ -125,7 +125,7 @@ export default function CounselingChat({
   const c = t.chat;
 
   const [draft, setDraft] = useState('');
-  const [reviewOpen, setReviewOpen] = useState(true);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
   const [messagesVisible, setMessagesVisible] = useState(true);
