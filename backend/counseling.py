@@ -438,21 +438,6 @@ Your reply must:
     persona = winner_agent.get("persona_en", winner_agent["persona"]) if lang == "en" else winner_agent["persona"]
     response_lang = "English" if lang == "en" else "Japanese"
 
-    # Each character has a signature emoji that fits their emotional lens
-    character_emoji = {
-        "Disgust": "🧐",
-        "Fear": "🫂",
-        "Joy": "🌟",
-        "Sadness": "💙",
-        "Anger": "🔥",
-    }
-    emoji = character_emoji.get(winner_agent["character"], "💬")
-    emoji_instruction = (
-        f"- Begin your reply with a single fitting emoji ({emoji}) that reflects your emotional lens."
-        if not high_risk
-        else "- Do not use emojis — keep the tone calm and grounded."
-    )
-
     return f"""You are an internal counselor agent. Your psychological analysis was chosen as the most insightful by the team.
 
 Agent: {winner_agent['name']} ({winner_agent['character']})
@@ -472,12 +457,11 @@ Now write the actual counseling reply to the client.
 Use YOUR persona's lens and let the team's insights inform your response — but speak in your own voice.
 
 Requirements:
-- 1 to 3 short sentences in {response_lang}.
+- 2 to 5 sentences in {response_lang}.
 - Use the conversation history; do not respond as if this is the first turn unless it truly is.
 - Speak directly to the client as their counselor.
 - Do not mention other agents, internal discussion, scoring, or your character name.
-- Do not use markdown or JSON.
-- {emoji_instruction}
+- Do not use markdown, emojis, or JSON.
 
 Respond with the counselor reply text in {response_lang} only."""
 
@@ -603,7 +587,7 @@ async def generate_winner_reply(
         model,
         winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk, lang),
         temperature=0.55,
-        max_output_tokens=768,
+        max_output_tokens=1536,
     )
     reply = _strip_json_fences(raw).strip()
     if reply.startswith("{"):
