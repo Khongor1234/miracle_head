@@ -190,6 +190,9 @@ export const translations = {
       weightedAvg: 'Weighted avg · 4 agents',
       youAvatar: 'You',
       counselorAvatar: '相',
+      hideMessages: 'Hide messages',
+      showMessages: 'Show messages',
+      discussionLabel: 'Discussion',
     },
   },
 };
