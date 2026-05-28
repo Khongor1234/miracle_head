@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Miracle Head — UI Redesign Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f0ebfc;
+  --bg-card:   #ffffff;
+  --bg-nav:    rgba(240,235,252,0.82);
+  --accent:    #7c5cbf;
+  --accent-2:  #a07cc8;
+  --text-1:    #1a0f3a;
+  --text-2:    #52408a;
+  --text-3:    #9580c0;
+  --border:    rgba(124,92,191,0.13);
+  --shadow-sm: 0 2px 12px rgba(80,40,160,0.07);
+  --shadow-md: 0 8px 32px rgba(80,40,160,0.11);
+  --shadow-lg: 0 20px 60px rgba(80,40,160,0.14);
+  --r-sm: 6px; --r-md: 14px; --r-lg: 22px; --r-xl: 32px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Source Serif 4', Georgia, serif;
+  --font-ui:      'Outfit', system-ui, sans-serif;
+}
+
+html, body { min-height: 100%; font-family: var(--font-ui); background: var(--bg); color: var(--text-1); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+/* ── Nav ────────────────────────────────────────────────── */
+nav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 52px; height: 62px;
+  background: var(--bg-nav);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 700; letter-spacing: 0.01em;
+  color: var(--text-1);
+  display: flex; align-items: center; gap: 9px;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.6; }
+}
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+.btn-ghost {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: transparent; color: var(--text-2); cursor: pointer;
+  transition: all 0.18s ease;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--text-1); background: rgba(124,92,191,0.07); }
+.btn-primary {
+  font-family: var(--font-ui); font-size: 13px; font-weight: 600;
+  padding: 9px 22px;
+  border: none; border-radius: 100px;
+  background: var(--accent); color: #fff; cursor: pointer;
+  box-shadow: 0 3px 14px rgba(124,92,191,0.35);
+  transition: all 0.18s ease;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-primary:hover { background: #6a4aab; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,92,191,0.40); }
+.btn-primary:active { transform: translateY(0); }
+
+/* ── Hero ───────────────────────────────────────────────── */
+.hero {
+  max-width: 720px; margin: 0 auto;
+  padding: 100px 32px 80px;
+  text-align: center;
+}
+.hero-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent); background: rgba(124,92,191,0.10);
+  border: 1px solid rgba(124,92,191,0.20);
+  padding: 5px 14px; border-radius: 100px; margin-bottom: 28px;
+}
+.hero-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 58px); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--text-1); margin-bottom: 22px;
+}
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero-sub {
+  font-family: var(--font-body); font-size: 17px; font-weight: 300;
+  color: var(--text-2); line-height: 1.75; margin-bottom: 42px;
+  max-width: 480px; margin-left: auto; margin-right: auto;
+}
+.hero-cta {
+  font-family: var(--font-ui); font-size: 15px; font-weight: 600;
+  padding: 14px 36px;
+  border: none; border-radius: 100px;
+  background: var(--accent); color: #fff; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124,92,191,0.38);
+  transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.hero-cta:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 28px rgba(124,92,191,0.44); }
+.hero-cta:active { transform: translateY(0) scale(0.98); }
+.arrow { transition: transform 0.18s ease; }
+.hero-cta:hover .arrow { transform: translateX(4px); }
+
+/* ── Section header ─────────────────────────────────────── */
+.section { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
+.section-header { text-align: center; margin-bottom: 52px; }
+.section-header h2 {
+  font-family: var(--font-display); font-size: 32px; font-weight: 700;
+  color: var(--text-1); margin-bottom: 10px;
+}
+.section-header p { font-family: var(--font-body); font-size: 16px; color: var(--text-2); font-weight: 300; }
+
+/* ── Character Cards ────────────────────────────────────── */
+.char-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) { .char-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.char-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 28px 18px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.28s ease,
+              border-color 0.2s ease;
+  overflow: hidden;
+}
+.char-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  border-radius: var(--r-lg);
+}
+.char-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: var(--shadow-lg);
+}
+.char-card:hover::before { opacity: 1; }
+.char-card:active { transform: translateY(-3px) scale(1.01); }
+
+/* Per-character tints */
+.char-joy   { --c: #f5c842; } .char-joy::before   { background: radial-gradient(circle at 50% 0%, rgba(245,200,66,0.12), transparent 70%); }
+.char-joy:hover   { border-color: rgba(245,200,66,0.45); }
+.char-sadness { --c: #6ab0e8; } .char-sadness::before { background: radial-gradient(circle at 50% 0%, rgba(106,176,232,0.12), transparent 70%); }
+.char-sadness:hover { border-color: rgba(106,176,232,0.45); }
+.char-anger { --c: #e8604a; } .char-anger::before { background: radial-gradient(circle at 50% 0%, rgba(232,96,74,0.12), transparent 70%); }
+.char-anger:hover { border-color: rgba(232,96,74,0.45); }
+.char-fear  { --c: #b06ee0; } .char-fear::before  { background: radial-gradient(circle at 50% 0%, rgba(176,110,224,0.12), transparent 70%); }
+.char-fear:hover  { border-color: rgba(176,110,224,0.45); }
+.char-disgust { --c: #5aba7c; } .char-disgust::before { background: radial-gradient(circle at 50% 0%, rgba(90,186,124,0.12), transparent 70%); }
+.char-disgust:hover { border-color: rgba(90,186,124,0.45); }
+
+.char-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, rgba(124,92,191,0.10), rgba(124,92,191,0.05));
+  border: 2px solid rgba(124,92,191,0.15);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.28s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.char-card:hover .char-avatar { transform: scale(1.08); border-color: var(--c); }
+.char-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.char-emoji { font-size: 32px; line-height: 1; } /* fallback */
+
+.char-name {
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  color: var(--text-1); margin-bottom: 4px;
+}
+.char-role {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--c, var(--accent));
+  margin-bottom: 10px;
+}
+.char-desc {
+  font-family: var(--font-body); font-size: 13px; font-weight: 300;
+  color: var(--text-2); line-height: 1.6;
+}
+.char-indicator {
+  position: absolute; top: 12px; right: 12px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c, var(--accent));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.char-card:hover .char-indicator { opacity: 1; }
+
+/* ── Steps ──────────────────────────────────────────────── */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
+.step-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 36px 28px;
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+.step-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
+.step-num {
+  font-family: var(--font-display); font-size: 40px; font-weight: 700;
+  color: rgba(124,92,191,0.15); margin-bottom: 16px; line-height: 1;
+}
+.step-card h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-1); margin-bottom: 10px; }
+.step-card p  { font-family: var(--font-body); font-size: 14px; color: var(--text-2); line-height: 1.7; font-weight: 300; }
+
+/* ── Chat preview ───────────────────────────────────────── */
+.chat-preview {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 0; overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.chat-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(124,92,191,0.04);
+}
+.chat-header-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(124,92,191,0.12);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.chat-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.chat-header-info { flex: 1; }
+.chat-header-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-1); }
+.chat-header-status { font-size: 11px; color: #5aba7c; display: flex; align-items: center; gap: 4px; }
+.chat-header-status::before { content:''; width:6px; height:6px; border-radius:50%; background:#5aba7c; }
+
+.chat-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.msg { display: flex; gap: 10px; align-items: flex-start; }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(124,92,191,0.12);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; font-size: 16px;
+}
+.msg-avatar img { width:100%; height:100%; object-fit:cover; }
+.msg-bubble {
+  max-width: 68%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-family: var(--font-body); font-size: 14px; line-height: 1.65;
+}
+.msg-bubble.agent {
+  background: rgba(124,92,191,0.08);
+  border: 1px solid rgba(124,92,191,0.14);
+  border-bottom-left-radius: 4px;
+  color: var(--text-1);
+}
+.msg-bubble.user {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.typing-indicator {
+  display: flex; gap: 4px; align-items: center; padding: 4px 0;
+}
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+  30%          { transform: translateY(-6px); opacity: 1; }
+}
+
+.chat-input-row {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px; align-items: center;
+}
+.chat-input {
+  flex: 1;
+  font-family: var(--font-body); font-size: 14px;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--bg);
+  color: var(--text-1); outline: none;
+  transition: border-color 0.18s ease;
+}
+.chat-input:focus { border-color: var(--accent); }
+.send-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), background 0.18s ease;
+}
+.send-btn:hover { transform: scale(1.1); background: #6a4aab; }
+
+/* ── Divider ─────────────────────────────────────────────── */
+.divider {
+  width: 60px; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  margin: 0 auto 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+footer {
+  text-align: center; padding: 48px 32px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-ui); font-size: 12px; color: var(--text-3);
+}
+
+/* ── Tweaks panel ────────────────────────────────────────── */
+.tweaks {
+  position: fixed; bottom: 24px; right: 24px; z-index: 100;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px 20px;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-ui); font-size: 12px; color: var(--text-2);
+  min-width: 180px;
+}
+.tweaks-title { font-weight: 600; color: var(--text-1); margin-bottom: 12px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.tweak-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
+.tweak-row label { cursor: pointer; }
+.toggle {
+  width: 32px; height: 18px; border-radius: 9px;
+  background: var(--border); border: none; cursor: pointer;
+  position: relative; transition: background 0.18s;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; top: 2px; left: 2px;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.toggle.on::after { transform: translateX(14px); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Miracle Head
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="toggleLang()">EN</button>
+    <button class="btn-primary">
+      始める <span class="arrow">→</span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-chip">AI Emotional Counseling</div>
+  <h1>
+    あなたの気持ちに、<br />
+    <em>寄り添う存在</em>
+  </h1>
+  <p class="hero-sub">
+    5人の感情キャラクターがあなたの悩みに耳を傾け、<br />
+    心のバランスを取り戻す手助けをします。
+  </p>
+  <button class="hero-cta">
+    カウンセリングを始める <span class="arrow">→</span>
+  </button>
+</section>
+
+<!-- CHARACTERS -->
+<section class="section">
+  <div class="section-header">
+    <h2>あなたのカウンセラーチーム</h2>
+    <p>5つの感情がチームとなって、あなたをサポートします</p>
+  </div>
+  <div class="char-grid">
+    <div class="char-card char-joy" onclick="selectChar(this,'Joy')">
+      <div class="char-indicator"></div>
+      <div class="char-avatar">
+        <img src="/characters/joy.png" alt="Joy" onerror="this.style.display='none';this.parentNode.innerHTML='😊'" />
+      </div>
+      <div class="char-name">ヨロコビ</div>
+      <div class="char-role">Joy</div>
+      <p class="char-desc">ポジティブな視点で前向きな解決策を見つけます</p>
+    </div>
+    <div class="char-card char-sadness" onclick="selectChar(this,'Sadness')">
+      <div class="char-indicator"></div>
+      <div class="char-avatar">
+        <img src="/characters/sadness.png" alt="Sadness" onerror="this.style.display='none';this.parentNode.innerHTML='😢'" />
+      </div>
+      <div class="char-name">カナシミ</div>
+      <div class="char-role">Sadness</div>
+      <p class="char-desc">深い共感で、あなたの悲しみに寄り添います</p>
+    </div>
+    <div class="char-card char-anger" onclick="selectChar(this,'Anger')">
+      <div class="char-indicator"></div>
+      <div class="char-avatar">
+        <img src="/characters/anger.png" alt="Anger" onerror="this.style.display='none';this.parentNode.innerHTML='😠'" />
+      </div>
+      <div class="char-name">イカリ</div>
+      <div class="char-role">Anger</div>
+      <p class="char-desc">不公平な状況に対して、適切な対処法を提案します</p>
+    </div>
+    <div class="char-card char-fear" onclick="selectChar(this,'Fear')">
+      <div class="char-indicator"></div>
+      <div class="char-avatar">
+        <img src="/characters/fear.png" alt="Fear" onerror="this.style.display='none';this.parentNode.innerHTML='😨'" />
+      </div>
+      <div class="char-name">ビビリ</div>
+      <div class="char-role">Fear</div>
+      <p class="char-desc">不安や恐れを丁寧に解きほぐしていきます</p>
+    </div>
+    <div class="char-card char-disgust" onclick="selectChar(this,'Disgust')">
+      <div class="char-indicator"></div>
+      <div class="char-avatar">
+        <img src="/characters/disgust.png" alt="Disgust" onerror="this.style.display='none';this.parentNode.innerHTML='🤢'" />
+      </div>
+      <div class="char-name">ムカムカ</div>
+      <div class="char-role">Disgust</div>
+      <p class="char-desc">違和感や嫌悪感を言語化し、境界線を引く手助けを</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="padding-top:0;">
+  <div class="section-header">
+    <h2>使い方</h2>
+  </div>
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <h3>気持ちを打ち明ける</h3>
+      <p>今の悩みや気持ちを自由に話してください。秘密は守られます。</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <h3>感情キャラが応答</h3>
+      <p>5人のキャラクターがあなたの状況に合わせて、それぞれの視点から回答します。</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <h3>心のバランスを整える</h3>
+      <p>多角的な視点から、自分の感情を理解し、前に進む力を見つけましょう。</p>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT PREVIEW -->
+<section class="section" style="padding-top:0; max-width:640px;">
+  <div class="section-header">
+    <h2>こんな感じで話せます</h2>
+    <p>自然な会話でカウンセリングが進みます</p>
+  </div>
+  <div class="chat-preview">
+    <div class="chat-header">
+      <div class="chat-header-avatar">
+        <img src="/characters/joy.png" alt="Joy" onerror="this.style.display='none';this.parentNode.innerHTML='😊'" />
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">ヨロコビ</div>
+        <div class="chat-header-status">話し中</div>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="msg">
+        <div class="msg-avatar">
+          <img src="/characters/joy.png" alt="Joy" onerror="this.innerHTML='😊'" />
+        </div>
+        <div class="msg-bubble agent">
+          こんにちは！今日はどんなことで悩んでいますか？何でも話してくださいね。
+        </div>
+      </div>
+      <div class="msg user">
+        <div class="msg-avatar">👤</div>
+        <div class="msg-bubble user">
+          最近、仕事でミスが続いて自信をなくしています…
+        </div>
+      </div>
+      <div class="msg">
+        <div class="msg-avatar">
+          <img src="/characters/joy.png" alt="Joy" onerror="this.innerHTML='😊'" />
+        </div>
+        <div class="msg-bubble agent">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" type="text" placeholder="気持ちを話してみてください…" />
+      <button class="send-btn">→</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 Miracle Head · Emotional AI Counseling
+</footer>
+
+<!-- TWEAKS PANEL -->
+<div class="tweaks">
+  <div class="tweaks-title">⚙ Tweaks</div>
+  <div class="tweak-row">
+    <label>Dark mode</label>
+    <button class="toggle" id="t-dark" onclick="toggleDark(this)"></button>
+  </div>
+  <div class="tweak-row">
+    <label>Animations</label>
+    <button class="toggle on" id="t-anim" onclick="toggleAnim(this)"></button>
+  </div>
+  <div class="tweak-row">
+    <label>Compact nav</label>
+    <button class="toggle" id="t-compact" onclick="toggleCompact(this)"></button>
+  </div>
+</div>
+
+<script>
+// Tweaks
+function toggleDark(btn) {
+  btn.classList.toggle('on');
+  const on = btn.classList.contains('on');
+  document.documentElement.style.setProperty('--bg', on ? '#110c22' : '#f0ebfc');
+  document.documentElement.style.setProperty('--bg-card', on ? '#1c1535' : '#ffffff');
+  document.documentElement.style.setProperty('--bg-nav', on ? 'rgba(17,12,34,0.88)' : 'rgba(240,235,252,0.82)');
+  document.documentElement.style.setProperty('--text-1', on ? '#e8e2f8' : '#1a0f3a');
+  document.documentElement.style.setProperty('--text-2', on ? '#a090d0' : '#52408a');
+  document.documentElement.style.setProperty('--border', on ? 'rgba(124,92,191,0.22)' : 'rgba(124,92,191,0.13)');
+}
+function toggleAnim(btn) {
+  btn.classList.toggle('on');
+  const on = btn.classList.contains('on');
+  document.querySelectorAll('.logo-dot, .typing-dot').forEach(el => {
+    el.style.animationPlayState = on ? 'running' : 'paused';
+  });
+}
+function toggleCompact(btn) {
+  btn.classList.toggle('on');
+  const nav = document.querySelector('nav');
+  nav.style.height = btn.classList.contains('on') ? '46px' : '62px';
+}
+
+// Character select
+function selectChar(card, name) {
+  document.querySelectorAll('.char-card').forEach(c => c.style.outline = 'none');
+  card.style.outline = '2px solid var(--accent)';
+  card.style.outlineOffset = '2px';
+}
+
+// Lang toggle
+let isJa = true;
+function toggleLang() {
+  isJa = !isJa;
+  document.querySelector('.btn-ghost').textContent = isJa ? 'EN' : '日本語';
+}
+</script>
+</body>
+</html>
