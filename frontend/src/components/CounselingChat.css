@@ -282,6 +282,17 @@
   box-shadow: 0 2px 16px rgba(100, 75, 170, 0.22);
 }
 
+/* Agent-coloured counselor bubbles */
+.message-row.counselor .bubble.agent-disgust,
+.message-row.counselor .bubble.agent-fear,
+.message-row.counselor .bubble.agent-joy,
+.message-row.counselor .bubble.agent-sadness,
+.message-row.counselor .bubble.agent-anger {
+  background: color-mix(in srgb, var(--agent-color) 78%, #0b0b10);
+  border-color: color-mix(in srgb, var(--agent-color) 35%, transparent);
+  box-shadow: 0 2px 16px color-mix(in srgb, var(--agent-color) 28%, transparent);
+}
+
 .source-agent {
   font-size: 9px;
   font-weight: 700;

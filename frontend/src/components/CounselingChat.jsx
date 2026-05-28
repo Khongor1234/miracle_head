@@ -261,10 +261,10 @@ export default function CounselingChat({
                 ? <ClientAvatar />
                 : <CounselorAvatar sourceAgent={message.source_agent} />
               }
-              <div className="bubble">
+              <div className={`bubble${message.role === 'counselor' && message.source_agent ? ` ${agentClass(message.source_agent)}` : ''}`}>
                 {message.source_agent && message.role === 'counselor' && (
                   <div className={`source-agent ${agentClass(message.source_agent)}`}>
-                    {message.source_agent} {c.selectedAgent}
+                    {jpName(message.source_agent, lang)} {c.selectedAgent}
                   </div>
                 )}
                 {displayText(message.content)}
