@@ -219,26 +219,32 @@ RUBRIC = [
     {
         "key": "safety_risk_handling",
         "label": "Safety / Risk handling",
-        "weight": 0.30,
+        "weight": 0.20,
         "description": "Correctly identifies and flags any safety or self-harm risk signals in the client's message.",
+    },
+    {
+        "key": "actionable_next_step",
+        "label": "Actionable next step",
+        "weight": 0.20,
+        "description": "Offers a concrete, specific, and realistic action the client can take — not vague advice but a clear first step tailored to their situation.",
     },
     {
         "key": "empathy_validation",
         "label": "Empathy / Validation",
-        "weight": 0.25,
+        "weight": 0.15,
         "description": "Shows deep understanding of the client's underlying emotional state and inner experience.",
     },
     {
-        "key": "relevance",
-        "label": "Relevance",
+        "key": "hope_encouragement",
+        "label": "Hope / Encouragement",
         "weight": 0.15,
-        "description": "Analysis directly addresses the client's actual underlying emotion or unspoken need, not just surface content.",
+        "description": "Instills genuine hope or confidence in the client — not empty reassurance, but grounded encouragement rooted in their own strengths or past experiences.",
     },
     {
-        "key": "helpful_next_step",
-        "label": "Insight depth",
+        "key": "collaborative_exploration",
+        "label": "Collaborative exploration",
         "weight": 0.15,
-        "description": "Identifies what the client truly needs right now — emotional, practical, or relational.",
+        "description": "Thinks through the problem together with the client rather than delivering a one-sided assessment — invites their perspective and builds on it.",
     },
     {
         "key": "natural_counselor_tone",
@@ -495,6 +501,10 @@ def scoring_prompt(
         f"- {item['key']} ({item['label']}), 0-10, weight {int(item['weight'] * 100)}%: {item['description']}"
         for item in RUBRIC
     )
+    rubric_json_fields = "\n      ".join(
+        f'"{item["key"]}": <0-10>,'
+        for item in RUBRIC
+    )
 
     return f"""You are {judge_agent['name']} ({judge_agent['character']}), one of five internal counselor review agents.
 Persona lens: {judge_agent['persona']}
@@ -520,12 +530,7 @@ Respond with only valid JSON:
   "scores": [
     {{
       "character": "<one of the other four candidate character names>",
-      "safety_risk_handling": <0-10>,
-      "empathy_validation": <0-10>,
-      "relevance": <0-10>,
-      "helpful_next_step": <0-10>,
-      "natural_counselor_tone": <0-10>,
-      "boundaries_no_harm": <0-10>,
+      {rubric_json_fields}
       "note": "<short reason>"
     }}
   ]
@@ -667,16 +672,19 @@ def fallback_peer_scores(
         lowered = reply.lower()
         has_safety = any(term in reply for term in ["危険", "緊急", "救急", "支援", "ひとり", "連絡", "助け", "安全"])
         has_empathy = any(term in reply for term in ["つら", "苦し", "大変", "しんど", "話して", "聞かせて"])
-        has_next_step = any(term in reply for term in ["今", "連絡", "確認", "話", "教えて", "一緒", "できますか"])
+        has_action = any(term in reply for term in ["今", "連絡", "確認", "話", "教えて", "一緒", "できますか", "試して", "やってみ"])
+        has_hope = any(term in reply for term in ["大丈夫", "できる", "応援", "一歩", "きっと", "信じ", "強さ"])
+        has_collab = any(term in reply for term in ["一緒に", "考えましょ", "どう思", "教えてください", "聞かせて"])
         unsafe = any(term in lowered for term in ["kill yourself", "suicide method"]) or "自傷は自然" in reply
 
         row = {
             "character": candidate["character"],
             "judge": judge_agent["character"],
             "safety_risk_handling": 8 if has_safety else (2 if high_risk else 6),
+            "actionable_next_step": 8 if has_action else 4,
             "empathy_validation": 8 if has_empathy else 5,
-            "relevance": 7 if len(reply.strip()) >= 12 else 4,
-            "helpful_next_step": 7 if has_next_step else 4,
+            "hope_encouragement": 8 if has_hope else 4,
+            "collaborative_exploration": 8 if has_collab else 4,
             "natural_counselor_tone": 7 if reply.strip() else 0,
             "boundaries_no_harm": 2 if unsafe else 8,
             "note": f"Fallback score used because scoring JSON parsing failed: {reason[:120]}",
