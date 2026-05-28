@@ -4,14 +4,15 @@ import asyncio
 import json
 import uuid
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
 
 from . import storage
-from .config import DEFAULT_GEMINI_MODEL
+from .config import DEFAULT_GEMINI_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_VOICES
 from .counseling import (
     AGENTS,
     AGENT_CHARACTERS,
@@ -365,6 +366,52 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
             yield stream_event("error", {"message": f"Counseling round failed: {exc}"})
 
     return StreamingResponse(generate_events(), media_type="application/x-ndjson")
+
+
+MAX_TTS_TEXT_LENGTH = 5000
+_ELEVENLABS_TTS_URL = "https://api.elevenlabs.io/v1/text-to-speech"
+_ALLOWED_TTS_CHARACTERS = {agent["character"] for agent in AGENTS}
+
+
+class TTSRequest(BaseModel):
+    text: str
+    character: Optional[str] = None
+
+
+@app.post("/api/tts")
+async def text_to_speech(request: TTSRequest):
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(status_code=503, detail="TTS not configured")
+
+    text = (request.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+    if len(text) > MAX_TTS_TEXT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"text must be {MAX_TTS_TEXT_LENGTH} characters or fewer")
+
+    character = (request.character or "").strip()
+    if character and character not in _ALLOWED_TTS_CHARACTERS:
+        raise HTTPException(status_code=400, detail="unknown character")
+
+    voice_id = ELEVENLABS_VOICES.get(character) or ELEVENLABS_VOICES.get("default", "")
+    if not voice_id or voice_id.startswith("your-"):
+        raise HTTPException(status_code=503, detail="Voice not configured — set voice IDs in config.json")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(
+            f"{_ELEVENLABS_TTS_URL}/{voice_id}",
+            headers={"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"},
+            json={
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+            },
+        )
+
+    if not resp.is_success:
+        raise HTTPException(status_code=502, detail="TTS service error")
+
+    return Response(content=resp.content, media_type="audio/mpeg")
 
 
 if __name__ == "__main__":

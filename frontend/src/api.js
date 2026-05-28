@@ -62,6 +62,16 @@ export const api = {
     return response.json();
   },
 
+  async tts(text, character) {
+    const response = await fetch(`${API_BASE}/api/tts`, {
+      method: 'POST',
+      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, character }),
+    });
+    if (!response.ok) throw new Error('TTS failed');
+    return response.blob();
+  },
+
   async sendMessageStream(conversationId, content, model, onEvent, lang = 'ja') {
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/stream`, {
       method: 'POST',

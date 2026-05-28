@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLang } from '../LanguageContext';
+import { api } from '../api';
 import './CounselingChat.css';
 
 const CHARACTER_IMGS = {
@@ -88,6 +89,25 @@ function SendIcon() {
   );
 }
 
+function SpeakerIcon({ playing }) {
+  if (playing) {
+    return (
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+        <line x1="23" y1="9" x2="17" y2="15" />
+        <line x1="17" y1="9" x2="23" y2="15" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  );
+}
+
 export default function CounselingChat({
   conversation,
   model,
@@ -109,8 +129,39 @@ export default function CounselingChat({
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
   const [messagesVisible, setMessagesVisible] = useState(true);
+  const [ttsPlayingId, setTtsPlayingId] = useState(null);
+  const [ttsLoadingId, setTtsLoadingId] = useState(null);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
+  const audioRef = useRef(null);
+
+  const handleTTS = async (messageId, text, character) => {
+    if (ttsPlayingId === messageId) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setTtsPlayingId(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setTtsPlayingId(null);
+    setTtsLoadingId(messageId);
+    try {
+      const blob = await api.tts(text, character);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      setTtsPlayingId(messageId);
+      setTtsLoadingId(null);
+      audio.onended = () => { URL.revokeObjectURL(url); setTtsPlayingId(null); audioRef.current = null; };
+      audio.onerror = () => { URL.revokeObjectURL(url); setTtsPlayingId(null); audioRef.current = null; };
+      await audio.play();
+    } catch {
+      setTtsLoadingId(null);
+    }
+  };
 
   const messages = conversation?.messages ?? [];
   const rounds = conversation?.agent_rounds ?? [];
@@ -267,7 +318,21 @@ export default function CounselingChat({
                     {jpName(message.source_agent, lang)} {c.selectedAgent}
                   </div>
                 )}
-                {displayText(message.content)}
+                <span className="bubble-text">{displayText(message.content)}</span>
+                {message.role === 'counselor' && (
+                  <button
+                    className={`tts-btn${ttsPlayingId === message.id ? ' playing' : ''}`}
+                    type="button"
+                    disabled={ttsLoadingId === message.id}
+                    onClick={() => handleTTS(message.id, displayText(message.content), message.source_agent)}
+                    aria-label={ttsPlayingId === message.id ? 'Stop' : 'Play'}
+                  >
+                    {ttsLoadingId === message.id
+                      ? <span className="tts-dots"><b /><b /><b /></span>
+                      : <SpeakerIcon playing={ttsPlayingId === message.id} />
+                    }
+                  </button>
+                )}
               </div>
             </div>
           ))}
