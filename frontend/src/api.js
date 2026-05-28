@@ -68,7 +68,11 @@ export const api = {
       headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, character }),
     });
-    if (!response.ok) throw new Error('TTS failed');
+    if (!response.ok) {
+      const detail = await response.json().catch(() => response.text());
+      console.error('TTS backend error:', response.status, detail);
+      throw new Error(typeof detail === 'object' ? JSON.stringify(detail) : detail);
+    }
     return response.blob();
   },
 
