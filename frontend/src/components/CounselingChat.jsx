@@ -150,15 +150,22 @@ export default function CounselingChat({
     setTtsLoadingId(messageId);
     try {
       const blob = await api.tts(text, character);
-      const url = URL.createObjectURL(blob);
+      const typedBlob = new Blob([blob], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(typedBlob);
       const audio = new Audio(url);
       audioRef.current = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); setTtsPlayingId(null); audioRef.current = null; };
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e, audio.error);
+        URL.revokeObjectURL(url);
+        setTtsPlayingId(null);
+        audioRef.current = null;
+      };
+      await audio.play();
       setTtsPlayingId(messageId);
       setTtsLoadingId(null);
-      audio.onended = () => { URL.revokeObjectURL(url); setTtsPlayingId(null); audioRef.current = null; };
-      audio.onerror = () => { URL.revokeObjectURL(url); setTtsPlayingId(null); audioRef.current = null; };
-      await audio.play();
-    } catch {
+    } catch (err) {
+      console.error('TTS error:', err);
       setTtsLoadingId(null);
     }
   };
