@@ -97,6 +97,7 @@ export default function CounselingChat({
   const [draft, setDraft] = useState('');
   const [reviewOpen, setReviewOpen] = useState(true);
   const [personaOpen, setPersonaOpen] = useState(false);
+  const [agentPanelTab, setAgentPanelTab] = useState('process');
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -132,6 +133,18 @@ export default function CounselingChat({
   const finalTotals = reviewRound?.totals?.length
     ? reviewRound.totals
     : (displayRounds[displayRounds.length - 1]?.totals || []);
+
+  const round1Data = displayRounds.find((r) => r.round_number === 1) || displayRounds[0];
+  const round1Candidates = round1Data?.candidates || [];
+  const agentR1Done = (character) => round1Candidates.some((c) => c.character === character);
+  const round1AllDone = activeAgents.length > 0 && activeAgents.every((a) => agentR1Done(a.character));
+  const agentScore = (character) => {
+    if (!finalTotals.length) return null;
+    const entry = finalTotals.find((t) => t.character === character);
+    return entry != null ? scoreValue(entry) : null;
+  };
+  const maxScore = finalTotals.length ? Math.max(...finalTotals.map((t) => scoreValue(t))) : 1;
+  const winnerCharacter = reviewRound?.winner?.character;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -210,6 +223,21 @@ export default function CounselingChat({
               </div>
               <p className="empty-chat-label">{c.counselorName}</p>
               <p>{c.counselorGreeting}</p>
+              {c.suggestions?.length > 0 && (
+                <div className="suggestion-chips">
+                  {c.suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      className="suggestion-chip"
+                      type="button"
+                      disabled={sending}
+                      onClick={() => { setDraft(s); textareaRef.current?.focus(); }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -258,6 +286,143 @@ export default function CounselingChat({
           </button>
         </form>
       </section>
+
+      {/* ── Inline agent panel (desktop right column) ── */}
+      <aside className="agent-panel-right">
+        <div className="panel-tabs">
+          <button
+            className={`panel-tab ${agentPanelTab === 'process' ? 'active' : ''}`}
+            onClick={() => setAgentPanelTab('process')}
+            type="button"
+          >
+            {c.processTab}
+          </button>
+          <button
+            className={`panel-tab ${agentPanelTab === 'persona' ? 'active' : ''} ${agentPanelTab !== 'persona' && personaError ? 'needs-attention' : ''}`}
+            onClick={() => setAgentPanelTab('persona')}
+            type="button"
+          >
+            {personaError && agentPanelTab !== 'persona' ? '⚠ ' : ''}{c.personaTab}
+          </button>
+        </div>
+
+        <div className="panel-content">
+          {agentPanelTab === 'process' && (
+            <div>
+              {!reviewRound && !sending ? (
+                <div className="panel-idle">{c.panelIdleMsg}</div>
+              ) : (
+                <>
+                  <div className="panel-round-card">
+                    <div className="panel-round-head">
+                      <span className="panel-round-label">{c.round1Title}</span>
+                      {(round1AllDone || sending) && (
+                        <span className={`panel-rstatus ${round1AllDone ? 'prs-done' : 'prs-generating'}`}>
+                          {round1AllDone ? c.roundDone : c.roundGenerating}
+                        </span>
+                      )}
+                    </div>
+                    {activeAgents.map((agent) => (
+                      <div className={`panel-agent-row ${agentClass(agent.character)}`} key={agent.character}>
+                        {CHARACTER_IMGS[agent.character] && (
+                          <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
+                        )}
+                        <span className="panel-agent-name">{agent.character}</span>
+                        {agentR1Done(agent.character) ? (
+                          <span className="panel-check">✓</span>
+                        ) : sending ? (
+                          <span className="panel-thinking"><b /><b /><b /></span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={`panel-round-card${!round1AllDone ? ' dimmed' : ''}`}>
+                    <div className="panel-round-head">
+                      <span className="panel-round-label">{c.round2Title}</span>
+                      <span className={`panel-rstatus ${finalWinnerReady ? 'prs-done' : round1AllDone && sending ? 'prs-scoring' : 'prs-wait'}`}>
+                        {finalWinnerReady ? c.roundDone : round1AllDone && sending ? c.roundScoring : c.roundWaiting}
+                      </span>
+                    </div>
+                    {activeAgents.map((agent) => {
+                      const score = agentScore(agent.character);
+                      const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
+                      const isWinner = agent.character === winnerCharacter;
+                      return (
+                        <div className={`panel-agent-row ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={agent.character}>
+                          {CHARACTER_IMGS[agent.character] && (
+                            <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
+                          )}
+                          <span className="panel-agent-name">{agent.character}</span>
+                          <div className="panel-score-bar">
+                            <div className="panel-score-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {finalWinnerReady && (
+                    <div className="panel-winner">
+                      <div className="panel-winner-title">{c.panelWinnerTitle}</div>
+                      <div className="panel-winner-name">
+                        {CHARACTER_IMGS[winnerCharacter] && (
+                          <img src={CHARACTER_IMGS[winnerCharacter]} alt={winnerCharacter} className="panel-agent-av" />
+                        )}
+                        <strong>{winnerCharacter}</strong>
+                      </div>
+                      <div className="panel-winner-score">
+                        {formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {agentPanelTab === 'persona' && (
+            <section className={`persona-editor ${personasLocked ? 'locked' : ''}`}>
+              <div className="persona-editor-head">
+                <div>
+                  <span>{c.editStatusLabel}</span>
+                  <strong>{personasLocked ? c.locked : c.editable}</strong>
+                </div>
+                <button type="button" onClick={resetPersonas} disabled={personasLocked || !defaultAgents.length}>
+                  {c.resetBtn}
+                </button>
+              </div>
+              <div className="persona-grid">
+                {activeAgents.map((agent) => (
+                  <label className={`persona-card ${agentClass(agent.character)}`} key={agent.character}>
+                    <div className="persona-card-head">
+                      <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="persona-avatar-mini" />
+                      <span>{agent.character}</span>
+                    </div>
+                    <textarea
+                      value={agent.persona}
+                      onChange={(event) => updatePersona(agent.character, event.target.value)}
+                      disabled={personasLocked}
+                      rows={4}
+                    />
+                  </label>
+                ))}
+              </div>
+              {personaError && <div className="persona-error">{c.personaError}</div>}
+              <div className="round-control">
+                <div>
+                  <span>{c.reviewRoundsLabel}</span>
+                  <strong>{c.reviewRoundsFixed}</strong>
+                </div>
+                <div className="round-options fixed">
+                  <span>{c.reviewRoundsValue}</span>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+      </aside>
 
       {/* ── Floating buttons ── */}
       <button

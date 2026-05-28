@@ -22,7 +22,8 @@
 .counseling-shell {
   flex: 1;
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 320px;
   min-width: 0;
   background: radial-gradient(ellipse at 50% 0%, #f5f0ff 0%, #ede6f8 45%, #e0d4f5 100%);
   color: var(--hq-text-1);
@@ -984,8 +985,281 @@
 
 .round-options button:disabled { cursor: not-allowed; opacity: 0.52; }
 
+/* ─── Suggestion chips ─────────────────────────────────────── */
+.suggestion-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 18px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.suggestion-chip {
+  padding: 9px 14px;
+  border: 1px solid var(--hq-border-2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--hq-text-2);
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.4;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
+}
+
+.suggestion-chip:hover {
+  border-color: var(--hq-purple);
+  color: var(--hq-purple);
+  background: rgba(123, 92, 191, 0.07);
+}
+
+.suggestion-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Agent panel right (desktop inline) ───────────────────── */
+.agent-panel-right {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--hq-bg1);
+  border-left: 1px solid rgba(170, 150, 220, 0.25);
+}
+
+.panel-tabs {
+  flex-shrink: 0;
+  display: flex;
+  gap: 2px;
+  padding: 10px 10px 0;
+  background: rgba(225, 216, 248, 0.95);
+  border-bottom: 1px solid rgba(170, 150, 220, 0.20);
+}
+
+.panel-tab {
+  flex: 1;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 7px 7px 0 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hq-text-3);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.panel-tab.active {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--hq-text-1);
+  box-shadow: 0 -1px 0 0 rgba(170, 150, 220, 0.20);
+}
+
+.panel-tab.needs-attention {
+  color: #fca5a5;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 10px;
+}
+
+.panel-content::-webkit-scrollbar { width: 3px; }
+.panel-content::-webkit-scrollbar-track { background: transparent; }
+.panel-content::-webkit-scrollbar-thumb { background: var(--hq-border-2); border-radius: 2px; }
+
+/* ─── Panel idle ────────────────────────────────────────────── */
+.panel-idle {
+  text-align: center;
+  padding: 32px 12px;
+  color: var(--hq-text-3);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+/* ─── Round cards ───────────────────────────────────────────── */
+.panel-round-card {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--hq-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: opacity 0.3s;
+}
+
+.panel-round-card.dimmed { opacity: 0.4; }
+
+.panel-round-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--hq-border);
+  background: rgba(220, 210, 245, 0.55);
+}
+
+.panel-round-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--hq-text-3);
+}
+
+/* ─── Round status badges ───────────────────────────────────── */
+.panel-rstatus {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.prs-wait       { background: rgba(152, 128, 196, 0.12); color: var(--hq-text-3); }
+.prs-generating { background: rgba(245, 200, 66, 0.15);  color: #b8890a; }
+.prs-scoring    { background: rgba(123, 92, 191, 0.10);  color: var(--hq-purple); }
+.prs-done       { background: rgba(90, 186, 124, 0.15);  color: #2a8a4a; }
+
+/* ─── Agent rows in panel ───────────────────────────────────── */
+.panel-agent-row {
+  --agent-color: var(--hq-blue-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--hq-border);
+  transition: background 0.15s;
+}
+
+.panel-agent-row:last-child { border-bottom: none; }
+.panel-agent-row.win { background: rgba(90, 186, 124, 0.07); }
+
+.panel-agent-av {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: contain;
+  border: 2px solid color-mix(in srgb, var(--agent-color) 40%, transparent);
+  flex-shrink: 0;
+}
+
+.panel-agent-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hq-text-2);
+  flex: 1;
+}
+
+.panel-check {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2a8a4a;
+}
+
+.panel-thinking {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.panel-thinking b {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--hq-purple-2);
+  animation: dotPulse 1.2s infinite ease-in-out;
+}
+
+.panel-thinking b:nth-child(2) { animation-delay: 0.15s; }
+.panel-thinking b:nth-child(3) { animation-delay: 0.30s; }
+
+/* ─── Score bars ────────────────────────────────────────────── */
+.panel-score-bar {
+  width: 52px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hq-border-2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.panel-score-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--hq-purple);
+  transition: width 0.7s ease;
+}
+
+.panel-score-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hq-text-2);
+  min-width: 22px;
+  text-align: right;
+}
+
+/* ─── Winner card in panel ──────────────────────────────────── */
+.panel-winner {
+  background: rgba(90, 186, 124, 0.08);
+  border: 1px solid rgba(90, 186, 124, 0.30);
+  border-radius: 10px;
+  padding: 11px 12px;
+  margin-top: 2px;
+}
+
+.panel-winner-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2a8a4a;
+  margin-bottom: 7px;
+}
+
+.panel-winner-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--hq-text-1);
+}
+
+.panel-winner-score {
+  font-size: 11px;
+  color: var(--hq-text-3);
+}
+
+/* ─── Desktop: hide floating buttons & drawers ──────────────── */
+@media (min-width: 769px) {
+  .review-handle,
+  .persona-handle {
+    display: none;
+  }
+
+  .agent-review,
+  .persona-drawer {
+    display: none;
+  }
+}
+
 /* ─── Mobile ≤ 768px ───────────────────────────────────────── */
 @media (max-width: 768px) {
+  .counseling-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-panel-right {
+    display: none;
+  }
+
   .chat-header {
     flex-wrap: wrap;
     padding: 12px 14px;
