@@ -19,6 +19,8 @@ from .counseling import (
     build_round_result,
     build_scored_round_result,
     generate_candidate,
+    generate_winner_reply,
+    aggregate_scores,
     is_high_risk,
     now_iso,
     run_counseling_round,
@@ -225,16 +227,8 @@ def stream_event(event_type: str, payload: dict) -> str:
     ) + "\n"
 
 
-async def indexed_candidate(model, index, agent, context, content, high_risk, round_number, previous_round):
-    candidate = await generate_candidate(
-        model,
-        agent,
-        context,
-        content,
-        high_risk,
-        round_number,
-        previous_round,
-    )
+async def indexed_candidate(model, index, agent, context, content, high_risk):
+    candidate = await generate_candidate(model, agent, context, content, high_risk)
     return index, candidate
 
 
@@ -273,80 +267,66 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
 
         context = visible_context(conversation.get("messages", []))
         high_risk = is_high_risk(content)
-        rounds = []
-        previous_round = None
         candidate_tasks = []
         scoring_tasks = []
         try:
-            for round_number in range(1, review_rounds + 1):
-                yield stream_event("round_started", {
-                    "round_number": round_number,
-                    "review_rounds": review_rounds,
-                    "agents": agents,
-                    "high_risk": high_risk,
-                    "model": model,
-                })
+            # Round 1: psychological discussion — why did the client say this?
+            yield stream_event("round_started", {
+                "round_number": 1,
+                "review_rounds": 2,
+                "agents": agents,
+                "high_risk": high_risk,
+                "model": model,
+            })
 
-                candidates_by_index = [None] * len(agents)
-                candidate_tasks = [
-                    asyncio.create_task(
-                        indexed_candidate(
-                            model,
-                            index,
-                            agent,
-                            context,
-                            content,
-                            high_risk,
-                            round_number,
-                            previous_round,
-                        )
-                    )
-                    for index, agent in enumerate(agents)
-                ]
-                for task in asyncio.as_completed(candidate_tasks):
-                    index, candidate = await task
-                    candidates_by_index[index] = candidate
-                    yield stream_event("candidate_ready", {
-                        "round_number": round_number,
-                        "index": index,
-                        "candidate": candidate,
-                    })
+            candidates_by_index = [None] * len(agents)
+            candidate_tasks = [
+                asyncio.create_task(indexed_candidate(model, index, agent, context, content, high_risk))
+                for index, agent in enumerate(agents)
+            ]
+            for task in asyncio.as_completed(candidate_tasks):
+                index, candidate = await task
+                candidates_by_index[index] = candidate
+                yield stream_event("candidate_ready", {"round_number": 1, "index": index, "candidate": candidate})
 
-                candidates = [candidate for candidate in candidates_by_index if candidate is not None]
-                if round_number == review_rounds:
-                    yield stream_event("scoring_started", {
-                        "round_number": round_number,
-                        "candidate_count": len(candidates),
-                    })
+            candidates = [c for c in candidates_by_index if c is not None]
+            round_1 = build_round_result(1, candidates)
+            yield stream_event("round_complete", {"round_number": 1, "round": round_1})
 
-                    peer_scores_by_index = [None] * len(agents)
-                    scoring_tasks = [
-                        asyncio.create_task(
-                            indexed_score(model, index, agent, context, content, candidates, high_risk, round_number)
-                        )
-                        for index, agent in enumerate(agents)
-                    ]
-                    for task in asyncio.as_completed(scoring_tasks):
-                        index, score = await task
-                        peer_scores_by_index[index] = score
-                        yield stream_event("score_ready", {
-                            "round_number": round_number,
-                            "index": index,
-                            "score": score,
-                        })
+            # Round 2: score the discussion analyses
+            yield stream_event("round_started", {
+                "round_number": 2,
+                "review_rounds": 2,
+                "agents": agents,
+                "high_risk": high_risk,
+                "model": model,
+            })
+            yield stream_event("scoring_started", {"round_number": 2, "candidate_count": len(candidates)})
 
-                    peer_scores = [score for score in peer_scores_by_index if score is not None]
-                    round_result = build_scored_round_result(round_number, high_risk, candidates, peer_scores)
-                else:
-                    round_result = build_round_result(round_number, candidates)
-                rounds.append(round_result)
-                previous_round = round_result
-                yield stream_event("round_complete", {
-                    "round_number": round_number,
-                    "round": round_result,
-                })
+            peer_scores_by_index = [None] * len(agents)
+            scoring_tasks = [
+                asyncio.create_task(indexed_score(model, index, agent, context, content, candidates, high_risk, 2))
+                for index, agent in enumerate(agents)
+            ]
+            for task in asyncio.as_completed(scoring_tasks):
+                index, score = await task
+                peer_scores_by_index[index] = score
+                yield stream_event("score_ready", {"round_number": 2, "index": index, "score": score})
 
-            agent_round = build_agent_round(client_message, high_risk, review_rounds, rounds)
+            peer_scores = [s for s in peer_scores_by_index if s is not None]
+
+            # Determine winner and generate their counseling reply
+            totals = aggregate_scores(candidates, peer_scores)
+            winner_character = totals[0]["character"]
+            winner_agent = next(a for a in agents if a["character"] == winner_character)
+            winner_reply_text = await generate_winner_reply(
+                model, winner_agent, candidates, context, content, high_risk
+            )
+
+            round_2 = build_scored_round_result(2, high_risk, candidates, peer_scores, winner_reply_text)
+            yield stream_event("round_complete", {"round_number": 2, "round": round_2})
+
+            agent_round = build_agent_round(client_message, high_risk, 2, [round_1, round_2])
             storage.add_agent_round(conversation_id, agent_round)
 
             counselor_message = {
