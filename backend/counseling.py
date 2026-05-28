@@ -452,7 +452,7 @@ async def generate_candidate(
         model,
         discussion_prompt(agent, conversation_context, client_text, high_risk),
         temperature=0.60,
-        max_output_tokens=512,
+        max_output_tokens=1024,
     )
     analysis = _strip_json_fences(raw).strip()
     if analysis.startswith("{"):
@@ -479,7 +479,7 @@ async def generate_winner_reply(
         model,
         winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk),
         temperature=0.55,
-        max_output_tokens=512,
+        max_output_tokens=768,
     )
     reply = _strip_json_fences(raw).strip()
     if reply.startswith("{"):
