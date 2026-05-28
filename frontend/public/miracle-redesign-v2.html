@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Miracle Head — Design Concept v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ede8f9; --surface:#fff; --surface2:#f5f1fd;
+  --accent:#7b5cbf; --accent-soft:rgba(123,92,191,.1);
+  --text1:#1a1030; --text2:#5a4480; --text3:#9880c4;
+  --border:rgba(123,92,191,.14);
+  --joy:#f5c842; --sadness:#6ab0e8; --anger:#e8604a; --fear:#b06ee0; --disgust:#5aba7c;
+  --r:14px; --rSm:8px; --rLg:22px;
+  --font:'Outfit',system-ui,sans-serif; --serif:'Playfair Display',Georgia,serif;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text1);font-size:15px;-webkit-font-smoothing:antialiased}
+.shell{display:grid;grid-template-columns:280px 1fr;height:100vh;overflow:hidden}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb-header{padding:20px 16px 14px;border-bottom:1px solid var(--border)}
+.sb-logo{font-family:var(--serif);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.logo-pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.5}}
+.sb-new{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:var(--r);background:none;color:var(--text3);font-size:13px;font-family:var(--font);cursor:pointer;transition:all .18s}
+.sb-new:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.sb-list{flex:1;overflow-y:auto;padding:8px}
+.sb-item{padding:10px 12px;border-radius:var(--rSm);cursor:pointer;margin-bottom:3px;border:1px solid transparent;transition:background .15s}
+.sb-item:hover{background:var(--surface2)}
+.sb-item.active{background:var(--accent-soft);border-color:var(--border)}
+.sb-item-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.sb-item-meta{font-size:11px;color:var(--text3)}
+
+/* Main */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:12px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(237,232,249,.85);backdrop-filter:blur(12px);flex-shrink:0}
+.topbar-title{font-family:var(--serif);font-size:16px;font-weight:700;flex:1}
+.topbar-sub{font-size:11px;color:var(--text3)}
+.model-badge{font-size:11px;padding:5px 12px;border:1px solid var(--border);border-radius:100px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.lang-btn{font-size:11px;font-weight:600;padding:5px 10px;border:1px solid var(--border);border-radius:100px;background:none;color:var(--text3);cursor:pointer}
+.content{display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden}
+
+/* Chat */
+.chat{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.messages{flex:1;overflow-y:auto;padding:24px 22px 0}
+
+/* Empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:32px}
+.empty-av{width:88px;height:88px;border-radius:50%;border:2px solid var(--border);overflow:hidden;margin-bottom:18px;box-shadow:0 4px 20px rgba(123,92,191,.15)}
+.empty-av img{width:100%;height:100%;object-fit:cover}
+.empty h2{font-family:var(--serif);font-size:20px;margin-bottom:8px}
+.empty p{font-size:13px;color:var(--text2);line-height:1.7;max-width:260px}
+.suggestions{display:flex;flex-direction:column;gap:7px;margin-top:18px;width:100%;max-width:280px}
+.sug{padding:9px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);font-size:13px;color:var(--text2);cursor:pointer;text-align:left;transition:all .18s;line-height:1.4;font-family:var(--font)}
+.sug:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+/* Messages */
+.msg{margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
+.msg.client{flex-direction:row-reverse}
+.av{width:32px;height:32px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid var(--border)}
+.av img{width:100%;height:100%;object-fit:cover}
+.av-you{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.bubble{max-width:72%;padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.65}
+.bubble.bot{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px}
+.bubble.user{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.bub-meta{font-size:10px;color:var(--text3);margin-top:5px;display:flex;align-items:center;gap:5px}
+.atag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px}
+.typing{display:flex;gap:4px;align-items:center;padding:4px 0}
+.td{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:boun 1.2s ease-in-out infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes boun{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-5px);opacity:1}}
+
+/* Input */
+.input-area{padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rLg);padding:9px 9px 9px 15px;transition:border-color .18s}
+.input-row:focus-within{border-color:var(--accent)}
+textarea{flex:1;border:none;outline:none;resize:none;font-family:var(--font);font-size:14px;color:var(--text1);background:none;line-height:1.5;max-height:100px;min-height:20px}
+textarea::placeholder{color:var(--text3)}
+.send{width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .18s cubic-bezier(.34,1.56,.64,1);flex-shrink:0}
+.send:hover{transform:scale(1.12);background:#6a4aab}
+
+/* Agent panel */
+.agent-panel{overflow-y:auto;padding:18px 14px;background:var(--surface2)}
+.ptabs{display:flex;gap:2px;margin-bottom:14px;background:var(--border);padding:3px;border-radius:var(--rSm)}
+.ptab{flex:1;padding:6px;border:none;background:none;border-radius:6px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;transition:all .15s;font-family:var(--font)}
+.ptab.active{background:var(--surface);color:var(--text1);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.panel-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.pcard-head{padding:10px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.round-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)}
+.rstatus{margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px}
+.s-wait{background:rgba(152,128,196,.12);color:var(--text3)}
+.s-go{background:rgba(245,200,66,.15);color:#b8890a}
+.s-score{background:rgba(123,92,191,.1);color:var(--accent)}
+.s-done{background:rgba(90,186,124,.15);color:#2a8a4a}
+.arow{display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:1px solid var(--border);transition:background .15s}
+.arow:last-child{border-bottom:none}
+.arow.win{background:rgba(90,186,124,.07)}
+.aav{width:26px;height:26px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2px solid transparent}
+.aav img{width:100%;height:100%;object-fit:cover}
+.aname{font-size:12px;font-weight:600;flex:1}
+.astate{font-size:10px;color:var(--text3);flex:1}
+.athink{display:flex;gap:3px;align-items:center}
+.at{width:4px;height:4px;border-radius:50%;background:var(--accent);animation:boun 1.2s ease-in-out infinite}
+.at:nth-child(2){animation-delay:.15s}.at:nth-child(3){animation-delay:.3s}
+.sbar{width:54px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;flex-shrink:0}
+.sfill{height:100%;border-radius:2px;background:var(--accent);transition:width .7s ease}
+.snum{font-size:11px;font-weight:600;color:var(--text2);min-width:24px;text-align:right}
+.winner-card{margin-top:10px;background:var(--surface);border:1px solid rgba(90,186,124,.3);border-radius:var(--r);padding:11px 13px}
+.wc-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#2a8a4a;margin-bottom:6px}
+.wc-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.wc-name img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+.wc-score{font-size:11px;color:var(--text2)}
+.idle-msg{text-align:center;padding:36px 16px;color:var(--text3);font-size:13px;line-height:1.75}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo"><div class="logo-pulse"></div>Miracle Head</div>
+      <button class="sb-new" onclick="showEmpty()">＋ 新しい相談</button>
+    </div>
+    <div class="sb-list">
+      <div class="sb-item active" onclick="showSaved()">
+        <div class="sb-item-title">仕事のストレスについて</div>
+        <div class="sb-item-meta">Joy が回答 · 2分前</div>
+      </div>
+      <div class="sb-item" onclick="showEmpty()">
+        <div class="sb-item-title">人間関係の悩み</div>
+        <div class="sb-item-meta">Sadness が回答 · 昨日</div>
+      </div>
+      <div class="sb-item" onclick="showEmpty()">
+        <div class="sb-item-title">将来への不安</div>
+        <div class="sb-item-meta">Fear が回答 · 2日前</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">AIカウンセリング</div>
+        <div class="topbar-sub">5つの感情エージェントが内部で検討し、最善の回答を届けます</div>
+      </div>
+      <button class="lang-btn">EN</button>
+      <button class="model-badge">Gemini 2.5 Flash ▾</button>
+    </div>
+
+    <div class="content">
+      <!-- CHAT -->
+      <div class="chat">
+        <div class="messages" id="msgs">
+
+          <div class="empty" id="emptyEl">
+            <div class="empty-av"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div>
+            <h2>こんにちは</h2>
+            <p>今日はどんなことで悩んでいますか？何でも話してください。</p>
+            <div class="suggestions">
+              <button class="sug" onclick="fillAndSend('最近、仕事でミスが続いて自信をなくしています…')">😔 仕事でミスが続いて自信をなくした</button>
+              <button class="sug" onclick="fillAndSend('友人との関係がうまくいかなくて辛い')">💔 友人関係がうまくいかない</button>
+              <button class="sug" onclick="fillAndSend('将来が不安で何もやる気が出ない')">😰 将来への不安がある</button>
+            </div>
+          </div>
+
+          <div id="chatEl" style="display:none">
+            <div class="msg">
+              <div class="av"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div>
+              <div>
+                <div class="bubble bot">こんにちは！今日はどんなことで悩んでいますか？</div>
+              </div>
+            </div>
+            <div class="msg client">
+              <div class="av-you">You</div>
+              <div><div class="bubble user">最近、仕事でミスが続いて自信をなくしています…</div></div>
+            </div>
+            <div class="msg" id="thinkEl" style="display:none">
+              <div class="av"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div>
+              <div class="bubble bot"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>
+            </div>
+            <div class="msg" id="replyEl" style="display:none">
+              <div class="av"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div>
+              <div>
+                <div class="bubble bot">それは辛いですね。ミスが続くと自信がなくなっていく感じ、よく分かります。<br><br>でもあなたがそれを気にしているということは、仕事に真剣に向き合っている証拠です。完璧な人はいません。ミスから学べることはたくさんありますよ。</div>
+                <div class="bub-meta">
+                  <span class="atag" style="background:rgba(245,200,66,.15);color:#b8890a">🏆 ヨロコビ</span>
+                  <span>5エージェントが検討</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <div class="input-row">
+            <textarea id="ta" rows="1" placeholder="気持ちを話してみてください…" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+            <button class="send" onclick="send()">→</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT PANEL -->
+      <div class="agent-panel">
+        <div class="ptabs">
+          <button class="ptab active" onclick="tab(this,'proc')">思考プロセス</button>
+          <button class="ptab" onclick="tab(this,'persona')">エージェント</button>
+        </div>
+
+        <div id="procTab">
+          <div class="panel-label">5エージェントレビュー</div>
+
+          <div id="idleEl" class="idle-msg">
+            メッセージを送ると<br/>5人のエージェントが<br/>一斉に回答を検討します
+          </div>
+
+          <div id="activeEl" style="display:none">
+            <!-- Round 1 -->
+            <div class="pcard">
+              <div class="pcard-head">
+                <span class="round-label">ラウンド 1 — 回答生成</span>
+                <span class="rstatus s-go" id="r1s">生成中…</span>
+              </div>
+              <div id="r1">
+                <div class="arow" data-c="Joy"><div class="aav" style="border-color:var(--joy)"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div><span class="aname">ヨロコビ</span><div class="athink"><div class="at"></div><div class="at"></div><div class="at"></div></div></div>
+                <div class="arow" data-c="Sadness"><div class="aav" style="border-color:var(--sadness)"><img src="/characters/sadness.png" onerror="this.parentNode.innerHTML='😢'"/></div><span class="aname">カナシミ</span><div class="athink"><div class="at"></div><div class="at"></div><div class="at"></div></div></div>
+                <div class="arow" data-c="Anger"><div class="aav" style="border-color:var(--anger)"><img src="/characters/anger.png" onerror="this.parentNode.innerHTML='😠'"/></div><span class="aname">イカリ</span><div class="athink"><div class="at"></div><div class="at"></div><div class="at"></div></div></div>
+                <div class="arow" data-c="Fear"><div class="aav" style="border-color:var(--fear)"><img src="/characters/fear.png" onerror="this.parentNode.innerHTML='😨'"/></div><span class="aname">ビビリ</span><div class="athink"><div class="at"></div><div class="at"></div><div class="at"></div></div></div>
+                <div class="arow" data-c="Disgust"><div class="aav" style="border-color:var(--disgust)"><img src="/characters/disgust.png" onerror="this.parentNode.innerHTML='🤢'"/></div><span class="aname">ムカムカ</span><div class="athink"><div class="at"></div><div class="at"></div><div class="at"></div></div></div>
+              </div>
+            </div>
+
+            <!-- Round 2 -->
+            <div class="pcard" id="r2card" style="opacity:.4;transition:opacity .3s">
+              <div class="pcard-head">
+                <span class="round-label">ラウンド 2 — 相互採点</span>
+                <span class="rstatus s-wait" id="r2s">待機中</span>
+              </div>
+              <div id="r2">
+                <div class="arow" data-c="Joy"><div class="aav" style="border-color:var(--joy)"><img src="/characters/joy.png" onerror="this.parentNode.innerHTML='😊'"/></div><span class="aname">ヨロコビ</span><div class="sbar"><div class="sfill" id="sf-Joy" style="width:0"></div></div><span class="snum" id="sn-Joy">—</span></div>
+                <div class="arow" data-c="Sadness"><div class="aav" style="border-color:var(--sadness)"><img src="/characters/sadness.png" onerror="this.parentNode.innerHTML='😢'"/></div><span class="aname">カナシミ</span><div class="sbar"><div class="sfill" id="sf-Sadness" style="width:0"></div></div><span class="snum" id="sn-Sadness">—</span></div>
+                <div class="arow" data-c="Anger"><div class="aav" style="border-color:var(--anger)"><img src="/characters/anger.png" onerror="this.parentNode.innerHTML='😠'"/></div><span class="aname">イカリ</span><div class="sbar"><div class="sfill" id="sf-Anger" style="width:0"></div></div><span class="snum" id="sn-Anger">—</span></div>
+                <div class="arow" data-c="Fear"><div class="aav" style="border-color:var(--fear)"><img src="/characters/fear.png" onerror="this.parentNode.innerHTML='😨'"/></div><span class="aname">ビビリ</span><div class="sbar"><div class="sfill" id="sf-Fear" style="width:0"></div></div><span class="snum" id="sn-Fear">—</span></div>
+                <div class="arow" data-c="Disgust"><div class="aav" style="border-color:var(--disgust)"><img src="/characters/disgust.png" onerror="this.parentNode.innerHTML='🤢'"/></div><span class="aname">ムカムカ</span><div class="sbar"><div class="sfill" id="sf-Disgust" style="width:0"></div></div><span class="snum" id="sn-Disgust">—</span></div>
+              </div>
+            </div>
+
+            <div class="winner-card" id="wcard" style="display:none">
+              <div class="wc-title">🏆 選ばれた回答</div>
+              <div class="wc-name"><img src="/characters/joy.png" onerror="this.style.display='none'"/> ヨロコビ</div>
+              <div class="wc-score">合計スコア: 8.4 / 10</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="personaTab" style="display:none">
+          <div class="panel-label">エージェント設定</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">各キャラクターのペルソナをカスタマイズして、相談スタイルを調整できます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCORES={Joy:8.4,Sadness:6.2,Anger:5.8,Fear:7.1,Disgust:6.9};
+const CHARS=['Joy','Sadness','Anger','Fear','Disgust'];
+const D1=[700,1000,1300,850,1150];
+const D2=[600,900,1200,700,1000];
+let busy=false;
+
+function showEmpty(){
+  document.getElementById('emptyEl').style.display='flex';
+  document.getElementById('chatEl').style.display='none';
+  document.getElementById('idleEl').style.display='block';
+  document.getElementById('activeEl').style.display='none';
+}
+function showSaved(){
+  document.getElementById('emptyEl').style.display='none';
+  document.getElementById('chatEl').style.display='block';
+  document.getElementById('replyEl').style.display='flex';
+  document.getElementById('thinkEl').style.display='none';
+}
+function resize(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function fillAndSend(txt){document.getElementById('ta').value=txt;resize(document.getElementById('ta'));send()}
+function tab(btn,id){
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('procTab').style.display=id==='proc'?'block':'none';
+  document.getElementById('personaTab').style.display=id==='persona'?'block':'none';
+}
+
+function resetPanel(){
+  CHARS.forEach(c=>{
+    const sf=document.getElementById('sf-'+c),sn=document.getElementById('sn-'+c);
+    if(sf) sf.style.width='0';
+    if(sn) sn.textContent='—';
+    const r2row=document.querySelector(`#r2 .arow[data-c="${c}"]`);
+    if(r2row) r2row.classList.remove('win');
+  });
+  document.querySelectorAll('#r1 .arow').forEach(row=>{
+    const th=row.querySelector('.athink');
+    const st=row.querySelector('.astate');
+    if(th) th.style.display='flex';
+    if(st) st.remove();
+  });
+  document.getElementById('r1s').textContent='生成中…';
+  document.getElementById('r1s').className='rstatus s-go';
+  document.getElementById('r2s').textContent='待機中';
+  document.getElementById('r2s').className='rstatus s-wait';
+  document.getElementById('r2card').style.opacity='0.4';
+  document.getElementById('wcard').style.display='none';
+}
+
+function send(){
+  if(busy) return;
+  const ta=document.getElementById('ta');
+  const txt=ta.value.trim(); if(!txt) return;
+  ta.value=''; resize(ta);
+  busy=true;
+
+  document.getElementById('emptyEl').style.display='none';
+  document.getElementById('chatEl').style.display='block';
+  document.getElementById('thinkEl').style.display='flex';
+  document.getElementById('replyEl').style.display='none';
+  document.getElementById('idleEl').style.display='none';
+  document.getElementById('activeEl').style.display='block';
+  resetPanel();
+  document.querySelector('.messages').scrollTop=99999;
+
+  let done1=0;
+  CHARS.forEach((c,i)=>{
+    setTimeout(()=>{
+      const row=document.querySelector(`#r1 .arow[data-c="${c}"]`);
+      if(!row) return;
+      const th=row.querySelector('.athink');
+      if(th) th.style.display='none';
+      const sp=document.createElement('span');
+      sp.className='astate'; sp.textContent='✓ 完了'; sp.style.color='#2a8a4a'; sp.style.fontSize='11px';
+      row.appendChild(sp);
+      done1++;
+      if(done1===CHARS.length){
+        document.getElementById('r1s').textContent='完了';
+        document.getElementById('r1s').className='rstatus s-done';
+        setTimeout(startR2,350);
+      }
+    },D1[i]);
+  });
+}
+
+function startR2(){
+  document.getElementById('r2card').style.opacity='1';
+  document.getElementById('r2s').textContent='採点中…';
+  document.getElementById('r2s').className='rstatus s-score';
+  let done2=0;
+  CHARS.forEach((c,i)=>{
+    setTimeout(()=>{
+      const pct=Math.round(SCORES[c]/10*100);
+      const sf=document.getElementById('sf-'+c),sn=document.getElementById('sn-'+c);
+      if(sf) sf.style.width=pct+'%';
+      if(sn) sn.textContent=SCORES[c].toFixed(1);
+      done2++;
+      if(done2===CHARS.length) setTimeout(finish,400);
+    },D2[i]);
+  });
+}
+
+function finish(){
+  document.getElementById('r2s').textContent='完了';
+  document.getElementById('r2s').className='rstatus s-done';
+  const jrow=document.querySelector('#r2 .arow[data-c="Joy"]');
+  if(jrow) jrow.classList.add('win');
+  document.getElementById('wcard').style.display='block';
+  document.getElementById('thinkEl').style.display='none';
+  document.getElementById('replyEl').style.display='flex';
+  document.querySelector('.messages').scrollTop=99999;
+  busy=false;
+}
+</script>
+</body>
+</html>
