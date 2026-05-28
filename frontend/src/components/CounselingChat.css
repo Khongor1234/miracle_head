@@ -296,11 +296,11 @@
 }
 
 /* ─── Agent color accents ──────────────────────────────────── */
-.agent-disgust { --agent-color: #5ccf7e; --agent-bg: rgba(92, 207, 126, 0.10); }
-.agent-fear    { --agent-color: #b58cff; --agent-bg: rgba(181, 140, 255, 0.10); }
-.agent-joy     { --agent-color: #ffd166; --agent-bg: rgba(255, 209, 102, 0.10); }
-.agent-sadness { --agent-color: #5ba3f5; --agent-bg: rgba(91, 163, 245, 0.10); }
-.agent-anger   { --agent-color: #f45b69; --agent-bg: rgba(244, 91, 105, 0.10); }
+.agent-disgust { --agent-color: #3a9060; --agent-bg: rgba(58, 144, 96, 0.12); }
+.agent-fear    { --agent-color: #7a4ab8; --agent-bg: rgba(122, 74, 184, 0.12); }
+.agent-joy     { --agent-color: #c09020; --agent-bg: rgba(255, 220, 80, 0.12); }
+.agent-sadness { --agent-color: #4a7fc0; --agent-bg: rgba(74, 127, 192, 0.12); }
+.agent-anger   { --agent-color: #c04040; --agent-bg: rgba(192, 64, 64, 0.12); }
 
 /* ─── Review mini avatar ───────────────────────────────────── */
 .review-avatar-mini {
@@ -839,11 +839,7 @@
 .persona-grid { display: flex; flex-direction: column; gap: 8px; }
 
 /* ─── Character accent colours ──────────────────────────────── */
-.persona-card.agent-joy     { --agent-color: #c09020; --agent-bg: rgba(255, 220, 80, 0.10); }
-.persona-card.agent-sadness { --agent-color: #4a7fc0; --agent-bg: rgba(74, 127, 192, 0.10); }
-.persona-card.agent-anger   { --agent-color: #c04040; --agent-bg: rgba(192, 64, 64, 0.10); }
-.persona-card.agent-fear    { --agent-color: #7a4ab8; --agent-bg: rgba(122, 74, 184, 0.10); }
-.persona-card.agent-disgust { --agent-color: #3a9060; --agent-bg: rgba(58, 144, 96, 0.10); }
+/* agent colors now unified — no persona-card overrides needed */
 
 .persona-card {
   --agent-color: var(--hq-purple);
