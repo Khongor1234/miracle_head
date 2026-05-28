@@ -10,12 +10,13 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-ELEVENLABS_VOICES: dict = _config.get("elevenlabs_voices", {})
 
 # Load config from config.json at project root
 _config_path = Path(__file__).parent.parent / "config.json"
 with open(_config_path) as f:
     _config = json.load(f)
+
+ELEVENLABS_VOICES: dict = _config.get("elevenlabs_voices", {})
 
 # Default model for counselor agents. Keep the old constant name so existing
 # endpoint code and saved conversations remain compatible.
