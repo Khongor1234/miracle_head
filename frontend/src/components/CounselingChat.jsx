@@ -594,22 +594,16 @@ export default function CounselingChat({
 
         {reviewOpen && (
           <div className="review-content">
-            {sending && (
-              <div className="discussion-live">
-                <div className="live-title">{c.deliberating}</div>
-                {activeAgents.map((agent) => (
-                  <div className={`live-agent ${agentClass(agent.character)}`} key={agent.character}>
-                    {CHARACTER_IMGS[agent.character] && (
-                      <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="review-avatar-mini" />
-                    )}
-                    <span>{agent.character}</span>
-                    <b /><b /><b />
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Message toggle — same as desktop panel */}
+            <button
+              className="panel-msg-toggle"
+              type="button"
+              onClick={() => setMessagesVisible((v) => !v)}
+            >
+              {messagesVisible ? (c.hideMessages ?? 'メッセージを隠す') : (c.showMessages ?? 'メッセージを表示')}
+            </button>
 
-            {!reviewRound ? (
+            {!reviewRound && !sending ? (
               <div className="review-empty">{c.emptyReview}</div>
             ) : (
               <>
@@ -617,42 +611,37 @@ export default function CounselingChat({
                   <div className="risk-badge">{c.crisisMode}</div>
                 )}
 
-                {displayRounds.map((round) => (
-                  <div className="round-section" key={round.round_number}>
-                    <div className="round-head">
-                      <strong>{c.roundLabel} {round.round_number}</strong>
-                      <span>{round.round_number > 1 ? c.roundRevised : c.roundInitial}</span>
-                    </div>
-
-                    <div className="discussion-section">
-                      <div className="section-label">{isLiveReview ? c.liveDiscussion : c.internalDiscussion}</div>
-                      {discussionItems(round).length === 0 && (
-                        <div className="review-empty compact">{c.waitingAgent}</div>
-                      )}
-                      {discussionItems(round).map((item, index) => (
-                        <div
-                          className={`discussion-item ${agentClass(item.character)} discussion-${item.type}`}
-                          key={`${round.round_number}-${item.character}-${item.type}-${index}`}
-                        >
-                          <div className="discussion-meta">
-                            {CHARACTER_IMGS[item.character] && (
-                              <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="review-avatar-mini" />
-                            )}
-                            <strong>{item.character}</strong>
-                            <span>{item.title}</span>
-                          </div>
-                          <p>{displayText(item.content)}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="candidate-list">
-                      <div className="section-label">{c.candidatesLabel}</div>
-                      {(round.candidates || []).map((candidate) => (
-                        <div className={`candidate-card ${agentClass(candidate.character)}`} key={`${round.round_number}-${candidate.character}`}>
-                          <div className="candidate-head">
+                {/* Round 1 — 議論 */}
+                <div className="panel-flow-card">
+                  <div className="panel-round-head">
+                    <span className="panel-round-label">{c.round1Title}</span>
+                    {(round1AllDone || sending) && (
+                      <span className={`panel-rstatus ${round1AllDone ? 'prs-done' : 'prs-generating'}`}>
+                        {round1AllDone ? c.roundDone : c.roundGenerating}
+                      </span>
+                    )}
+                  </div>
+                  <div className="panel-agent-strip">
+                    {activeAgents.map((agent) => (
+                      <div className={`panel-strip-agent ${agentClass(agent.character)}`} key={agent.character} title={agent.character}>
+                        {CHARACTER_IMGS[agent.character] && (
+                          <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
+                        )}
+                        {agentR1Done(agent.character)
+                          ? <span className="panel-strip-check">✓</span>
+                          : sending
+                            ? <span className="panel-strip-dots"><b /><b /><b /></span>
+                            : null}
+                      </div>
+                    ))}
+                  </div>
+                  {messagesVisible && round1Candidates.length > 0 && (
+                    <div className="panel-msg-list">
+                      {round1Candidates.map((candidate) => (
+                        <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`dr1-${candidate.character}`}>
+                          <div className="panel-msg-head">
                             {CHARACTER_IMGS[candidate.character] && (
-                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="review-avatar-mini" />
+                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
                             )}
                             <strong>{candidate.character}</strong>
                           </div>
@@ -660,36 +649,86 @@ export default function CounselingChat({
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
 
+                {/* Round 2 — 振り返り & 議論 */}
+                <div className={`panel-flow-card${!round1AllDone ? ' dimmed' : ''}`}>
+                  <div className="panel-round-head">
+                    <span className="panel-round-label">{c.round2Title}</span>
+                    <span className={`panel-rstatus ${finalWinnerReady ? 'prs-done' : round1AllDone && sending ? 'prs-scoring' : 'prs-wait'}`}>
+                      {finalWinnerReady ? c.roundDone : round1AllDone && sending ? c.roundScoring : c.roundWaiting}
+                    </span>
                   </div>
-                ))}
-
-                {finalWinnerReady && (
-                  <div className="final-result">
-                    <div className="section-label">{c.finalResultLabel}</div>
-                    <div className={`winner-card ${agentClass(reviewRound.winner.character)}`}>
-                      {CHARACTER_IMGS[reviewRound.winner.character] && (
-                        <img src={CHARACTER_IMGS[reviewRound.winner.character]} alt={reviewRound.winner.character} className="review-avatar-mini" />
-                      )}
-                      <span>{c.winner}</span>
-                      <strong>{reviewRound.winner.character}</strong>
-                      <small>{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</small>
-                      <p>{displayText(reviewRound.winner.reply)}</p>
-                    </div>
-                    {(finalTotals || []).length > 0 && (
-                      <div className="final-ranking">
-                        {finalTotals.map((candidate, index) => (
-                          <div className={`ranking-row ${agentClass(candidate.character)}`} key={`final-${candidate.character}`}>
-                            <span>#{index + 1}</span>
-                            {CHARACTER_IMGS[candidate.character] && (
-                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="review-avatar-mini" />
+                  <div className="panel-reflection-list">
+                    {activeAgents.map((agent) => {
+                      const score = agentScore(agent.character);
+                      const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
+                      const isWinner = agent.character === winnerCharacter;
+                      const peerEntry = round2PeerScores.find((ps) => ps.character === agent.character);
+                      return (
+                        <div className={`panel-reflection-item ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={`dr2-${agent.character}`}>
+                          <div className="panel-reflection-head">
+                            {CHARACTER_IMGS[agent.character] && (
+                              <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
                             )}
-                            <strong>{candidate.character}</strong>
-                            <b>{formatScore(scoreValue(candidate))}</b>
-                            <small>{c.weightedAvg}</small>
+                            <span className="panel-agent-name">{agent.character}</span>
+                            <div className="panel-score-bar">
+                              <div className="panel-score-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
                           </div>
-                        ))}
-                      </div>
+                          {messagesVisible && peerEntry?.scores?.length > 0 && (
+                            <div className="panel-peer-list">
+                              {peerEntry.scores.map((ps) => (
+                                <div className={`panel-peer-item ${agentClass(ps.character)}`} key={`dps-${agent.character}-${ps.character}`}>
+                                  <span className="panel-peer-name">{ps.character}</span>
+                                  <b className="panel-peer-score-num">{ps.score ?? '—'}</b>
+                                  {ps.comment && <p>{ps.comment}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {latestDiscussion.length > 0 && (
+                    <>
+                      <div className="panel-section-divider">{c.discussionLabel ?? '議論'}</div>
+                      {messagesVisible && (
+                        <div className="panel-msg-list">
+                          {latestDiscussion.map((item, i) => (
+                            <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`dd2-${i}`}>
+                              <div className="panel-msg-head">
+                                {CHARACTER_IMGS[item.character] && (
+                                  <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
+                                )}
+                                <strong>{item.character}</strong>
+                                {item.title && <span className="panel-msg-title">{item.title}</span>}
+                              </div>
+                              <p>{displayText(item.content)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Winner reply */}
+                {finalWinnerReady && (
+                  <div className={`panel-winner-card ${agentClass(winnerCharacter)}`}>
+                    <div className="panel-winner-title">{c.panelWinnerTitle}</div>
+                    <div className="panel-winner-name">
+                      {CHARACTER_IMGS[winnerCharacter] && (
+                        <img src={CHARACTER_IMGS[winnerCharacter]} alt={winnerCharacter} className="panel-agent-av" />
+                      )}
+                      <strong>{winnerCharacter}</strong>
+                      <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
+                    </div>
+                    {messagesVisible && reviewRound.winner.reply && (
+                      <p className="panel-winner-reply-text">{displayText(reviewRound.winner.reply)}</p>
                     )}
                   </div>
                 )}
