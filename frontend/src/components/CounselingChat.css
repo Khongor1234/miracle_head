@@ -1204,113 +1204,229 @@
   text-align: right;
 }
 
-/* ─── Expandable reply in panel ────────────────────────────── */
-.panel-agent-row.clickable {
-  cursor: pointer;
-}
-
-.panel-agent-row.clickable:hover {
-  background: rgba(200, 185, 240, 0.22);
-}
-
-.panel-chevron {
-  font-size: 9px;
-  color: var(--hq-text-3);
-  flex-shrink: 0;
-  margin-left: 2px;
-}
-
-.panel-agent-reply {
-  --agent-color: var(--hq-blue-2);
-  --agent-bg: rgba(200, 185, 240, 0.18);
-  border-left: 3px solid var(--agent-color);
-  background: var(--agent-bg);
-  padding: 9px 12px 9px 14px;
-  border-bottom: 1px solid var(--hq-border);
-}
-
-.panel-agent-reply p {
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--hq-text-2);
-  margin: 0;
-}
-
-/* ─── Discussion section in Round 2 ────────────────────────── */
-.panel-discussion-section {
-  border-bottom: 1px solid var(--hq-border);
-}
-
-.panel-discussion-toggle {
+/* ─── Global message toggle ─────────────────────────────────── */
+.panel-msg-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   width: 100%;
-  padding: 7px 11px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--hq-border-2);
+  border-radius: 8px;
+  background: rgba(200, 185, 240, 0.18);
+  color: var(--hq-text-3);
   font-family: var(--font-ui);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--hq-text-3);
-  transition: color 0.15s;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-.panel-discussion-toggle:hover {
+.panel-msg-toggle:hover {
+  background: rgba(200, 185, 240, 0.35);
   color: var(--hq-text-2);
 }
 
-.panel-discussion-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 100px;
-  background: rgba(123, 95, 212, 0.15);
-  color: var(--hq-purple);
-  font-size: 9px;
-  font-weight: 800;
-  padding: 0 4px;
+/* ─── Flow cards (replaces panel-round-card) ────────────────── */
+.panel-flow-card {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--hq-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  transition: opacity 0.3s;
 }
 
-.panel-discussion-item {
+.panel-flow-card.dimmed { opacity: 0.4; }
+
+/* ─── Agent status strip ────────────────────────────────────── */
+.panel-agent-strip {
+  display: flex;
+  gap: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--hq-border);
+  background: rgba(220, 210, 245, 0.30);
+}
+
+.panel-strip-agent {
   --agent-color: var(--hq-blue-2);
-  --agent-bg: rgba(200, 185, 240, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.panel-strip-check {
+  font-size: 9px;
+  font-weight: 700;
+  color: #2a8a4a;
+}
+
+.panel-strip-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.panel-strip-dots b {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--hq-purple-2);
+  animation: dotPulse 1.2s infinite ease-in-out;
+}
+
+.panel-strip-dots b:nth-child(2) { animation-delay: 0.15s; }
+.panel-strip-dots b:nth-child(3) { animation-delay: 0.30s; }
+
+/* ─── Message list & bubbles ────────────────────────────────── */
+.panel-msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 9px;
+}
+
+.panel-msg-bubble {
+  --agent-color: var(--hq-blue-2);
+  --agent-bg: rgba(200, 185, 240, 0.18);
   border-left: 2px solid var(--agent-color);
   background: var(--agent-bg);
-  margin: 0 8px 6px;
-  border-radius: 6px;
+  border-radius: 7px;
   padding: 7px 9px;
 }
 
-.panel-discussion-meta {
+.panel-msg-head {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 4px;
 }
 
-.panel-discussion-meta strong {
+.panel-msg-head strong {
   font-size: 11px;
   font-weight: 700;
   color: var(--agent-color);
 }
 
-.panel-discussion-meta span {
+.panel-msg-title {
   font-size: 10px;
   color: var(--hq-text-3);
 }
 
-.panel-discussion-item p {
-  font-size: 11px;
-  line-height: 1.55;
+.panel-msg-bubble p {
+  font-size: 11.5px;
+  line-height: 1.6;
   color: var(--hq-text-2);
   margin: 0;
+}
+
+/* ─── Reflection list ───────────────────────────────────────── */
+.panel-reflection-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-reflection-item {
+  --agent-color: var(--hq-blue-2);
+  border-bottom: 1px solid var(--hq-border);
+}
+
+.panel-reflection-item:last-child { border-bottom: none; }
+.panel-reflection-item.win { background: rgba(90, 186, 124, 0.06); }
+
+.panel-reflection-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+}
+
+.panel-peer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px 8px 36px;
+}
+
+.panel-peer-item {
+  --agent-color: var(--hq-blue-2);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 10.5px;
+}
+
+.panel-peer-name {
+  color: var(--agent-color);
+  font-weight: 700;
+  min-width: 52px;
+  font-size: 10px;
+}
+
+.panel-peer-score-num {
+  color: var(--hq-text-1);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.panel-peer-item p {
+  color: var(--hq-text-3);
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ─── Section divider label ─────────────────────────────────── */
+.panel-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--hq-text-3);
+  background: rgba(220, 210, 245, 0.30);
+  border-top: 1px solid var(--hq-border);
+  border-bottom: 1px solid var(--hq-border);
+}
+
+/* ─── Winner card (new) ─────────────────────────────────────── */
+.panel-winner-card {
+  --agent-color: var(--hq-purple);
+  background: rgba(90, 186, 124, 0.08);
+  border: 1px solid rgba(90, 186, 124, 0.28);
+  border-radius: 10px;
+  padding: 11px 12px;
+  margin-top: 2px;
+}
+
+.panel-winner-card .panel-winner-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+
+.panel-winner-card .panel-winner-name strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hq-text-1);
+  flex: 1;
+}
+
+.panel-winner-reply-text {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--hq-text-2);
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid rgba(90, 186, 124, 0.20);
 }
 
 /* ─── Winner card in panel ──────────────────────────────────── */
