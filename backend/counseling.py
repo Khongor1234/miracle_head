@@ -438,6 +438,21 @@ Your reply must:
     persona = winner_agent.get("persona_en", winner_agent["persona"]) if lang == "en" else winner_agent["persona"]
     response_lang = "English" if lang == "en" else "Japanese"
 
+    # Each character has a signature emoji that fits their emotional lens
+    character_emoji = {
+        "Disgust": "🧐",
+        "Fear": "🫂",
+        "Joy": "🌟",
+        "Sadness": "💙",
+        "Anger": "🔥",
+    }
+    emoji = character_emoji.get(winner_agent["character"], "💬")
+    emoji_instruction = (
+        f"- Begin your reply with a single fitting emoji ({emoji}) that reflects your emotional lens."
+        if not high_risk
+        else "- Do not use emojis — keep the tone calm and grounded."
+    )
+
     return f"""You are an internal counselor agent. Your psychological analysis was chosen as the most insightful by the team.
 
 Agent: {winner_agent['name']} ({winner_agent['character']})
@@ -462,6 +477,7 @@ Requirements:
 - Speak directly to the client as their counselor.
 - Do not mention other agents, internal discussion, scoring, or your character name.
 - Do not use markdown or JSON.
+- {emoji_instruction}
 
 Respond with the counselor reply text in {response_lang} only."""
 
