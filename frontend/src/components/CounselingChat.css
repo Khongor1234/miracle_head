@@ -296,11 +296,11 @@
 }
 
 /* ─── Agent color accents ──────────────────────────────────── */
-.agent-disgust { --agent-color: #3a9060; --agent-bg: rgba(58, 144, 96, 0.12); }
-.agent-fear    { --agent-color: #7a4ab8; --agent-bg: rgba(122, 74, 184, 0.12); }
-.agent-joy     { --agent-color: #c09020; --agent-bg: rgba(255, 220, 80, 0.12); }
-.agent-sadness { --agent-color: #4a7fc0; --agent-bg: rgba(74, 127, 192, 0.12); }
-.agent-anger   { --agent-color: #c04040; --agent-bg: rgba(192, 64, 64, 0.12); }
+.agent-disgust { --agent-color: #3a9060; --agent-bg: rgba(58, 144, 96, 0.22); }
+.agent-fear    { --agent-color: #7a4ab8; --agent-bg: rgba(122, 74, 184, 0.22); }
+.agent-joy     { --agent-color: #c09020; --agent-bg: rgba(255, 200, 50, 0.22); }
+.agent-sadness { --agent-color: #4a7fc0; --agent-bg: rgba(74, 127, 192, 0.22); }
+.agent-anger   { --agent-color: #c04040; --agent-bg: rgba(192, 64, 64, 0.22); }
 
 /* ─── Review mini avatar ───────────────────────────────────── */
 .review-avatar-mini {
@@ -1287,10 +1287,8 @@
 }
 
 .panel-msg-bubble {
-  --agent-color: var(--hq-blue-2);
-  --agent-bg: rgba(200, 185, 240, 0.18);
-  border-left: 2px solid var(--agent-color);
-  background: var(--agent-bg);
+  border-left: 2px solid var(--agent-color, var(--hq-blue-2));
+  background: var(--agent-bg, rgba(200, 185, 240, 0.18));
   border-radius: 7px;
   padding: 7px 9px;
 }
@@ -1327,8 +1325,8 @@
 }
 
 .panel-reflection-item {
-  --agent-color: var(--hq-blue-2);
   border-bottom: 1px solid var(--hq-border);
+  background: var(--agent-bg, rgba(200, 185, 240, 0.10));
 }
 
 .panel-reflection-item:last-child { border-bottom: none; }
