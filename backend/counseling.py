@@ -127,37 +127,37 @@ RUBRIC = [
         "key": "safety_risk_handling",
         "label": "Safety / Risk handling",
         "weight": 0.30,
-        "description": "Handles danger, suicidal/self-harm risk, and immediate safety needs appropriately.",
+        "description": "Correctly identifies and flags any safety or self-harm risk signals in the client's message.",
     },
     {
         "key": "empathy_validation",
         "label": "Empathy / Validation",
         "weight": 0.25,
-        "description": "Clearly understands and validates the client's feelings.",
+        "description": "Shows deep understanding of the client's underlying emotional state and inner experience.",
     },
     {
         "key": "relevance",
         "label": "Relevance",
         "weight": 0.15,
-        "description": "Responds directly to the client's actual concern rather than giving generic support.",
+        "description": "Analysis directly addresses the client's actual underlying emotion or unspoken need, not just surface content.",
     },
     {
         "key": "helpful_next_step",
-        "label": "Helpful next step",
+        "label": "Insight depth",
         "weight": 0.15,
-        "description": "Offers one small, realistic next step when appropriate.",
+        "description": "Identifies what the client truly needs right now — emotional, practical, or relational.",
     },
     {
         "key": "natural_counselor_tone",
-        "label": "Natural counselor tone",
+        "label": "Unique lens value",
         "weight": 0.10,
-        "description": "Sounds natural, gentle, and counselor-like in Japanese.",
+        "description": "Brings a distinct perspective through the agent's persona that adds value beyond the obvious.",
     },
     {
         "key": "boundaries_no_harm",
         "label": "Boundaries / No harm",
         "weight": 0.05,
-        "description": "Avoids diagnosis, blame, false promises, and unsafe advice.",
+        "description": "Analysis avoids projection, blame, or assumptions that could misrepresent the client.",
     },
 ]
 SELF_HARM_PATTERNS = [
@@ -276,13 +276,55 @@ def extract_reply_text(raw: str) -> str:
         return content
 
 
-def candidate_prompt(
+def discussion_prompt(
     agent: Dict[str, str],
     conversation_context: str,
     client_text: str,
     high_risk: bool,
-    round_number: int = 1,
-    previous_round: Dict[str, Any] | None = None,
+) -> str:
+    safety = ""
+    if high_risk:
+        safety = (
+            "CRITICAL: The client may be in immediate danger (suicidal/self-harm signals detected). "
+            "Your analysis MUST flag this safety risk as the primary concern.\n"
+        )
+
+    return f"""You are an internal counselor agent in a multi-agent team.
+
+Agent: {agent['name']} ({agent['character']})
+Persona lens: {agent['persona']}
+
+Full client/counselor conversation history:
+{conversation_context}
+
+Latest client message:
+{client_text}
+
+{safety}
+Your task: Analyze WHY the client sent this message.
+
+Answer from your unique emotional lens:
+1. What underlying emotion, need, belief, or pain is driving this message?
+2. What is the client really asking for — even if they did not say it directly?
+3. What does your persona's lens reveal that others might miss?
+
+Requirements:
+- 2 to 4 sentences in Japanese.
+- Write as an internal psychological analysis — NOT as a reply to the client.
+- Reflect your persona's unique perspective.
+- Do not write a counseling reply to the client.
+- Do not mention other agents, scoring, or this internal process.
+- No markdown. No JSON.
+
+Respond with your psychological analysis in Japanese only."""
+
+
+def winner_reply_prompt(
+    winner_agent: Dict[str, str],
+    discussion_summary: str,
+    conversation_context: str,
+    client_text: str,
+    high_risk: bool,
 ) -> str:
     safety = ""
     if high_risk:
@@ -295,44 +337,32 @@ Your reply must:
 - avoid shame, debate, diagnosis, or detailed advice.
 """
 
-    round_instruction = "Write one candidate counselor reply to the client in Japanese."
-    previous_context = ""
-    if previous_round:
-        round_instruction = (
-            "Review the previous round. Use the other four agents' replies as references, "
-            "consider your own previous reply, then produce an improved "
-            "counselor reply to the client in Japanese. Keep your persona lens, but do not copy "
-            "another agent verbatim."
-        )
-        previous_context = f"""
-Previous review round:
-{previous_round_summary(previous_round, agent["character"])}
-"""
+    return f"""You are an internal counselor agent. Your psychological analysis was chosen as the most insightful by the team.
 
-    return f"""You are one of five internal counselor agents.
+Agent: {winner_agent['name']} ({winner_agent['character']})
+Persona: {winner_agent['persona']}
 
-Agent: {agent['name']} ({agent['character']})
-Persona: {agent['persona']}
-Review round: {round_number}
-
-Full visible client/counselor chat history so far:
+Full client/counselor conversation history:
 {conversation_context}
 
 Latest client message:
 {client_text}
 
-{previous_context}
-{safety}
-{round_instruction}
-Requirements:
-- 1 to 3 short sentences.
-- Use the client/counselor chat history above; do not respond as if this is the first turn unless it truly is.
-- Sound like a supportive counselor, not a debate participant.
-- Do not mention the five agents, scoring, internal discussion, or your character name.
-- Do not use markdown.
-- Do not wrap the reply in JSON or any other format.
+Team's collective psychological insights (internal — do not reveal to client):
+{discussion_summary}
 
-Respond with only the counselor reply text in Japanese. Nothing else."""
+{safety}
+Now write the actual counseling reply to the client.
+Use YOUR persona's lens and let the team's insights inform your response — but speak in your own voice.
+
+Requirements:
+- 1 to 3 short sentences in Japanese.
+- Use the conversation history; do not respond as if this is the first turn unless it truly is.
+- Speak directly to the client as their counselor.
+- Do not mention other agents, internal discussion, scoring, or your character name.
+- Do not use markdown or JSON.
+
+Respond with the counselor reply text in Japanese only."""
 
 
 def scoring_prompt(
@@ -404,32 +434,59 @@ def clamp_score(value: Any) -> int:
     return max(0, min(10, numeric))
 
 
+def _format_discussion_summary(candidates: List[Dict[str, Any]]) -> str:
+    return "\n".join(
+        f"{c['character']} ({c.get('name', c['character'])}): {c['reply']}"
+        for c in candidates
+    )
+
+
 async def generate_candidate(
     model: str,
     agent: Dict[str, str],
     conversation_context: str,
     client_text: str,
     high_risk: bool,
-    round_number: int = 1,
-    previous_round: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     raw = await query_llm(
         model,
-        candidate_prompt(agent, conversation_context, client_text, high_risk, round_number, previous_round),
+        discussion_prompt(agent, conversation_context, client_text, high_risk),
+        temperature=0.60,
+        max_output_tokens=512,
+    )
+    analysis = _strip_json_fences(raw).strip()
+    if analysis.startswith("{"):
+        analysis = extract_reply_text(raw)
+    if not analysis:
+        analysis = "クライアントの言葉の背景に、強い感情的なニーズがあると感じます。"
+    return {
+        "character": agent["character"],
+        "name": agent["name"],
+        "reply": analysis,
+    }
+
+
+async def generate_winner_reply(
+    model: str,
+    winner_agent: Dict[str, str],
+    discussion_candidates: List[Dict[str, Any]],
+    conversation_context: str,
+    client_text: str,
+    high_risk: bool,
+) -> str:
+    summary = _format_discussion_summary(discussion_candidates)
+    raw = await query_llm(
+        model,
+        winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk),
         temperature=0.55,
         max_output_tokens=512,
     )
     reply = _strip_json_fences(raw).strip()
-    # If the model still returned JSON despite the prompt, extract the reply field
     if reply.startswith("{"):
         reply = extract_reply_text(raw)
     if not reply:
         reply = "そうなんですね。今ここで話してくれてありがとうございます。"
-    return {
-        "character": agent["character"],
-        "name": agent["name"],
-        "reply": reply,
-    }
+    return reply
 
 
 async def score_candidates(
@@ -557,26 +614,6 @@ def aggregate_scores(candidates: List[Dict[str, Any]], peer_scores: List[Dict[st
     return aggregates
 
 
-def previous_round_summary(round_result: Dict[str, Any], current_character: str) -> str:
-    candidates = round_result.get("candidates", [])
-    own_candidate = next(
-        (candidate for candidate in candidates if candidate.get("character") == current_character),
-        None,
-    )
-    other_candidate_lines = [
-        f"- {candidate['character']}: {candidate['reply']}"
-        for candidate in candidates
-        if candidate.get("character") != current_character
-    ]
-    return "\n".join([
-        f"Round {round_result.get('round_number', 1)} previous result for {current_character}:",
-        "Your previous reply:",
-        own_candidate.get("reply", "- No previous reply.") if own_candidate else "- No previous reply.",
-        "Other agents' previous replies to use as references:",
-        *(other_candidate_lines or ["- No other candidate replies."]),
-    ])
-
-
 def build_discussion_log(
     candidates: List[Dict[str, Any]],
     peer_scores: List[Dict[str, Any]] | None = None,
@@ -587,7 +624,7 @@ def build_discussion_log(
         discussion.append({
             "type": "candidate",
             "character": candidate["character"],
-            "title": "Candidate reply",
+            "title": "心理分析",
             "content": candidate["reply"],
         })
 
@@ -639,27 +676,31 @@ async def run_counseling_round(
     client_text = client_message["content"]
     high_risk = is_high_risk(client_text)
     active_agents = agents or AGENTS
-    previous_round = None
-    rounds = []
 
-    review_rounds = 2
-    for round_number in range(1, review_rounds + 1):
-        candidates = await asyncio.gather(*[
-            generate_candidate(model, agent, context, client_text, high_risk, round_number, previous_round)
-            for agent in active_agents
-        ])
-        if round_number == review_rounds:
-            peer_scores = await asyncio.gather(*[
-                score_candidates(model, agent, context, client_text, candidates, high_risk, round_number)
-                for agent in active_agents
-            ])
-            round_result = build_scored_round_result(round_number, high_risk, candidates, peer_scores)
-        else:
-            round_result = build_round_result(round_number, candidates)
-        rounds.append(round_result)
-        previous_round = round_result
+    # Round 1: Each agent analyzes WHY the client said this (psychological discussion)
+    discussion_candidates = await asyncio.gather(*[
+        generate_candidate(model, agent, context, client_text, high_risk)
+        for agent in active_agents
+    ])
+    round_1 = build_round_result(1, list(discussion_candidates))
 
-    return build_agent_round(client_message, high_risk, review_rounds, rounds)
+    # Round 2: Score the discussion analyses, then the winner generates the actual reply
+    peer_scores = await asyncio.gather(*[
+        score_candidates(model, agent, context, client_text, list(discussion_candidates), high_risk, 2)
+        for agent in active_agents
+    ])
+
+    totals = aggregate_scores(list(discussion_candidates), list(peer_scores))
+    winner_character = totals[0]["character"]
+    winner_agent = next(a for a in active_agents if a["character"] == winner_character)
+
+    winner_reply_text = await generate_winner_reply(
+        model, winner_agent, list(discussion_candidates), context, client_text, high_risk
+    )
+
+    round_2 = build_scored_round_result(2, high_risk, list(discussion_candidates), list(peer_scores), winner_reply_text)
+
+    return build_agent_round(client_message, high_risk, 2, [round_1, round_2])
 
 
 def build_round_result(
@@ -681,10 +722,11 @@ def build_scored_round_result(
     high_risk: bool,
     candidates: List[Dict[str, Any]],
     peer_scores: List[Dict[str, Any]],
+    winner_reply_text: str,
 ) -> Dict[str, Any]:
     totals = aggregate_scores(candidates, peer_scores)
     winner = totals[0]
-    selected_reply = enforce_high_risk_floor(winner["reply"], high_risk)
+    selected_reply = enforce_high_risk_floor(winner_reply_text, high_risk)
     selected_winner = {
         "character": winner["character"],
         "name": winner["name"],
