@@ -353,22 +353,6 @@ export default function CounselingChat({
                       ))}
                     </div>
 
-                    {/* Candidate reply messages */}
-                    {messagesVisible && round1Candidates.length > 0 && (
-                      <div className="panel-msg-list">
-                        {round1Candidates.map((candidate) => (
-                          <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`r1-${candidate.character}`}>
-                            <div className="panel-msg-head">
-                              {CHARACTER_IMGS[candidate.character] && (
-                                <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
-                              )}
-                              <strong>{candidate.character}</strong>
-                            </div>
-                            <p>{displayText(candidate.reply)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* ── Round 2 — 振り返り & 議論 ── */}

@@ -671,7 +671,7 @@ def build_round_result(
         "candidates": candidates,
         "peer_scores": [],
         "totals": [],
-        "discussion": build_discussion_log(candidates),
+        "discussion": [],
         "winner": None,
     }
 
