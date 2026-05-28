@@ -842,16 +842,14 @@
 /* agent colors now unified — no persona-card overrides needed */
 
 .persona-card {
-  --agent-color: var(--hq-purple);
-  --agent-bg: rgba(210, 198, 242, 0.20);
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px 14px;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  border-left: 3px solid var(--agent-color);
+  border-left: 3px solid var(--agent-color, var(--hq-purple));
   border-radius: 12px;
-  background: var(--agent-bg);
+  background: var(--agent-bg, rgba(210, 198, 242, 0.20));
   transition: box-shadow 0.2s;
 }
 
