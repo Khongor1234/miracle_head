@@ -14,6 +14,24 @@ AGENTS = [
     {
         "character": "Disgust",
         "name": "Disgust",
+        "name_en": "Disgust",
+        "persona_en": """You are an emotional counselor inspired by Disgust from Pixar's Inside Out.
+
+Your role is to be the user's inner compass — protecting their self-respect, values, and identity. That gut feeling "something is wrong" is a vital signal to protect yourself. You help verbalize that signal and build the capacity for healthy boundaries.
+
+Counseling principles:
+- First, carefully explore "what, when, and why something feels off."
+- Don't dismiss discomfort as overreacting — recognize it as a response arising from what they care about.
+- Point out manipulation, exploitation, and self-betrayal patterns concretely, without blame.
+- Explain that saying "NO" and being aggressive are different; work together on assertive ways to decline.
+- Distinguish healthy standards from perfectionism. Check whether standards that are too high are making the user themselves suffer.
+- Present 2–3 action choices and show the likely outcome of each neutrally.
+
+Output style:
+- Sharp, honest, but warm.
+- First verbalize in one phrase what feels off, then discuss.
+- Offer a specific boundary phrase (e.g., "That doesn't work for me").
+- End with a sentence that helps the user trust their own judgment.""",
         "persona": """あなたは『インサイド・ヘッド』のムカムカに着想を得た日本語の感情カウンセラーです。
 
 あなたの役割は、ユーザーの自己尊重・価値観・アイデンティティを守る「内なる羅針盤」です。「何かが違う」という直感的な違和感は、自分を守るための大切なシグナルです。あなたはそのシグナルを言語化し、健全な境界線を築く力をユーザーに渡します。
@@ -35,6 +53,25 @@ AGENTS = [
     {
         "character": "Fear",
         "name": "Fear",
+        "name_en": "Fear",
+        "persona_en": """You are an emotional counselor inspired by Fear from Pixar's Inside Out.
+
+Your role is to "create a map to move forward safely." Anxiety is not a threat — it is a signal urging preparation. Rather than paralyzing the user, convert their anxious energy into a concrete safety plan.
+
+Counseling principles:
+- First, help put "what they're afraid of" into words. Vague anxiety tends to shrink when made concrete.
+- Separate "realistic risks" from "worst-case scenarios anxiety creates."
+- Evaluate each risk as low / medium / high and categorize what can and cannot be dealt with.
+- Build if-then plans together: "If X happens, I'll do Y."
+- Gently point out that doing nothing also carries risk.
+- If they've overcome similar anxieties before, use that as a basis to reinforce confidence.
+- Organize what can and cannot be controlled right now; focus on what can be.
+
+Output style:
+- Structured, calm, and practical.
+- Organize risks and countermeasures in bullet points.
+- Affirm the anxiety first, then mobilize: "It's natural to worry about X — that's exactly why we should Y."
+- End with the smallest, safest step possible today.""",
         "persona": """あなたは『インサイド・ヘッド』のビビリに着想を得た日本語の感情カウンセラーです。
 
 あなたの役割は「安全に前へ進む地図を作ること」です。不安は脅威ではなく、準備を促すシグナルです。ユーザーを動けなくするのではなく、不安のエネルギーを具体的な安全計画に変換します。
@@ -57,6 +94,24 @@ AGENTS = [
     {
         "character": "Joy",
         "name": "Joy",
+        "name_en": "Joy",
+        "persona_en": """You are an emotional counselor inspired by Joy from Pixar's Inside Out.
+
+Your role is to "find genuine hope together." Not superficial cheerfulness, but forward-looking perspective grounded in the user's strengths, values, and past experiences of overcoming difficulty.
+
+Counseling principles:
+- First receive the user's emotions — including pain, exhaustion, and disappointment — without denying them. Don't rush to "but it'll be okay!"
+- Together search for possibilities, choices, and small lights that still remain in the current situation.
+- Verbalize past successes, efforts, and growth concretely as "evidence you can do this."
+- Avoid surface-level encouragement like "just think positively." Don't deny pain.
+- Clarify what the user truly wants (their goal) and design small steps toward it together.
+- Aim for "5% better today" rather than a perfect solution.
+
+Output style:
+- Warm, direct, and action-oriented.
+- Start with a sentence that acknowledges emotion (e.g., "That sounds really tough").
+- Convey strengths and possibilities with concrete grounds.
+- End with one small, specific action to try right now.""",
         "persona": """あなたは『インサイド・ヘッド』のヨロコビに着想を得た日本語の感情カウンセラーです。
 
 あなたの役割は「本物の希望を一緒に見つけること」です。表面的な明るさではなく、ユーザーの強み・価値観・過去の乗り越えた経験に根ざした、現実に立脚した前向きさを届けます。
@@ -78,6 +133,25 @@ AGENTS = [
     {
         "character": "Sadness",
         "name": "Sadness",
+        "name_en": "Sadness",
+        "persona_en": """You are an emotional counselor inspired by Sadness from Pixar's Inside Out.
+
+Your role is to "create a safe place for the user to grieve." Sadness is not weakness — it is an honest response to losing something precious. Rather than trying to end it quickly, quietly accompany the user as they face their emotions.
+
+Counseling principles:
+- First, don't try to solve anything — just convey "I'm here." Don't let the user feel alone.
+- Help give names to emotions (e.g., "Is that sadness? Disappointment? A sense of loss?"). Naming makes emotions slightly more manageable.
+- Rather than "why are you sad," explore together "what was so important to you that you're feeling this way."
+- Don't rush sadness. Don't use expressions like "Are you over it yet?"
+- If sadness has become overwhelming and paralyzing, gently suggest one small self-care action for today.
+- Tell users who are blaming themselves "This is not your fault" — clearly, with reasoning.
+- If there are signs of serious distress (suicidal ideation, self-harm), prioritize connecting them to professional support.
+
+Output style:
+- Quiet, gentle, unhurried.
+- Always start with emotional acknowledgment (e.g., "That was really hard").
+- Prioritize empathy — "I understand your feelings" — over solutions.
+- End with one small comforting action for tonight.""",
         "persona": """あなたは『インサイド・ヘッド』のカナシミに着想を得た日本語の感情カウンセラーです。
 
 あなたの役割は「ユーザーが安全に悲しめる場所をつくること」です。悲しみは弱さではなく、何か大切なものを失ったことへの正直な反応です。それを急いで終わらせようとせず、ユーザーが自分の感情と向き合えるよう、静かに寄り添います。
@@ -100,6 +174,25 @@ AGENTS = [
     {
         "character": "Anger",
         "name": "Anger",
+        "name_en": "Anger",
+        "persona_en": """You are an emotional counselor inspired by Anger from Pixar's Inside Out.
+
+Your role is to "transform anger into the power of justice." Anger is a signal that something precious has been hurt. Rather than exploding or suppressing it, convert it into clear words and actions that protect the user.
+
+Counseling principles:
+- First, recognize anger as a legitimate emotion. Never say "getting angry is strange."
+- Separately organize "what happened (facts)" and "why that created anger (values, expectations, unmet needs)."
+- Clarify the root need behind the anger (e.g., wanting to be respected, wanting to be treated fairly).
+- Separate "what you want to say right now" from "what should be said calmly." Show the risks of impulsive action realistically.
+- Practice assertive expression together: "I felt X. So I would like you to Y."
+- If anger is chronic and accumulating, point out the pattern and suggest addressing the underlying situation.
+- Do not recommend revenge, attacks, or harassing behavior. Clearly convey that emotional explosions make problems worse.
+
+Output style:
+- Direct, strong, but calm.
+- Clearly say "that anger is valid," then guide toward a constructive direction.
+- Always provide a specific assertive sentence (e.g., "I felt… so I'd like…").
+- End with a controlled next action — not an emotional explosion.""",
         "persona": """あなたは『インサイド・ヘッド』のイカリに着想を得た日本語の感情カウンセラーです。
 
 あなたの役割は「怒りを正義の力に変えること」です。怒りは、大切なものが傷つけられたというシグナルです。それを爆発させるのでも抑え込むのでもなく、明確な言葉と行動に変換してユーザーを守ります。
@@ -281,6 +374,7 @@ def discussion_prompt(
     conversation_context: str,
     client_text: str,
     high_risk: bool,
+    lang: str = "ja",
 ) -> str:
     safety = ""
     if high_risk:
@@ -289,10 +383,13 @@ def discussion_prompt(
             "Your analysis MUST flag this safety risk as the primary concern.\n"
         )
 
+    persona = agent.get("persona_en", agent["persona"]) if lang == "en" else agent["persona"]
+    response_lang = "English" if lang == "en" else "Japanese"
+
     return f"""You are an internal counselor agent in a multi-agent team.
 
 Agent: {agent['name']} ({agent['character']})
-Persona lens: {agent['persona']}
+Persona lens: {persona}
 
 Full client/counselor conversation history:
 {conversation_context}
@@ -309,14 +406,14 @@ Answer from your unique emotional lens:
 3. What does your persona's lens reveal that others might miss?
 
 Requirements:
-- 2 to 4 sentences in Japanese.
+- 2 to 4 sentences in {response_lang}.
 - Write as an internal psychological analysis — NOT as a reply to the client.
 - Reflect your persona's unique perspective.
 - Do not write a counseling reply to the client.
 - Do not mention other agents, scoring, or this internal process.
 - No markdown. No JSON.
 
-Respond with your psychological analysis in Japanese only."""
+Respond with your psychological analysis in {response_lang} only."""
 
 
 def winner_reply_prompt(
@@ -325,6 +422,7 @@ def winner_reply_prompt(
     conversation_context: str,
     client_text: str,
     high_risk: bool,
+    lang: str = "ja",
 ) -> str:
     safety = ""
     if high_risk:
@@ -337,10 +435,13 @@ Your reply must:
 - avoid shame, debate, diagnosis, or detailed advice.
 """
 
+    persona = winner_agent.get("persona_en", winner_agent["persona"]) if lang == "en" else winner_agent["persona"]
+    response_lang = "English" if lang == "en" else "Japanese"
+
     return f"""You are an internal counselor agent. Your psychological analysis was chosen as the most insightful by the team.
 
 Agent: {winner_agent['name']} ({winner_agent['character']})
-Persona: {winner_agent['persona']}
+Persona: {persona}
 
 Full client/counselor conversation history:
 {conversation_context}
@@ -356,13 +457,13 @@ Now write the actual counseling reply to the client.
 Use YOUR persona's lens and let the team's insights inform your response — but speak in your own voice.
 
 Requirements:
-- 1 to 3 short sentences in Japanese.
+- 1 to 3 short sentences in {response_lang}.
 - Use the conversation history; do not respond as if this is the first turn unless it truly is.
 - Speak directly to the client as their counselor.
 - Do not mention other agents, internal discussion, scoring, or your character name.
 - Do not use markdown or JSON.
 
-Respond with the counselor reply text in Japanese only."""
+Respond with the counselor reply text in {response_lang} only."""
 
 
 def scoring_prompt(
@@ -447,10 +548,11 @@ async def generate_candidate(
     conversation_context: str,
     client_text: str,
     high_risk: bool,
+    lang: str = "ja",
 ) -> Dict[str, Any]:
     raw = await query_llm(
         model,
-        discussion_prompt(agent, conversation_context, client_text, high_risk),
+        discussion_prompt(agent, conversation_context, client_text, high_risk, lang),
         temperature=0.60,
         max_output_tokens=1024,
     )
@@ -458,10 +560,15 @@ async def generate_candidate(
     if analysis.startswith("{"):
         analysis = extract_reply_text(raw)
     if not analysis:
-        analysis = "クライアントの言葉の背景に、強い感情的なニーズがあると感じます。"
+        analysis = (
+            "I sense a strong emotional need behind the client's words."
+            if lang == "en"
+            else "クライアントの言葉の背景に、強い感情的なニーズがあると感じます。"
+        )
+    name = agent.get("name_en", agent["name"]) if lang == "en" else agent["name"]
     return {
         "character": agent["character"],
-        "name": agent["name"],
+        "name": name,
         "reply": analysis,
     }
 
@@ -473,11 +580,12 @@ async def generate_winner_reply(
     conversation_context: str,
     client_text: str,
     high_risk: bool,
+    lang: str = "ja",
 ) -> str:
     summary = _format_discussion_summary(discussion_candidates)
     raw = await query_llm(
         model,
-        winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk),
+        winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk, lang),
         temperature=0.55,
         max_output_tokens=768,
     )
@@ -485,7 +593,11 @@ async def generate_winner_reply(
     if reply.startswith("{"):
         reply = extract_reply_text(raw)
     if not reply:
-        reply = "そうなんですね。今ここで話してくれてありがとうございます。"
+        reply = (
+            "Thank you for sharing that with me."
+            if lang == "en"
+            else "そうなんですね。今ここで話してくれてありがとうございます。"
+        )
     return reply
 
 
@@ -618,13 +730,15 @@ def build_discussion_log(
     candidates: List[Dict[str, Any]],
     peer_scores: List[Dict[str, Any]] | None = None,
     winner: Dict[str, Any] | None = None,
+    lang: str = "ja",
 ) -> List[Dict[str, Any]]:
+    analysis_title = "Psychological Analysis" if lang == "en" else "心理分析"
     discussion = []
     for candidate in candidates:
         discussion.append({
             "type": "candidate",
             "character": candidate["character"],
-            "title": "心理分析",
+            "title": analysis_title,
             "content": candidate["reply"],
         })
 
@@ -653,9 +767,17 @@ def build_discussion_log(
     return discussion
 
 
-def enforce_high_risk_floor(reply: str, high_risk: bool) -> str:
+def enforce_high_risk_floor(reply: str, high_risk: bool, lang: str = "ja") -> str:
     if not high_risk:
         return reply
+    if lang == "en":
+        safety_terms = ["emergency", "crisis", "danger", "alone", "help", "support", "hotline"]
+        if any(term in reply.lower() for term in safety_terms):
+            return reply
+        return (
+            f"{reply} If you're in immediate danger of hurting yourself, please don't be alone — "
+            "reach out to someone you trust or contact your local emergency services or crisis line right away."
+        )
     safety_terms = ["危険", "緊急", "救急", "支援", "ひとり"]
     if any(term in reply for term in safety_terms):
         return reply
@@ -671,6 +793,7 @@ async def run_counseling_round(
     client_message: Dict[str, Any],
     agents: List[Dict[str, str]] | None = None,
     review_rounds: int = 2,
+    lang: str = "ja",
 ) -> Dict[str, Any]:
     context = visible_context(messages)
     client_text = client_message["content"]
@@ -679,10 +802,10 @@ async def run_counseling_round(
 
     # Round 1: Each agent analyzes WHY the client said this (psychological discussion)
     discussion_candidates = await asyncio.gather(*[
-        generate_candidate(model, agent, context, client_text, high_risk)
+        generate_candidate(model, agent, context, client_text, high_risk, lang)
         for agent in active_agents
     ])
-    round_1 = build_round_result(1, list(discussion_candidates))
+    round_1 = build_round_result(1, list(discussion_candidates), lang)
 
     # Round 2: Score the discussion analyses, then the winner generates the actual reply
     peer_scores = await asyncio.gather(*[
@@ -699,10 +822,10 @@ async def run_counseling_round(
         raise ValueError(f"Winner character '{winner_character}' not found in active agents")
 
     winner_reply_text = await generate_winner_reply(
-        model, winner_agent, candidates, context, client_text, high_risk
+        model, winner_agent, candidates, context, client_text, high_risk, lang
     )
 
-    round_2 = build_scored_round_result(2, high_risk, candidates, scores, winner_reply_text)
+    round_2 = build_scored_round_result(2, high_risk, candidates, scores, winner_reply_text, lang)
 
     return build_agent_round(client_message, high_risk, 2, [round_1, round_2])
 
@@ -710,13 +833,14 @@ async def run_counseling_round(
 def build_round_result(
     round_number: int,
     candidates: List[Dict[str, Any]],
+    lang: str = "ja",
 ) -> Dict[str, Any]:
     return {
         "round_number": round_number,
         "candidates": candidates,
         "peer_scores": [],
         "totals": [],
-        "discussion": build_discussion_log(candidates),
+        "discussion": build_discussion_log(candidates, lang=lang),
         "winner": None,
     }
 
@@ -727,10 +851,11 @@ def build_scored_round_result(
     candidates: List[Dict[str, Any]],
     peer_scores: List[Dict[str, Any]],
     winner_reply_text: str,
+    lang: str = "ja",
 ) -> Dict[str, Any]:
     totals = aggregate_scores(candidates, peer_scores)
     winner = totals[0]
-    selected_reply = enforce_high_risk_floor(winner_reply_text, high_risk)
+    selected_reply = enforce_high_risk_floor(winner_reply_text, high_risk, lang)
     selected_winner = {
         "character": winner["character"],
         "name": winner["name"],
@@ -745,7 +870,7 @@ def build_scored_round_result(
         "candidates": candidates,
         "peer_scores": peer_scores,
         "totals": totals,
-        "discussion": build_discussion_log(candidates, peer_scores, selected_winner),
+        "discussion": build_discussion_log(candidates, peer_scores, selected_winner, lang),
         "winner": selected_winner,
     }
 

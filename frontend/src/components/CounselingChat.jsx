@@ -18,7 +18,7 @@ const CHARACTER_JP = {
   Disgust: 'ムカムカ',
 };
 
-const jpName = (character) => CHARACTER_JP[character] || character;
+const jpName = (character, lang) => lang === 'en' ? (character || '') : (CHARACTER_JP[character] || character);
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
 const scoreValue = (item) => item?.weighted_total ?? item?.average_weighted_total ?? item?.total ?? item?.average_total ?? 0;
@@ -171,7 +171,7 @@ export default function CounselingChat({
     setReviewOpen(true);
     setPersonaOpen(false);
     setDraft('');
-    await onSendMessage(text);
+    await onSendMessage(text, lang);
   };
 
   const handleKeyDown = (e) => {
@@ -372,7 +372,7 @@ export default function CounselingChat({
                               {CHARACTER_IMGS[candidate.character] && (
                                 <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
                               )}
-                              <strong>{jpName(candidate.character)}</strong>
+                              <strong>{jpName(candidate.character, lang)}</strong>
                             </div>
                             <p>{displayText(candidate.reply)}</p>
                           </div>
@@ -404,7 +404,7 @@ export default function CounselingChat({
                               {CHARACTER_IMGS[agent.character] && (
                                 <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
                               )}
-                              <span className="panel-agent-name">{jpName(agent.character)}</span>
+                              <span className="panel-agent-name">{jpName(agent.character, lang)}</span>
                               <div className="panel-score-bar">
                                 <div className="panel-score-fill" style={{ width: `${pct}%` }} />
                               </div>
@@ -438,7 +438,7 @@ export default function CounselingChat({
                                   {CHARACTER_IMGS[item.character] && (
                                     <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
                                   )}
-                                  <strong>{jpName(item.character)}</strong>
+                                  <strong>{jpName(item.character, lang)}</strong>
                                   {item.title && <span className="panel-msg-title">{item.title}</span>}
                                 </div>
                                 <p>{displayText(item.content)}</p>
@@ -458,7 +458,7 @@ export default function CounselingChat({
                         {CHARACTER_IMGS[winnerCharacter] && (
                           <img src={CHARACTER_IMGS[winnerCharacter]} alt={winnerCharacter} className="panel-agent-av" />
                         )}
-                        <strong>{jpName(winnerCharacter)}</strong>
+                        <strong>{jpName(winnerCharacter, lang)}</strong>
                         <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                       </div>
                       {messagesVisible && reviewRound.winner.reply && (
@@ -487,7 +487,7 @@ export default function CounselingChat({
                   <label className={`persona-card ${agentClass(agent.character)}`} key={agent.character}>
                     <div className="persona-card-head">
                       <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="persona-avatar-mini" />
-                      <span>{jpName(agent.character)}</span>
+                      <span>{jpName(agent.character, lang)}</span>
                     </div>
                     <textarea
                       value={agent.persona}
@@ -562,7 +562,7 @@ export default function CounselingChat({
                         alt={agent.character}
                         className="persona-avatar-mini"
                       />
-                      <span>{jpName(agent.character)}</span>
+                      <span>{jpName(agent.character, lang)}</span>
                     </div>
                     <textarea
                       value={agent.persona}
@@ -653,7 +653,7 @@ export default function CounselingChat({
                             {CHARACTER_IMGS[candidate.character] && (
                               <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
                             )}
-                            <strong>{jpName(candidate.character)}</strong>
+                            <strong>{jpName(candidate.character, lang)}</strong>
                           </div>
                           <p>{displayText(candidate.reply)}</p>
                         </div>
@@ -682,7 +682,7 @@ export default function CounselingChat({
                             {CHARACTER_IMGS[agent.character] && (
                               <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
                             )}
-                            <span className="panel-agent-name">{jpName(agent.character)}</span>
+                            <span className="panel-agent-name">{jpName(agent.character, lang)}</span>
                             <div className="panel-score-bar">
                               <div className="panel-score-fill" style={{ width: `${pct}%` }} />
                             </div>
@@ -714,7 +714,7 @@ export default function CounselingChat({
                                 {CHARACTER_IMGS[item.character] && (
                                   <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
                                 )}
-                                <strong>{jpName(item.character)}</strong>
+                                <strong>{jpName(item.character, lang)}</strong>
                                 {item.title && <span className="panel-msg-title">{item.title}</span>}
                               </div>
                               <p>{displayText(item.content)}</p>
@@ -734,7 +734,7 @@ export default function CounselingChat({
                       {CHARACTER_IMGS[winnerCharacter] && (
                         <img src={CHARACTER_IMGS[winnerCharacter]} alt={winnerCharacter} className="panel-agent-av" />
                       )}
-                      <strong>{jpName(winnerCharacter)}</strong>
+                      <strong>{jpName(winnerCharacter, lang)}</strong>
                       <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                     </div>
                     {messagesVisible && reviewRound.winner.reply && (

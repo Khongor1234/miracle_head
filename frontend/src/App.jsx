@@ -148,7 +148,7 @@ function App() {
     return conversation;
   };
 
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, lang = 'ja') => {
     setSending(true);
     setError('');
     let activeConversationId = currentConversation?.id || currentConversationId;
@@ -278,7 +278,7 @@ function App() {
           setCurrentConversation(payload.conversation);
           if (payload.conversation?.config?.model) setModel(payload.conversation.config.model);
         }
-      });
+      }, lang);
       setCurrentConversationId(conversation.id);
       await refreshList();
     } catch (err) {

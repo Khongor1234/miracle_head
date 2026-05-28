@@ -61,6 +61,7 @@ class CreateConversationRequest(BaseModel):
 class CreateMessageRequest(BaseModel):
     content: str
     model: Optional[str] = None
+    lang: Optional[str] = "ja"
 
 
 def validate_agents(agents: Optional[List[AgentRequest]]) -> list[dict]:
@@ -193,6 +194,7 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
             client_message=client_message,
             agents=agents,
             review_rounds=review_rounds,
+            lang=request.lang or "ja",
         )
     except LLMError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
@@ -227,8 +229,8 @@ def stream_event(event_type: str, payload: dict) -> str:
     ) + "\n"
 
 
-async def indexed_candidate(model, index, agent, context, content, high_risk):
-    candidate = await generate_candidate(model, agent, context, content, high_risk)
+async def indexed_candidate(model, index, agent, context, content, high_risk, lang="ja"):
+    candidate = await generate_candidate(model, agent, context, content, high_risk, lang)
     return index, candidate
 
 
@@ -280,8 +282,9 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
             })
 
             candidates_by_index = [None] * len(agents)
+            lang = request.lang or "ja"
             candidate_tasks = [
-                asyncio.create_task(indexed_candidate(model, index, agent, context, content, high_risk))
+                asyncio.create_task(indexed_candidate(model, index, agent, context, content, high_risk, lang))
                 for index, agent in enumerate(agents)
             ]
             for task in asyncio.as_completed(candidate_tasks):
@@ -290,7 +293,7 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                 yield stream_event("candidate_ready", {"round_number": 1, "index": index, "candidate": candidate})
 
             candidates = [c for c in candidates_by_index if c is not None]
-            round_1 = build_round_result(1, candidates)
+            round_1 = build_round_result(1, candidates, lang)
             yield stream_event("round_complete", {"round_number": 1, "round": round_1})
 
             # Round 2: score the discussion analyses
@@ -322,10 +325,10 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
             if winner_agent is None:
                 raise ValueError(f"Winner character '{winner_character}' not found in agents")
             winner_reply_text = await generate_winner_reply(
-                model, winner_agent, candidates, context, content, high_risk
+                model, winner_agent, candidates, context, content, high_risk, lang
             )
 
-            round_2 = build_scored_round_result(2, high_risk, candidates, peer_scores, winner_reply_text)
+            round_2 = build_scored_round_result(2, high_risk, candidates, peer_scores, winner_reply_text, lang)
             yield stream_event("round_complete", {"round_number": 2, "round": round_2})
 
             agent_round = build_agent_round(client_message, high_risk, 2, [round_1, round_2])
