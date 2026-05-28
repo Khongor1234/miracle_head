@@ -690,15 +690,19 @@ async def run_counseling_round(
         for agent in active_agents
     ])
 
-    totals = aggregate_scores(list(discussion_candidates), list(peer_scores))
+    candidates = list(discussion_candidates)
+    scores = list(peer_scores)
+    totals = aggregate_scores(candidates, scores)
     winner_character = totals[0]["character"]
-    winner_agent = next(a for a in active_agents if a["character"] == winner_character)
+    winner_agent = next((a for a in active_agents if a["character"] == winner_character), None)
+    if winner_agent is None:
+        raise ValueError(f"Winner character '{winner_character}' not found in active agents")
 
     winner_reply_text = await generate_winner_reply(
-        model, winner_agent, list(discussion_candidates), context, client_text, high_risk
+        model, winner_agent, candidates, context, client_text, high_risk
     )
 
-    round_2 = build_scored_round_result(2, high_risk, list(discussion_candidates), list(peer_scores), winner_reply_text)
+    round_2 = build_scored_round_result(2, high_risk, candidates, scores, winner_reply_text)
 
     return build_agent_round(client_message, high_risk, 2, [round_1, round_2])
 

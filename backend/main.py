@@ -318,7 +318,9 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
             # Determine winner and generate their counseling reply
             totals = aggregate_scores(candidates, peer_scores)
             winner_character = totals[0]["character"]
-            winner_agent = next(a for a in agents if a["character"] == winner_character)
+            winner_agent = next((a for a in agents if a["character"] == winner_character), None)
+            if winner_agent is None:
+                raise ValueError(f"Winner character '{winner_character}' not found in agents")
             winner_reply_text = await generate_winner_reply(
                 model, winner_agent, candidates, context, content, high_risk
             )
