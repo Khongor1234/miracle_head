@@ -15,9 +15,6 @@ export default function Sidebar({
     <div className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
-          <div className="sidebar-brand-mark">
-            <img src="/llm_debate.jpg" alt="Counseling Dialogue" className="sidebar-brand-img" />
-          </div>
           <span className="sidebar-brand-name">Miracle Head</span>
         </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>

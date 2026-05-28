@@ -108,7 +108,7 @@ export default function CounselingChat({
   const [reviewOpen, setReviewOpen] = useState(true);
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
-  const [messagesVisible, setMessagesVisible] = useState(true);
+
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -323,15 +323,6 @@ export default function CounselingChat({
         <div className="panel-content">
           {agentPanelTab === 'process' && (
             <div>
-              {/* Global message toggle */}
-              <button
-                className="panel-msg-toggle"
-                type="button"
-                onClick={() => setMessagesVisible((v) => !v)}
-              >
-                {messagesVisible ? (c.hideMessages ?? 'メッセージを隠す') : (c.showMessages ?? 'メッセージを表示')}
-              </button>
-
               {!reviewRound && !sending ? (
                 <div className="panel-idle">{c.panelIdleMsg}</div>
               ) : (
@@ -364,7 +355,7 @@ export default function CounselingChat({
                     </div>
 
                     {/* Round 1 candidate reply messages */}
-                    {messagesVisible && round1Candidates.length > 0 && (
+                    {round1Candidates.length > 0 && (
                       <div className="panel-msg-list">
                         {round1Candidates.map((candidate) => (
                           <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`r1-${candidate.character}`}>
@@ -410,7 +401,7 @@ export default function CounselingChat({
                               </div>
                               <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
                             </div>
-                            {messagesVisible && peerEntry?.scores?.length > 0 && (
+                            {peerEntry?.scores?.length > 0 && (
                               <div className="panel-peer-list">
                                 {peerEntry.scores.map((ps) => (
                                   <div className={`panel-peer-item ${agentClass(ps.character)}`} key={`ps-${agent.character}-${ps.character}`}>
@@ -430,22 +421,20 @@ export default function CounselingChat({
                     {latestDiscussion.length > 0 && (
                       <>
                         <div className="panel-section-divider">{c.discussionLabel ?? '議論'}</div>
-                        {messagesVisible && (
-                          <div className="panel-msg-list">
-                            {latestDiscussion.map((item, i) => (
-                              <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`d2-${i}`}>
-                                <div className="panel-msg-head">
-                                  {CHARACTER_IMGS[item.character] && (
-                                    <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
-                                  )}
-                                  <strong>{jpName(item.character, lang)}</strong>
-                                  {item.title && <span className="panel-msg-title">{item.title}</span>}
-                                </div>
-                                <p>{displayText(item.content)}</p>
+                        <div className="panel-msg-list">
+                          {latestDiscussion.map((item, i) => (
+                            <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`d2-${i}`}>
+                              <div className="panel-msg-head">
+                                {CHARACTER_IMGS[item.character] && (
+                                  <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
+                                )}
+                                <strong>{jpName(item.character, lang)}</strong>
+                                {item.title && <span className="panel-msg-title">{item.title}</span>}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <p>{displayText(item.content)}</p>
+                            </div>
+                          ))}
+                        </div>
                       </>
                     )}
                   </div>
@@ -461,7 +450,7 @@ export default function CounselingChat({
                         <strong>{jpName(winnerCharacter, lang)}</strong>
                         <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                       </div>
-                      {messagesVisible && reviewRound.winner.reply && (
+                      {reviewRound.winner.reply && (
                         <p className="panel-winner-reply-text">{displayText(reviewRound.winner.reply)}</p>
                       )}
                     </div>
@@ -604,15 +593,6 @@ export default function CounselingChat({
 
         {reviewOpen && (
           <div className="review-content">
-            {/* Message toggle — same as desktop panel */}
-            <button
-              className="panel-msg-toggle"
-              type="button"
-              onClick={() => setMessagesVisible((v) => !v)}
-            >
-              {messagesVisible ? (c.hideMessages ?? 'メッセージを隠す') : (c.showMessages ?? 'メッセージを表示')}
-            </button>
-
             {!reviewRound && !sending ? (
               <div className="review-empty">{c.emptyReview}</div>
             ) : (
@@ -645,7 +625,7 @@ export default function CounselingChat({
                       </div>
                     ))}
                   </div>
-                  {messagesVisible && round1Candidates.length > 0 && (
+                  {round1Candidates.length > 0 && (
                     <div className="panel-msg-list">
                       {round1Candidates.map((candidate) => (
                         <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`dr1-${candidate.character}`}>
@@ -688,7 +668,7 @@ export default function CounselingChat({
                             </div>
                             <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
                           </div>
-                          {messagesVisible && peerEntry?.scores?.length > 0 && (
+                          {peerEntry?.scores?.length > 0 && (
                             <div className="panel-peer-list">
                               {peerEntry.scores.map((ps) => (
                                 <div className={`panel-peer-item ${agentClass(ps.character)}`} key={`dps-${agent.character}-${ps.character}`}>
@@ -706,21 +686,20 @@ export default function CounselingChat({
                   {latestDiscussion.length > 0 && (
                     <>
                       <div className="panel-section-divider">{c.discussionLabel ?? '議論'}</div>
-                      {messagesVisible && (
-                        <div className="panel-msg-list">
-                          {latestDiscussion.map((item, i) => (
-                            <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`dd2-${i}`}>
-                              <div className="panel-msg-head">
-                                {CHARACTER_IMGS[item.character] && (
-                                  <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
-                                )}
-                                <strong>{jpName(item.character, lang)}</strong>
-                                {item.title && <span className="panel-msg-title">{item.title}</span>}
-                              </div>
-                              <p>{displayText(item.content)}</p>
+                      <div className="panel-msg-list">
+                        {latestDiscussion.map((item, i) => (
+                          <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`dd2-${i}`}>
+                            <div className="panel-msg-head">
+                              {CHARACTER_IMGS[item.character] && (
+                                <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
+                              )}
+                              <strong>{jpName(item.character, lang)}</strong>
+                              {item.title && <span className="panel-msg-title">{item.title}</span>}
                             </div>
-                          ))}
-                        </div>
+                            <p>{displayText(item.content)}</p>
+                          </div>
+                        ))}
+                      </div>
                       )}
                     </>
                   )}
@@ -737,7 +716,7 @@ export default function CounselingChat({
                       <strong>{jpName(winnerCharacter, lang)}</strong>
                       <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                     </div>
-                    {messagesVisible && reviewRound.winner.reply && (
+                    {reviewRound.winner.reply && (
                       <p className="panel-winner-reply-text">{displayText(reviewRound.winner.reply)}</p>
                     )}
                   </div>
