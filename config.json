@@ -1,10 +1,10 @@
 {
-  "default_llm_model": "gemini-2.5-flash",
+  "default_llm_model": "gemma-4-31B-it-4bit",
   "elevenlabs_voices": {
-    "Joy":     "OSwaPSNdfituxkWcjlkR",
+    "Joy": "OSwaPSNdfituxkWcjlkR",
     "Sadness": "NQZUZmZFxoCYFGj4gD2o",
-    "Anger":   "3U6tYxUqUpcplL5Qep78",
-    "Fear":    "fUjY9K2nAIwlALOwSiwc",
+    "Anger": "3U6tYxUqUpcplL5Qep78",
+    "Fear": "fUjY9K2nAIwlALOwSiwc",
     "Disgust": "OSwaPSNdfituxkWcjlkR",
     "default": "your-default-voice-id"
   }

@@ -7,6 +7,7 @@ import './App.css';
 
 const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
 const DEFAULT_REVIEW_ROUNDS = 2;
+const LOCAL_MODEL = 'gemma-4-31B-it-4bit';
 
 const emptyReviewRound = (roundNumber) => ({
   round_number: roundNumber,
@@ -42,7 +43,7 @@ function App() {
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
-  const [model, setModel] = useState('gemini-2.5-flash');
+  const [model, setModel] = useState(LOCAL_MODEL);
   const [agents, setAgents] = useState([]);
   const [defaultAgents, setDefaultAgents] = useState([]);
   const [reviewRounds, setReviewRounds] = useState(DEFAULT_REVIEW_ROUNDS);
@@ -62,7 +63,7 @@ function App() {
     api.getSettings()
       .then((settings) => {
         if (!active) return;
-        if (settings.default_model) setModel(settings.default_model);
+        setModel(settings.default_model || LOCAL_MODEL);
         if (settings.agents) {
           setDefaultAgents(cloneAgents(settings.agents));
           setAgents(cloneAgents(settings.agents));
@@ -96,7 +97,7 @@ function App() {
       const conversation = await api.getConversation(id);
       setCurrentConversation(conversation);
       setLiveRound(null);
-      if (conversation.config?.model) setModel(conversation.config.model);
+      setModel(LOCAL_MODEL);
       if (conversation.config?.agents) setAgents(cloneAgents(conversation.config.agents));
       setReviewRounds(DEFAULT_REVIEW_ROUNDS);
       setMobileSidebarOpen(false);
@@ -125,7 +126,7 @@ function App() {
     if (currentConversation) return currentConversation;
     const sessionAgents = agents.length ? agents : defaultAgents;
     const config = {
-      model: model.trim() || 'gemini-2.5-flash',
+      model: LOCAL_MODEL,
       review_rounds: reviewRounds,
     };
     if (sessionAgents.length === 5 && sessionAgents.every((agent) => agent.persona?.trim())) {
@@ -163,7 +164,7 @@ function App() {
       rounds: [],
     });
     try {
-      const selectedModel = model.trim() || 'gemini-2.5-flash';
+      const selectedModel = LOCAL_MODEL;
       const conversation = await ensureConversation();
       activeConversationId = conversation.id;
       setLiveRound((prev) => ({

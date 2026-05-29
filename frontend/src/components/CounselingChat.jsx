@@ -19,6 +19,8 @@ const CHARACTER_JP = {
   Disgust: 'ムカムカ',
 };
 
+const LOCAL_MODEL = 'gemma-4-31B-it-4bit';
+
 const jpName = (character, lang) => lang === 'en' ? (character || '') : (CHARACTER_JP[character] || character);
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
@@ -272,15 +274,11 @@ export default function CounselingChat({
               <label htmlFor="model-input">{c.modelLabel}</label>
               <select
                 id="model-input"
-                value={model}
+                value={model || LOCAL_MODEL}
                 onChange={(e) => onModelChange(e.target.value)}
                 disabled={sending}
               >
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                <option value={LOCAL_MODEL}>Gemma 4 31B IT 4bit</option>
               </select>
             </div>
           </div>
