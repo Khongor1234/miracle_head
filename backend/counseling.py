@@ -361,9 +361,9 @@ def extract_reply_text(raw: str) -> str:
         return _unwrap_reply(str(reply).strip())
     except Exception:
         content = _strip_json_fences(raw).strip()
-        # Sanitize literal newlines inside JSON string values before matching
-        sanitized = re.sub(r'(?<!\\)\n', r'\\n', content)
-        match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', sanitized, re.DOTALL)
+        # Sanitize literal newlines and carriage returns inside JSON string values
+        sanitized = re.sub(r'\r\n|\r|\n', r'\\n', content)
+        match = re.search(r'"reply"\s*:\s*"((?:[^"\\]|\\.)*)"', sanitized, re.DOTALL)
         if match:
             try:
                 return json.loads(f'"{match.group(1)}"').strip()
@@ -564,7 +564,7 @@ async def generate_candidate(
         model,
         discussion_prompt(agent, conversation_context, client_text, high_risk, lang),
         temperature=0.60,
-        max_output_tokens=1024,
+        max_output_tokens=2048,
     )
     analysis = _strip_json_fences(raw).strip()
     if analysis.startswith("{"):
@@ -597,7 +597,7 @@ async def generate_winner_reply(
         model,
         winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk, lang),
         temperature=0.55,
-        max_output_tokens=1024,
+        max_output_tokens=2048,
     )
     reply = _strip_json_fences(raw).strip()
     if reply.startswith("{"):
