@@ -4,6 +4,7 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 const PASSWORD_STORAGE_KEY = 'miracle_head_password';
+const VISITOR_STORAGE_KEY = 'miracle_head_visitor_id';
 
 const BASE_HEADERS = {
   'ngrok-skip-browser-warning': '1',
@@ -25,6 +26,28 @@ function readStoredPassword() {
 }
 
 let password = readStoredPassword();
+
+function newVisitorId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/** Random id kept in this browser; the server shows each visitor only their own conversations. */
+function loadVisitorId() {
+  try {
+    const stored = localStorage.getItem(VISITOR_STORAGE_KEY);
+    if (stored) return stored;
+    const created = newVisitorId();
+    localStorage.setItem(VISITOR_STORAGE_KEY, created);
+    return created;
+  } catch {
+    // Private mode: conversations stay visible for this tab only.
+    return newVisitorId();
+  }
+}
+
+const visitorId = loadVisitorId();
 const unauthorizedListeners = new Set();
 
 export function setPassword(value) {
@@ -54,6 +77,7 @@ export function onUnauthorized(listener) {
 async function request(path, options = {}) {
   const headers = {
     ...BASE_HEADERS,
+    'X-Visitor-Id': visitorId,
     ...(password ? { 'X-App-Password': password } : {}),
     ...options.headers,
   };

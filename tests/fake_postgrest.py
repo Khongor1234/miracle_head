@@ -36,6 +36,10 @@ class FakePostgrest:
                 rows = [self.rows[row_id]] if row_id in self.rows else []
             else:
                 rows = list(self.rows.values())
+            owner_filter = params.get("data->>owner_id", "")
+            if owner_filter.startswith("eq."):
+                owner = owner_filter.removeprefix("eq.")
+                rows = [row for row in rows if row["data"].get("owner_id") == owner]
             if params.get("order") == "updated_at.desc":
                 rows = sorted(rows, key=lambda row: row["updated_at"], reverse=True)
             columns = params.get("select", "*").split(",")

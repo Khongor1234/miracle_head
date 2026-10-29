@@ -140,6 +140,10 @@ from conversations order by dialogue_file_number;
 
 Every request needs the `X-App-Password` header when `APP_PASSWORD` is set.
 
+The `/api/conversations` routes also need `X-Visitor-Id`: a random id the browser creates once and keeps in
+localStorage. Each visitor lists, opens and deletes only the conversations created with their own id
+(stored as `owner_id`); anyone else gets 404.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/settings` | Default model and agent definitions |

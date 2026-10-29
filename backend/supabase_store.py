@@ -71,8 +71,9 @@ class SupabaseStore:
             headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
         )
 
-    def list_summaries(self) -> List[Dict[str, Any]]:
-        rows = self._request("GET", TABLE_PATH, params={"select": SUMMARY_COLUMNS, "order": "updated_at.desc"}).json()
+    def list_summaries(self, owner_id: str) -> List[Dict[str, Any]]:
+        params = {"select": SUMMARY_COLUMNS, "order": "updated_at.desc", "data->>owner_id": f"eq.{owner_id}"}
+        rows = self._request("GET", TABLE_PATH, params=params).json()
         return [{**row, "turn_count": row["message_count"]} for row in rows]
 
     def delete(self, conversation_id: str) -> bool:

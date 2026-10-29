@@ -31,6 +31,7 @@ from .counseling import (
 )
 from .llm import LLMError
 from .supabase_store import StorageError
+from .visitor import require_visitor_id
 
 # The schema pages sit outside the password dependency, so hide them in the cloud.
 _DOCS_OFF = {"docs_url": None, "redoc_url": None, "openapi_url": None} if IS_VERCEL else {}
@@ -137,12 +138,12 @@ async def get_settings():
 
 
 @app.get("/api/conversations")
-async def list_conversations():
-    return await asyncio.to_thread(storage.list_conversations)
+async def list_conversations(visitor_id: str = Depends(require_visitor_id)):
+    return await asyncio.to_thread(storage.list_conversations, visitor_id)
 
 
 @app.post("/api/conversations", status_code=201)
-async def create_conversation(request: CreateConversationRequest):
+async def create_conversation(request: CreateConversationRequest, visitor_id: str = Depends(require_visitor_id)):
     conversation_id = str(uuid.uuid4())
     agents = validate_agents(request.agents)
     review_rounds = validate_review_rounds(request.review_rounds)
@@ -151,26 +152,28 @@ async def create_conversation(request: CreateConversationRequest):
         "agents": agents,
         "review_rounds": review_rounds,
     }
-    return await asyncio.to_thread(storage.create_conversation, conversation_id, config)
+    return await asyncio.to_thread(storage.create_conversation, conversation_id, config, visitor_id)
 
 
 @app.get("/api/conversations/{conversation_id}")
-async def get_conversation(conversation_id: str):
-    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
+async def get_conversation(conversation_id: str, visitor_id: str = Depends(require_visitor_id)):
+    conversation = await asyncio.to_thread(storage.get_owned_conversation, conversation_id, visitor_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return conversation
 
 
 @app.delete("/api/conversations/{conversation_id}", status_code=204)
-async def delete_conversation(conversation_id: str):
-    if not await asyncio.to_thread(storage.delete_conversation, conversation_id):
+async def delete_conversation(conversation_id: str, visitor_id: str = Depends(require_visitor_id)):
+    if not await asyncio.to_thread(storage.delete_conversation, conversation_id, visitor_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
 
 @app.post("/api/conversations/{conversation_id}/messages")
-async def create_message(conversation_id: str, request: CreateMessageRequest):
-    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
+async def create_message(
+    conversation_id: str, request: CreateMessageRequest, visitor_id: str = Depends(require_visitor_id)
+):
+    conversation = await asyncio.to_thread(storage.get_owned_conversation, conversation_id, visitor_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -246,8 +249,10 @@ async def indexed_score(model, index, agent, context, content, candidates, high_
 
 
 @app.post("/api/conversations/{conversation_id}/messages/stream")
-async def create_message_stream(conversation_id: str, request: CreateMessageRequest):
-    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
+async def create_message_stream(
+    conversation_id: str, request: CreateMessageRequest, visitor_id: str = Depends(require_visitor_id)
+):
+    conversation = await asyncio.to_thread(storage.get_owned_conversation, conversation_id, visitor_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 

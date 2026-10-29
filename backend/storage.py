@@ -47,11 +47,12 @@ def save_conversation(conversation: Dict[str, Any]) -> Dict[str, Any]:
     return saved
 
 
-def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+def create_conversation(conversation_id: str, config: Dict[str, Any], owner_id: str) -> Dict[str, Any]:
     store = get_store()
     now = utc_now_iso()
     return save_conversation({
         "id": conversation_id,
+        "owner_id": owner_id,
         "created_at": now,
         "updated_at": now,
         "dialogue_file_number": store.next_dialogue_number(),
@@ -70,6 +71,14 @@ def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
     return get_store().load(conversation_id)
 
 
+def get_owned_conversation(conversation_id: str, owner_id: str) -> Optional[Dict[str, Any]]:
+    """The conversation only if this visitor created it; others get None, as if it did not exist."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation.get("owner_id") != owner_id:
+        return None
+    return conversation
+
+
 def _require_conversation(conversation_id: str) -> Dict[str, Any]:
     conversation = get_conversation(conversation_id)
     if conversation is None:
@@ -77,9 +86,9 @@ def _require_conversation(conversation_id: str) -> Dict[str, Any]:
     return conversation
 
 
-def list_conversations() -> List[Dict[str, Any]]:
-    """List all counseling conversations (metadata only), newest first."""
-    return get_store().list_summaries()
+def list_conversations(owner_id: str) -> List[Dict[str, Any]]:
+    """List this visitor's counseling conversations (metadata only), newest first."""
+    return get_store().list_summaries(owner_id)
 
 
 def add_message(conversation_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
@@ -121,7 +130,7 @@ def update_message(conversation_id: str, message: Dict[str, Any]) -> None:
     })
 
 
-def delete_conversation(conversation_id: str) -> bool:
-    if not is_valid_conversation_id(conversation_id):
+def delete_conversation(conversation_id: str, owner_id: str) -> bool:
+    if get_owned_conversation(conversation_id, owner_id) is None:
         return False
     return get_store().delete(conversation_id)

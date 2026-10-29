@@ -8,6 +8,8 @@ from backend.supabase_store import StorageError, SupabaseStore
 from tests.fake_postgrest import FakePostgrest
 
 CONFIG = {"model": "gemini-2.5-flash-lite", "agents": [], "review_rounds": 2}
+OWNER = "visitor-aaaaaaaaaaaaaaaa"
+OTHER = "visitor-bbbbbbbbbbbbbbbb"
 
 
 def client_message(message_id: str, content: str, created_at: str = "2026-10-30T10:00:00") -> dict:
@@ -30,7 +32,7 @@ def store(request, tmp_path, monkeypatch, fake_postgrest):
 
 
 def test_create_then_get_returns_the_same_conversation(store):
-    created = storage.create_conversation("abc-123", CONFIG)
+    created = storage.create_conversation("abc-123", CONFIG, OWNER)
 
     loaded = storage.get_conversation("abc-123")
 
@@ -40,14 +42,14 @@ def test_create_then_get_returns_the_same_conversation(store):
 
 
 def test_dialogue_numbers_increase_per_conversation(store):
-    first = storage.create_conversation("first", CONFIG)
-    second = storage.create_conversation("second", CONFIG)
+    first = storage.create_conversation("first", CONFIG, OWNER)
+    second = storage.create_conversation("second", CONFIG, OWNER)
 
     assert (first["dialogue_file_number"], second["dialogue_file_number"]) == (1, 2)
 
 
 def test_first_client_message_becomes_title_and_dialogue(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
 
     storage.add_message("abc", client_message("m1", "仕事がつらいです\nどうしたら"))
 
@@ -59,11 +61,11 @@ def test_first_client_message_becomes_title_and_dialogue(store):
 
 
 def test_list_returns_summaries_newest_first(store):
-    storage.create_conversation("older", CONFIG)
-    storage.create_conversation("newer", CONFIG)
+    storage.create_conversation("older", CONFIG, OWNER)
+    storage.create_conversation("newer", CONFIG, OWNER)
     storage.add_message("newer", client_message("m1", "hello"))
 
-    summaries = storage.list_conversations()
+    summaries = storage.list_conversations(OWNER)
 
     assert [item["id"] for item in summaries] == ["newer", "older"]
     assert summaries[0]["message_count"] == 1
@@ -72,7 +74,7 @@ def test_list_returns_summaries_newest_first(store):
 
 
 def test_update_message_replaces_by_id(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
     storage.add_message("abc", client_message("m1", "before"))
 
     storage.update_message("abc", client_message("m1", "after"))
@@ -81,14 +83,14 @@ def test_update_message_replaces_by_id(store):
 
 
 def test_update_message_with_unknown_id_raises(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
 
     with pytest.raises(ValueError):
         storage.update_message("abc", client_message("missing", "x"))
 
 
 def test_config_update_merges_values(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
 
     updated = storage.update_conversation_config("abc", {"model": "gemini-2.5-flash"})
 
@@ -96,7 +98,7 @@ def test_config_update_merges_values(store):
 
 
 def test_add_agent_round_appends(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
 
     storage.add_agent_round("abc", {"round": 1})
 
@@ -104,11 +106,46 @@ def test_add_agent_round_appends(store):
 
 
 def test_delete_removes_conversation(store):
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
 
-    assert storage.delete_conversation("abc") is True
+    assert storage.delete_conversation("abc", OWNER) is True
     assert storage.get_conversation("abc") is None
-    assert storage.delete_conversation("abc") is False
+    assert storage.delete_conversation("abc", OWNER) is False
+
+
+def test_list_shows_only_the_visitors_own_conversations(store):
+    storage.create_conversation("mine", CONFIG, OWNER)
+    storage.create_conversation("theirs", CONFIG, OTHER)
+
+    assert [item["id"] for item in storage.list_conversations(OWNER)] == ["mine"]
+    assert [item["id"] for item in storage.list_conversations(OTHER)] == ["theirs"]
+
+
+def test_owner_can_read_own_conversation(store):
+    created = storage.create_conversation("mine", CONFIG, OWNER)
+
+    assert storage.get_owned_conversation("mine", OWNER) == created
+    assert created["owner_id"] == OWNER
+
+
+def test_other_visitor_cannot_read_conversation(store):
+    storage.create_conversation("mine", CONFIG, OWNER)
+
+    assert storage.get_owned_conversation("mine", OTHER) is None
+
+
+def test_other_visitor_cannot_delete_conversation(store):
+    storage.create_conversation("mine", CONFIG, OWNER)
+
+    assert storage.delete_conversation("mine", OTHER) is False
+    assert storage.get_conversation("mine") is not None
+
+
+def test_conversations_without_owner_are_hidden(store):
+    storage.save_conversation({"id": "legacy", "created_at": "2026-10-01T00:00:00", "messages": []})
+
+    assert storage.list_conversations(OWNER) == []
+    assert storage.get_owned_conversation("legacy", OWNER) is None
 
 
 def test_missing_conversation_raises_on_write(store):
@@ -119,13 +156,13 @@ def test_missing_conversation_raises_on_write(store):
 @pytest.mark.parametrize("bad_id", ["../etc/passwd", "a,b", "id=eq.1", ""])
 def test_invalid_ids_are_treated_as_missing(store, bad_id):
     assert storage.get_conversation(bad_id) is None
-    assert storage.delete_conversation(bad_id) is False
+    assert storage.delete_conversation(bad_id, OWNER) is False
 
 
 def test_file_store_writes_numbered_dialogue_export(tmp_path, monkeypatch):
     selected = FileStore(str(tmp_path / "conversations"), str(tmp_path / "dialogues"))
     monkeypatch.setattr(storage, "get_store", lambda: selected)
-    storage.create_conversation("abc", CONFIG)
+    storage.create_conversation("abc", CONFIG, OWNER)
     storage.add_message("abc", client_message("m1", "hi"))
 
     exported = json.loads((tmp_path / "dialogues" / "1.json").read_text())

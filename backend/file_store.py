@@ -52,8 +52,8 @@ class FileStore:
         with open(dialogue_path, "w") as f:
             json.dump({"dialogue": conversation.get("dialogue", [])}, f, indent=2, ensure_ascii=False)
 
-    def list_summaries(self) -> List[Dict[str, Any]]:
-        summaries = [summarize(data) for data in self._read_all() if "id" in data]
+    def list_summaries(self, owner_id: str) -> List[Dict[str, Any]]:
+        summaries = [summarize(data) for data in self._read_all() if "id" in data and data.get("owner_id") == owner_id]
         return sorted(summaries, key=lambda item: item.get("updated_at") or "", reverse=True)
 
     def delete(self, conversation_id: str) -> bool:
