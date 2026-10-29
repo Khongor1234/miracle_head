@@ -11,3 +11,11 @@ dependencies = [
     "httpx>=0.27.0",
     "pydantic>=2.9.0",
 ]
+
+[tool.vercel]
+entrypoint = "backend.main:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

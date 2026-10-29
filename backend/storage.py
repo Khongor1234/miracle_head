@@ -1,247 +1,127 @@
-"""JSON-based storage for counseling conversations."""
+"""Storage for counseling conversations.
 
-import json
-import os
+Local JSON files by default; Supabase when SUPABASE_URL and SUPABASE_SECRET_KEY are set.
+Every write builds a new conversation dict and hands it to the selected store.
+"""
+
 import re
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
-from .config import DATA_DIR, DIALOGUE_DIR
+from .config import DATA_DIR, DIALOGUE_DIR, IS_VERCEL, SUPABASE_SECRET_KEY, SUPABASE_URL
+from .file_store import FileStore
+from .records import DEFAULT_TITLE, build_dialogue
+from .supabase_store import SupabaseStore
 
-APP_ROLES = {"client", "counselor"}
-
-
-def ensure_data_dir():
-    """Ensure the data directory exists."""
-    Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
-
-
-def ensure_dialogue_dir():
-    """Ensure the simplified dialogue export directory exists."""
-    Path(DIALOGUE_DIR).mkdir(parents=True, exist_ok=True)
+CONVERSATION_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")
+MAX_TITLE_LENGTH = 42
 
 
-def get_conversation_path(conversation_id: str) -> str:
-    """Get the file path for a conversation."""
-    return os.path.join(DATA_DIR, f"{conversation_id}.json")
+@lru_cache(maxsize=1)
+def get_store():
+    if SUPABASE_URL and SUPABASE_SECRET_KEY:
+        return SupabaseStore(SUPABASE_URL, SUPABASE_SECRET_KEY)
+    if IS_VERCEL:
+        raise RuntimeError("Set SUPABASE_URL and SUPABASE_SECRET_KEY: Vercel functions have no persistent disk.")
+    return FileStore(DATA_DIR, DIALOGUE_DIR)
 
 
-def get_dialogue_path(conversation_id: str) -> str:
-    """Get the file path for the simplified dialogue JSON."""
-    conversation = get_conversation(conversation_id)
-    file_number = dialogue_file_number(conversation) if conversation else None
-    filename = f"{file_number}.json" if file_number else f"{conversation_id}.json"
-    return os.path.join(DIALOGUE_DIR, filename)
+def utc_now_iso() -> str:
+    """With +00:00, so file-store and Supabase timestamps parse to the same instant in the browser."""
+    return datetime.now(timezone.utc).isoformat()
 
 
-def dialogue_file_number(conversation: Dict[str, Any]) -> Optional[int]:
-    value = conversation.get("dialogue_file_number")
-    try:
-        number = int(value)
-    except (TypeError, ValueError):
-        return None
-    return number if number > 0 else None
+def is_valid_conversation_id(conversation_id: str) -> bool:
+    return bool(CONVERSATION_ID_PATTERN.fullmatch(conversation_id or ""))
 
 
-def next_dialogue_file_number() -> int:
-    """Return the next numeric filename for simplified dialogue exports."""
-    ensure_dialogue_dir()
-    numbers = []
-    for filename in os.listdir(DIALOGUE_DIR):
-        match = re.fullmatch(r"(\d+)\.json", filename)
-        if match:
-            numbers.append(int(match.group(1)))
-    ensure_data_dir()
-    for filename in os.listdir(DATA_DIR):
-        if not filename.endswith(".json"):
-            continue
-        try:
-            with open(os.path.join(DATA_DIR, filename), "r") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            continue
-        number = dialogue_file_number(data)
-        if number:
-            numbers.append(number)
-    return max(numbers, default=0) + 1
-
-
-def clean_utterance(value: Any) -> str:
-    """Keep dialogue exports focused on visible speech, even if an old reply stored raw JSON."""
-    text = str(value or "")
-    current = text.strip()
-    for _ in range(3):
-        try:
-            parsed = json.loads(current)
-        except (TypeError, json.JSONDecodeError):
-            break
-        if isinstance(parsed, str):
-            current = parsed.strip()
-            continue
-        if isinstance(parsed, dict) and "reply" in parsed:
-            return str(parsed.get("reply") or "").strip()
-        break
-
-    match = re.search(r'"reply"\s*:\s*"((?:\\.|[^"\\])*)"', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(f'"{match.group(1)}"').strip()
-        except json.JSONDecodeError:
-            return match.group(1).strip()
-    return text
-
-
-def build_dialogue(messages: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-    """Convert app messages to the simple dataset-style dialogue format."""
-    dialogue = []
-    for message in messages:
-        role = message.get("role")
-        if role not in APP_ROLES:
-            continue
-        dialogue.append({
-            "role": role,
-            "time": message.get("created_at") or message.get("time") or "",
-            "utterance": clean_utterance(message.get("content", message.get("utterance", ""))),
-        })
-    return dialogue
-
-
-def save_dialogue(conversation: Dict[str, Any]):
-    """Write a companion JSON containing only client/counselor dialogue."""
-    ensure_dialogue_dir()
-    file_number = dialogue_file_number(conversation)
-    filename = f"{file_number}.json" if file_number else f"{conversation['id']}.json"
-    path = os.path.join(DIALOGUE_DIR, filename)
-    with open(path, "w") as f:
-        json.dump({"dialogue": conversation.get("dialogue", [])}, f, indent=2, ensure_ascii=False)
+def save_conversation(conversation: Dict[str, Any]) -> Dict[str, Any]:
+    """Stamp, derive the visible dialogue, persist, and return the saved copy."""
+    saved = {
+        **conversation,
+        "updated_at": utc_now_iso(),
+        "dialogue": build_dialogue(conversation.get("messages", [])),
+    }
+    get_store().save(saved)
+    return saved
 
 
 def create_conversation(conversation_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
-    """Create a new counseling conversation."""
-    ensure_data_dir()
-    conversation = {
+    store = get_store()
+    now = utc_now_iso()
+    return save_conversation({
         "id": conversation_id,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
-        "dialogue_file_number": next_dialogue_file_number(),
-        "title": "New counseling session",
+        "created_at": now,
+        "updated_at": now,
+        "dialogue_file_number": store.next_dialogue_number(),
+        "title": DEFAULT_TITLE,
         "config": config,
         "messages": [],
         "dialogue": [],
         "agent_rounds": [],
         "status": "active",
-    }
-    save_conversation(conversation)
-    return conversation
+    })
 
 
 def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
-    """Load a conversation from storage."""
-    path = get_conversation_path(conversation_id)
-    if not os.path.exists(path):
+    if not is_valid_conversation_id(conversation_id):
         return None
-    with open(path, "r") as f:
-        return json.load(f)
+    return get_store().load(conversation_id)
 
 
-def save_conversation(conversation: Dict[str, Any]):
-    """Save a conversation to storage."""
-    ensure_data_dir()
-    conversation["updated_at"] = datetime.utcnow().isoformat()
-    conversation["dialogue"] = build_dialogue(conversation.get("messages", []))
-    path = get_conversation_path(conversation["id"])
-    with open(path, "w") as f:
-        json.dump(conversation, f, indent=2, ensure_ascii=False)
-    save_dialogue(conversation)
-
-
-def list_conversations() -> List[Dict[str, Any]]:
-    """List all counseling conversations (metadata only)."""
-    ensure_data_dir()
-    conversations = []
-    for filename in os.listdir(DATA_DIR):
-        if not filename.endswith(".json"):
-            continue
-        path = os.path.join(DATA_DIR, filename)
-        with open(path, "r") as f:
-            data = json.load(f)
-        if "id" not in data:
-            continue
-        messages = data.get("messages", data.get("turns", data.get("dialogue", [])))
-        conversations.append({
-            "id": data["id"],
-            "created_at": data.get("created_at"),
-            "updated_at": data.get("updated_at", data.get("created_at")),
-            "title": data.get("title", "New counseling session"),
-            "message_count": len(messages),
-            "turn_count": len(messages),
-            "status": data.get("status", "active"),
-        })
-    conversations.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
-    return conversations
-
-
-def add_message(conversation_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
-    """Append a visible client/counselor message."""
+def _require_conversation(conversation_id: str) -> Dict[str, Any]:
     conversation = get_conversation(conversation_id)
     if conversation is None:
         raise ValueError(f"Conversation {conversation_id} not found")
-    conversation.setdefault("messages", []).append(message)
-    if message["role"] == "client" and conversation.get("title") == "New counseling session":
+    return conversation
+
+
+def list_conversations() -> List[Dict[str, Any]]:
+    """List all counseling conversations (metadata only), newest first."""
+    return get_store().list_summaries()
+
+
+def add_message(conversation_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
+    """Append a visible client/counselor message; the first client message names the session."""
+    conversation = _require_conversation(conversation_id)
+    title = conversation.get("title")
+    if message["role"] == "client" and title == DEFAULT_TITLE:
         content = message["content"].strip().replace("\n", " ")
-        conversation["title"] = content[:42] or "New counseling session"
-    save_conversation(conversation)
+        title = content[:MAX_TITLE_LENGTH] or DEFAULT_TITLE
+    save_conversation({
+        **conversation,
+        "title": title,
+        "messages": [*conversation.get("messages", []), message],
+    })
     return message
 
 
 def update_conversation_config(conversation_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-    """Update stored conversation config values."""
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-    conversation.setdefault("config", {}).update(updates)
-    save_conversation(conversation)
-    return conversation
+    conversation = _require_conversation(conversation_id)
+    return save_conversation({**conversation, "config": {**conversation.get("config", {}), **updates}})
 
 
 def add_agent_round(conversation_id: str, agent_round: Dict[str, Any]) -> Dict[str, Any]:
     """Append an internal five-agent review round."""
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-    conversation.setdefault("agent_rounds", []).append(agent_round)
-    save_conversation(conversation)
+    conversation = _require_conversation(conversation_id)
+    save_conversation({**conversation, "agent_rounds": [*conversation.get("agent_rounds", []), agent_round]})
     return agent_round
 
 
-def update_message(conversation_id: str, message: Dict[str, Any]):
+def update_message(conversation_id: str, message: Dict[str, Any]) -> None:
     """Replace one visible message by id."""
-    conversation = get_conversation(conversation_id)
-    if conversation is None:
-        raise ValueError(f"Conversation {conversation_id} not found")
-    messages = conversation.setdefault("messages", [])
-    for index, current in enumerate(messages):
-        if current.get("id") == message.get("id"):
-            messages[index] = message
-            save_conversation(conversation)
-            return
-    raise ValueError(f"Message {message.get('id')} not found")
+    conversation = _require_conversation(conversation_id)
+    messages = conversation.get("messages", [])
+    if not any(current.get("id") == message.get("id") for current in messages):
+        raise ValueError(f"Message {message.get('id')} not found")
+    save_conversation({
+        **conversation,
+        "messages": [message if current.get("id") == message.get("id") else current for current in messages],
+    })
 
 
 def delete_conversation(conversation_id: str) -> bool:
-    """Delete a conversation file."""
-    conversation = get_conversation(conversation_id)
-    path = get_conversation_path(conversation_id)
-    if not os.path.exists(path):
+    if not is_valid_conversation_id(conversation_id):
         return False
-    os.remove(path)
-    file_number = dialogue_file_number(conversation) if conversation else None
-    dialogue_paths = []
-    if file_number:
-        dialogue_paths.append(os.path.join(DIALOGUE_DIR, f"{file_number}.json"))
-    dialogue_paths.append(os.path.join(DIALOGUE_DIR, f"{conversation_id}.json"))
-    for dialogue_path in dialogue_paths:
-        if os.path.exists(dialogue_path):
-            os.remove(dialogue_path)
-    return True
+    return get_store().delete(conversation_id)

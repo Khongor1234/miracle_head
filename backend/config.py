@@ -33,3 +33,17 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 # /var/lib/llm-debate/dialogues.
 DATA_DIR = os.getenv("DATA_DIR", "data/conversations")
 DIALOGUE_DIR = os.getenv("DIALOGUE_DIR", str(Path(DATA_DIR).parent / "dialogues"))
+
+# Supabase storage replaces the JSON files when both are set (required on Vercel).
+# Use the project's secret key (sb_secret_...) or legacy service_role key — server-side only.
+# Stripped because values pasted into a dashboard often carry a trailing newline.
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
+
+# Shared password the frontend sends in X-App-Password (the gate trims input too).
+# Unset = open API, allowed only off Vercel.
+APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
+IS_VERCEL = bool(os.getenv("VERCEL"))
+
+_DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,https://miracle-head.vercel.app"
+CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",") if origin.strip()]

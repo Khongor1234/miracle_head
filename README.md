@@ -101,7 +101,43 @@ uv run uvicorn backend.main:app --host 0.0.0.0 --port 8001
 }
 ```
 
+## Deploy to Vercel + Supabase
+
+The frontend and the backend are two Vercel projects from this one repository.
+Vercel functions have no persistent disk, so the backend stores conversations in Supabase
+whenever `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set (local runs keep using JSON files).
+
+1. **Supabase**: create a project, open the SQL editor, and run
+   `supabase/migrations/20261030000000_conversations.sql`.
+   Copy the project URL and a **secret** key (`sb_secret_...`) from Project Settings → API Keys.
+2. **Backend project** on Vercel: import this repo with Root Directory = repository root.
+   Vercel picks up FastAPI from `[tool.vercel] entrypoint` in `pyproject.toml`; `vercel.json`
+   allows a 300 s run for the five-agent round. Environment variables:
+
+   | Name | Value |
+   |------|-------|
+   | `GEMINI_API_KEY` | Google AI Studio key |
+   | `APP_PASSWORD` | the shared password users type into the app |
+   | `SUPABASE_URL` | `https://<project>.supabase.co` |
+   | `SUPABASE_SECRET_KEY` | the `sb_secret_...` key |
+   | `CORS_ORIGINS` | `https://miracle-head.vercel.app` (comma-separated if several) |
+   | `ELEVENLABS_API_KEY` | optional, for TTS |
+
+   On Vercel the API refuses to run without `APP_PASSWORD` (503) and without Supabase settings.
+3. **Frontend project** (Root Directory = `frontend`): set `VITE_API_URL` to the backend URL and redeploy.
+
+Only Gemini models work in the cloud; local OpenAI-compatible models need `LOCAL_LLM_URL` to be reachable from Vercel.
+
+Export the dataset-style dialogues from Supabase:
+
+```sql
+select dialogue_file_number, data->'dialogue' as dialogue
+from conversations order by dialogue_file_number;
+```
+
 ## Backend API
+
+Every request needs the `X-App-Password` header when `APP_PASSWORD` is set.
 
 | Method | Path | Description |
 |--------|------|-------------|

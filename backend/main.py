@@ -5,14 +5,15 @@ import json
 import uuid
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
 
 from . import storage
-from .config import DEFAULT_GEMINI_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_VOICES
+from .auth import require_app_password
+from .config import CORS_ORIGINS, DEFAULT_GEMINI_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_VOICES, IS_VERCEL
 from .counseling import (
     AGENTS,
     AGENT_CHARACTERS,
@@ -29,12 +30,16 @@ from .counseling import (
     visible_context,
 )
 from .llm import LLMError
+from .supabase_store import StorageError
 
-app = FastAPI(title="Counseling Dialogue API")
+# The schema pages sit outside the password dependency, so hide them in the cloud.
+_DOCS_OFF = {"docs_url": None, "redoc_url": None, "openapi_url": None} if IS_VERCEL else {}
+
+app = FastAPI(title="Counseling Dialogue API", dependencies=[Depends(require_app_password)], **_DOCS_OFF)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "https://miracle-head.vercel.app"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -133,7 +138,7 @@ async def get_settings():
 
 @app.get("/api/conversations")
 async def list_conversations():
-    return storage.list_conversations()
+    return await asyncio.to_thread(storage.list_conversations)
 
 
 @app.post("/api/conversations", status_code=201)
@@ -146,12 +151,12 @@ async def create_conversation(request: CreateConversationRequest):
         "agents": agents,
         "review_rounds": review_rounds,
     }
-    return storage.create_conversation(conversation_id, config)
+    return await asyncio.to_thread(storage.create_conversation, conversation_id, config)
 
 
 @app.get("/api/conversations/{conversation_id}")
 async def get_conversation(conversation_id: str):
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return conversation
@@ -159,13 +164,13 @@ async def get_conversation(conversation_id: str):
 
 @app.delete("/api/conversations/{conversation_id}", status_code=204)
 async def delete_conversation(conversation_id: str):
-    if not storage.delete_conversation(conversation_id):
+    if not await asyncio.to_thread(storage.delete_conversation, conversation_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
 
 @app.post("/api/conversations/{conversation_id}/messages")
 async def create_message(conversation_id: str, request: CreateMessageRequest):
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -179,12 +184,12 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
         "content": content,
         "created_at": now_iso(),
     }
-    storage.add_message(conversation_id, client_message)
+    await asyncio.to_thread(storage.add_message, conversation_id, client_message)
 
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     model = (request.model or conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL).strip()
     if model != conversation.get("config", {}).get("model"):
-        conversation = storage.update_conversation_config(conversation_id, {"model": model})
+        conversation = await asyncio.to_thread(storage.update_conversation_config, conversation_id, {"model": model})
     agents = conversation_agents(conversation)
     review_rounds = conversation_review_rounds(conversation)
 
@@ -202,7 +207,7 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Counseling round failed: {exc}")
 
-    storage.add_agent_round(conversation_id, agent_round)
+    await asyncio.to_thread(storage.add_agent_round, conversation_id, agent_round)
 
     counselor_message = {
         "id": str(uuid.uuid4()),
@@ -212,9 +217,9 @@ async def create_message(conversation_id: str, request: CreateMessageRequest):
         "source_round_id": agent_round["id"],
         "source_agent": agent_round["winner"]["character"],
     }
-    storage.add_message(conversation_id, counselor_message)
+    await asyncio.to_thread(storage.add_message, conversation_id, counselor_message)
 
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     return {
         "client_message": client_message,
         "counselor_message": counselor_message,
@@ -242,7 +247,7 @@ async def indexed_score(model, index, agent, context, content, candidates, high_
 
 @app.post("/api/conversations/{conversation_id}/messages/stream")
 async def create_message_stream(conversation_id: str, request: CreateMessageRequest):
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -256,12 +261,12 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
         "content": content,
         "created_at": now_iso(),
     }
-    storage.add_message(conversation_id, client_message)
+    await asyncio.to_thread(storage.add_message, conversation_id, client_message)
 
-    conversation = storage.get_conversation(conversation_id)
+    conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     model = (request.model or conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL).strip()
     if model != conversation.get("config", {}).get("model"):
-        conversation = storage.update_conversation_config(conversation_id, {"model": model})
+        conversation = await asyncio.to_thread(storage.update_conversation_config, conversation_id, {"model": model})
     agents = conversation_agents(conversation)
     review_rounds = conversation_review_rounds(conversation)
 
@@ -333,7 +338,7 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
             yield stream_event("round_complete", {"round_number": 2, "round": round_2})
 
             agent_round = build_agent_round(client_message, high_risk, 2, [round_1, round_2])
-            storage.add_agent_round(conversation_id, agent_round)
+            await asyncio.to_thread(storage.add_agent_round, conversation_id, agent_round)
 
             counselor_message = {
                 "id": str(uuid.uuid4()),
@@ -343,9 +348,9 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                 "source_round_id": agent_round["id"],
                 "source_agent": agent_round["winner"]["character"],
             }
-            storage.add_message(conversation_id, counselor_message)
+            await asyncio.to_thread(storage.add_message, conversation_id, counselor_message)
 
-            updated_conversation = storage.get_conversation(conversation_id)
+            updated_conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
             yield stream_event("winner_selected", {
                 "round_number": review_rounds,
                 "agent_round": agent_round,
@@ -358,6 +363,13 @@ async def create_message_stream(conversation_id: str, request: CreateMessageRequ
                     task.cancel()
             await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
             yield stream_event("error", {"message": str(exc)})
+        except StorageError:
+            # Already logged with details; the client only learns that saving failed.
+            for task in candidate_tasks + scoring_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
+            yield stream_event("error", {"message": "Could not save the conversation. Please try again."})
         except Exception as exc:
             for task in candidate_tasks + scoring_tasks:
                 if not task.done():

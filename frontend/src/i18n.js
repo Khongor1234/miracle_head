@@ -1,6 +1,15 @@
 export const translations = {
   ja: {
     lang: 'ja',
+    gate: {
+      title: 'パスワードを入力',
+      body: 'このアプリは招待された方のみご利用いただけます。',
+      label: 'パスワード',
+      submit: '開く',
+      checking: '確認中…',
+      wrong: 'パスワードが違います。',
+      unreachable: 'サーバーに接続できません。しばらくしてから再度お試しください。',
+    },
     landing: {
       navCta: 'アプリを開く',
       chip: 'AI感情カウンセリング',
@@ -98,6 +107,15 @@ export const translations = {
 
   en: {
     lang: 'en',
+    gate: {
+      title: 'Enter password',
+      body: 'This app is available to invited users only.',
+      label: 'Password',
+      submit: 'Open',
+      checking: 'Checking…',
+      wrong: 'Wrong password.',
+      unreachable: 'Cannot reach the server. Please try again shortly.',
+    },
     landing: {
       navCta: 'Open App',
       chip: 'AI Emotional Counseling',

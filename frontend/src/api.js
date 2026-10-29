@@ -3,10 +3,70 @@
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const PASSWORD_STORAGE_KEY = 'miracle_head_password';
 
 const BASE_HEADERS = {
   'ngrok-skip-browser-warning': '1',
 };
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('Password required');
+    this.name = 'UnauthorizedError';
+  }
+}
+
+function readStoredPassword() {
+  try {
+    return localStorage.getItem(PASSWORD_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+let password = readStoredPassword();
+const unauthorizedListeners = new Set();
+
+export function setPassword(value) {
+  password = value;
+  try {
+    localStorage.setItem(PASSWORD_STORAGE_KEY, value);
+  } catch {
+    // Private mode: the password lasts for this tab only.
+  }
+}
+
+function clearPassword() {
+  password = '';
+  try {
+    localStorage.removeItem(PASSWORD_STORAGE_KEY);
+  } catch {
+    // Nothing stored to clear.
+  }
+}
+
+/** Subscribe to "the server rejected our password"; returns an unsubscribe function. */
+export function onUnauthorized(listener) {
+  unauthorizedListeners.add(listener);
+  return () => unauthorizedListeners.delete(listener);
+}
+
+async function request(path, options = {}) {
+  const headers = {
+    ...BASE_HEADERS,
+    ...(password ? { 'X-App-Password': password } : {}),
+    ...options.headers,
+  };
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (response.status === 401) {
+    clearPassword();
+    unauthorizedListeners.forEach((listener) => listener());
+    throw new UnauthorizedError();
+  }
+  return response;
+}
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 async function parseError(response, fallback) {
   const data = await response.json().catch(() => ({}));
@@ -17,21 +77,21 @@ async function parseError(response, fallback) {
 
 export const api = {
   async getSettings() {
-    const response = await fetch(`${API_BASE}/api/settings`, { headers: BASE_HEADERS });
+    const response = await request('/api/settings');
     if (!response.ok) throw new Error('Failed to load settings');
     return response.json();
   },
 
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`, { headers: BASE_HEADERS });
+    const response = await request('/api/conversations');
     if (!response.ok) throw new Error('Failed to list conversations');
     return response.json();
   },
 
   async createConversation(config = {}) {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+    const response = await request('/api/conversations', {
       method: 'POST',
-      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
       body: JSON.stringify(config),
     });
     if (!response.ok) throw await parseError(response, 'Failed to create conversation');
@@ -39,23 +99,20 @@ export const api = {
   },
 
   async getConversation(conversationId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}`, { headers: BASE_HEADERS });
+    const response = await request(`/api/conversations/${conversationId}`);
     if (!response.ok) throw new Error('Failed to get conversation');
     return response.json();
   },
 
   async deleteConversation(conversationId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}`, {
-      method: 'DELETE',
-      headers: BASE_HEADERS,
-    });
+    const response = await request(`/api/conversations/${conversationId}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Failed to delete conversation');
   },
 
   async sendMessage(conversationId, content, model, lang = 'ja') {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
+    const response = await request(`/api/conversations/${conversationId}/messages`, {
       method: 'POST',
-      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ content, model, lang }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');
@@ -63,9 +120,9 @@ export const api = {
   },
 
   async tts(text, character) {
-    const response = await fetch(`${API_BASE}/api/tts`, {
+    const response = await request('/api/tts', {
       method: 'POST',
-      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ text, character }),
     });
     if (!response.ok) {
@@ -77,9 +134,9 @@ export const api = {
   },
 
   async sendMessageStream(conversationId, content, model, onEvent, lang = 'ja') {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/stream`, {
+    const response = await request(`/api/conversations/${conversationId}/messages/stream`, {
       method: 'POST',
-      headers: { ...BASE_HEADERS, 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ content, model, lang }),
     });
     if (!response.ok) throw await parseError(response, 'Failed to send message');

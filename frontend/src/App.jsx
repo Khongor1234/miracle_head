@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import CounselingChat from './components/CounselingChat';
 import LandingPage from './components/LandingPage';
-import { api } from './api';
+import PasswordGate from './components/PasswordGate';
+import { api, onUnauthorized } from './api';
 import './App.css';
 
 const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
@@ -50,7 +51,17 @@ function App() {
   const [error, setError] = useState('');
   const [liveRound, setLiveRound] = useState(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const touchStartRef = useRef(null);
+
+  useEffect(() => onUnauthorized(() => setNeedsPassword(true)), []);
+
+  const handleUnlock = () => {
+    setNeedsPassword(false);
+    setError('');
+    setLoadAttempt((attempt) => attempt + 1);
+  };
 
   const refreshList = async () => {
     const list = await api.listConversations();
@@ -77,7 +88,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   const handleNewConversation = () => {
     setCurrentConversationId(null);
@@ -322,6 +333,10 @@ function App() {
 
   if (showLanding) {
     return <LandingPage onEnter={() => setShowLanding(false)} />;
+  }
+
+  if (needsPassword) {
+    return <PasswordGate onUnlock={handleUnlock} />;
   }
 
   return (
