@@ -118,12 +118,13 @@ whenever `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set (local runs keep using
    |------|-------|
    | `GEMINI_API_KEY` | Google AI Studio key |
    | `APP_PASSWORD` | the shared password users type into the app |
+   | `PUBLIC_ACCESS` | `true` instead of `APP_PASSWORD` for an open demo (cap the Gemini spend first) |
    | `SUPABASE_URL` | `https://<project>.supabase.co` |
    | `SUPABASE_SECRET_KEY` | the `sb_secret_...` key |
    | `CORS_ORIGINS` | `https://miracle-head.vercel.app` (comma-separated if several) |
    | `ELEVENLABS_API_KEY` | optional, for TTS |
 
-   On Vercel the API refuses to run without `APP_PASSWORD` (503) and without Supabase settings.
+   On Vercel the API refuses to run without `APP_PASSWORD` or `PUBLIC_ACCESS=true` (503) and without Supabase settings.
 3. **Frontend project** (Root Directory = `frontend`): set `VITE_API_URL` to the backend URL and redeploy.
 
 Only Gemini models work in the cloud; local OpenAI-compatible models need `LOCAL_LLM_URL` to be reachable from Vercel.

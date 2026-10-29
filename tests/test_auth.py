@@ -70,3 +70,13 @@ def test_local_development_without_password_is_open(monkeypatch):
     response = client.get("/api/settings")
 
     assert response.status_code == 200
+
+
+def test_vercel_with_public_access_is_open(monkeypatch):
+    monkeypatch.setattr(config, "APP_PASSWORD", "")
+    monkeypatch.setattr(config, "IS_VERCEL", True)
+    monkeypatch.setattr(config, "PUBLIC_ACCESS", True)
+
+    response = client.get("/api/settings")
+
+    assert response.status_code == 200

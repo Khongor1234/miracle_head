@@ -41,9 +41,11 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
 
 # Shared password the frontend sends in X-App-Password (the gate trims input too).
-# Unset = open API, allowed only off Vercel.
+# Unset = open API, allowed off Vercel, or on Vercel with PUBLIC_ACCESS=true.
 APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
 IS_VERCEL = bool(os.getenv("VERCEL"))
+# Explicit opt-in for a public demo on Vercel; cap the Gemini spend instead of using a password.
+PUBLIC_ACCESS = os.getenv("PUBLIC_ACCESS", "").strip().lower() in {"1", "true", "yes"}
 
 _DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,https://miracle-head.vercel.app"
 CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",") if origin.strip()]
