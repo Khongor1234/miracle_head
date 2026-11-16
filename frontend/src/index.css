@@ -144,6 +144,8 @@ html, body {
    from above, soft emotion-coloured haze, a cloud bank along the bottom
    and a few twinkling sparkles. Shared by the landing page and the app. */
 :root {
+  /* The notch / status bar height on phones (0 in a normal browser tab). */
+  --safe-top: env(safe-area-inset-top, 0px);
   --glass-panel: rgba(246, 241, 255, 0.55);
   --dreamscape:
     radial-gradient(ellipse 60% 45% at 50% -8%, rgba(255, 244, 214, 0.95), transparent 70%),
@@ -205,4 +207,21 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   body::after { animation: none; opacity: 0.7; }
+}
+
+/* ─── Home-screen (standalone) app ─────────────────────────────
+   iOS lays the status bar over the page (black-translucent), with white
+   clock and battery. A violet strip sits under it so they stay readable;
+   it has no height in a normal browser tab. */
+#root::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  z-index: 200;
+  pointer-events: none;
+  background: linear-gradient(180deg, #5f45a8 0%, #7c5cbf 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
 }

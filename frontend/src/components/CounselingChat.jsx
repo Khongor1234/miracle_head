@@ -263,6 +263,8 @@ export default function CounselingChat({
   };
 
   useEffect(() => {
+    // Nothing to follow in an empty chat: keep the welcome's top in view.
+    if (!messages.length && !sending) return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, sending]);
 

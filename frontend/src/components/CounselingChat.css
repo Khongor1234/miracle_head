@@ -46,7 +46,7 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 24px;
-  padding-top: max(14px, env(safe-area-inset-top));
+  padding-top: max(14px, var(--safe-top));
   background: rgba(230, 220, 248, 0.82);
   border-bottom: 1px solid rgba(180, 160, 220, 0.25);
   backdrop-filter: blur(14px);
@@ -479,7 +479,7 @@
 .review-handle,
 .persona-handle {
   position: fixed;
-  top: max(68px, calc(env(safe-area-inset-top) + 56px));
+  top: max(68px, calc(var(--safe-top) + 56px));
   right: 18px;
   z-index: 50;
   display: flex;
@@ -562,7 +562,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px;
-  padding-top: max(16px, env(safe-area-inset-top));
+  padding-top: max(16px, var(--safe-top));
   border-bottom: 1px solid rgba(170, 150, 220, 0.20);
   background: rgba(225, 216, 248, 0.95);
 }
@@ -1555,7 +1555,7 @@
 
   .chat-header {
     padding: 16px 24px;
-    padding-top: max(16px, env(safe-area-inset-top));
+    padding-top: max(16px, var(--safe-top));
   }
 
   .bubble {
@@ -1580,7 +1580,7 @@
   .chat-header {
     flex-wrap: wrap;
     padding: 10px 14px;
-    padding-top: max(10px, env(safe-area-inset-top));
+    padding-top: max(10px, var(--safe-top));
     gap: 8px;
   }
 
@@ -3904,4 +3904,39 @@
 
 @media (prefers-reduced-motion: reduce) {
   .agent-portrait.is-button { transition: none; }
+}
+
+/* ═══ Header tint: lavender glass, not a white band ═══════════ */
+.chat-header {
+  background: linear-gradient(180deg, rgba(222, 208, 250, 0.86) 0%, rgba(236, 228, 252, 0.7) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 24px rgba(90, 60, 170, 0.08);
+}
+
+@media (max-width: 768px) {
+  /* Room under the status bar on phones (and none to spare in a tab). */
+  .chat-header {
+    padding-top: calc(var(--safe-top) + 10px);
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Only the first header row shares its corner with the fixed 履歴
+     button; the wrapped controls row starts at the normal edge. */
+  .chat-header {
+    padding-left: 16px;
+  }
+
+  .chat-header .home-btn {
+    margin-left: 66px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Compact controls so the language switch and the model fit one row. */
+  .chat-header .model-picker-label { display: none; }
+  .chat-header .model-picker-button { padding-right: 12px; gap: 8px; }
+  .chat-header .model-picker-spark { width: 28px; height: 28px; }
+  .chat-header .model-picker-value { font-size: 12.5px; }
+  .chat-header .lang-switch-option { min-width: 44px; padding: 0 10px; }
 }
