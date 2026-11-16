@@ -1,13 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><clipPath id="r"><rect width="512" height="512" rx="112"/></clipPath><g clip-path="url(#r)">
+  <title>Miracle Head</title>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4a90e2"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9a7ce0"/>
+      <stop offset="1" stop-color="#2a1a50"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.38" r="0.48">
+      <stop offset="0" stop-color="#e2d2ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#e2d2ff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="100" height="100" rx="20" fill="url(#bg)"/>
-  <!-- Left bubble (upper-left) — solid white, tail angles toward lower-right -->
-  <path d="M13,5 H50 Q58,5 58,13 V34 Q58,42 50,42 H48 L67,55 L36,42 H13 Q5,42 5,34 V13 Q5,5 13,5 Z" fill="white"/>
-  <!-- Right bubble (lower-right) — translucent white, tail angles toward upper-left -->
-  <path d="M64,58 L33,45 L52,58 H50 Q42,58 42,66 V87 Q42,95 50,95 H87 Q95,95 95,87 V66 Q95,58 87,58 H64 Z" fill="rgba(255,255,255,0.82)"/>
-</svg>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <g transform="translate(-22 0)">
+    <path fill="#fbf7ff" d="M190 512 V430 C190 392 146 352 144 276 C140 172 214 116 288 118 C362 120 404 172 400 236 L426 300 C430 310 424 316 414 316 L404 316 V348 C404 368 392 378 370 376 L338 372 V512 Z"/>
+    <circle cx="232" cy="206" r="24" fill="#ffd66b"/>
+    <circle cx="296" cy="184" r="21" fill="#8fb3f5"/>
+    <circle cx="340" cy="238" r="19" fill="#ff9a84"/>
+    <circle cx="280" cy="262" r="21" fill="#a888d8"/>
+    <circle cx="216" cy="276" r="18" fill="#96dcae"/>
+  </g>
+  <path fill="#ffd66b" d="M396 96 Q400 122 426 126 Q400 130 396 156 Q392 130 366 126 Q392 122 396 96 Z"/>
+</g></svg>
