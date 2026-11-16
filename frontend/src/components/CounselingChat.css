@@ -2971,3 +2971,233 @@
   .persona-body { animation: none; }
   .persona-item:not(.is-open):hover { transform: none; }
 }
+
+/* ═══ Header controls: model picker and language ═══════════════ */
+.chat-header .lang-toggle {
+  min-height: 44px;
+  min-width: 52px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--hq-text-1);
+  box-shadow: 0 6px 18px rgba(100, 70, 180, 0.1);
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.chat-header .lang-toggle:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(100, 70, 180, 0.16);
+}
+
+.chat-header .lang-toggle:active {
+  transform: scale(0.97);
+}
+
+.model-picker {
+  position: relative;
+}
+
+.model-picker-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 14px 4px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.6);
+  font: inherit;
+  color: var(--hq-text-1);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(100, 70, 180, 0.1);
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.model-picker-button:hover:not(:disabled),
+.model-picker.is-open .model-picker-button {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(100, 70, 180, 0.16);
+}
+
+.model-picker-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.model-picker-button:focus-visible,
+.chat-header .lang-toggle:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: 2px;
+}
+
+.model-picker-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A small gradient orb stands for the model */
+.model-picker-spark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #ffd66b, #ff9a84, #c3a4f5, #8fb3f5, #96dcae, #ffd66b);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+.model-picker-spark::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+}
+
+.model-picker-button:hover:not(:disabled) .model-picker-spark,
+.model-picker.is-open .model-picker-spark {
+  animation: spark-turn 2.8s linear infinite;
+}
+
+@keyframes spark-turn {
+  to { transform: rotate(360deg); }
+}
+
+.model-picker-text {
+  display: grid;
+  line-height: 1.15;
+}
+
+.model-picker-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hq-text-3);
+}
+
+.model-picker-value {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.model-picker-chevron {
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-right: 2px solid var(--hq-text-3);
+  border-bottom: 2px solid var(--hq-text-3);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.22s;
+}
+
+.model-picker.is-open .model-picker-chevron {
+  transform: rotate(225deg) translateY(-2px);
+}
+
+.model-picker-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(340px, calc(100vw - 24px));
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(252, 250, 255, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px rgba(70, 45, 140, 0.24);
+  outline: none;
+  transform-origin: top right;
+  animation: menu-in 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.model-option.is-active {
+  background: rgba(155, 125, 212, 0.12);
+}
+
+.model-option-main {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.model-option-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--hq-text-1);
+}
+
+.model-option-note {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--hq-text-2);
+}
+
+.model-option-tag {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.tag-recommended { color: #8a5a00; background: rgba(255, 196, 64, 0.22); }
+.tag-fast        { color: #1f7a4d; background: rgba(90, 186, 124, 0.18); }
+.tag-new         { color: #3a5fb0; background: rgba(120, 160, 240, 0.2); }
+.tag-preview     { color: #8a4a9c; background: rgba(195, 164, 245, 0.25); }
+
+.model-option-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.model-option.is-selected .model-option-check {
+  background: var(--hq-purple) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-picker-button,
+  .chat-header .lang-toggle,
+  .model-picker-chevron { transition: none; }
+  .model-picker-menu,
+  .model-picker-button:hover .model-picker-spark,
+  .model-picker.is-open .model-picker-spark { animation: none; }
+}
+
+/* The header is its own stacking layer (backdrop blur), so lift the whole
+   layer above the chat; otherwise the model menu opens behind the council. */
+.chat-header {
+  position: relative;
+  z-index: 30;
+}

@@ -5,6 +5,8 @@ import LandingPage from './components/LandingPage';
 import PasswordGate from './components/PasswordGate';
 import { api, onUnauthorized } from './api';
 import { createConversationStore, historyFor } from './conversationStore';
+import { localizeAgents, localizeDefaults, toRequestAgents } from './personaLanguage';
+import { useLang } from './LanguageContext';
 import './App.css';
 
 const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
@@ -61,6 +63,7 @@ const updateRound = (current, roundNumber, updater) => {
 };
 
 function App() {
+  const { lang } = useLang();
   const [showLanding, setShowLanding] = useState(() => !isAppUrl());
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -77,6 +80,10 @@ function App() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const touchStartRef = useRef(null);
+  // Stock personas follow the interface language; edited ones stay as written.
+  const visibleAgents = localizeAgents(agents, defaultAgents, lang);
+  const localizedDefaultAgents = localizeDefaults(defaultAgents, lang);
+  const hasCompletePersonas = visibleAgents.length === 5 && visibleAgents.every((agent) => agent.persona?.trim());
 
   useEffect(() => onUnauthorized(() => setNeedsPassword(true)), []);
 
@@ -143,7 +150,7 @@ function App() {
   const handleNewConversation = () => {
     setCurrentConversationId(null);
     setCurrentConversation(null);
-    setAgents(cloneAgents(defaultAgents));
+    setAgents(localizeDefaults(defaultAgents, lang));
     setReviewRounds(DEFAULT_REVIEW_ROUNDS);
     setLiveRound(null);
     setError('');
@@ -173,7 +180,7 @@ function App() {
       if (currentConversationId === id) {
         setCurrentConversationId(null);
         setCurrentConversation(null);
-        setAgents(cloneAgents(defaultAgents));
+        setAgents(localizeDefaults(defaultAgents, lang));
         setReviewRounds(DEFAULT_REVIEW_ROUNDS);
         setLiveRound(null);
       }
@@ -184,7 +191,7 @@ function App() {
 
   const ensureConversation = () => {
     if (currentConversation) return currentConversation;
-    const sessionAgents = agents.length ? agents : defaultAgents;
+    const sessionAgents = visibleAgents.length ? visibleAgents : localizedDefaultAgents;
     const config = {
       model: model.trim() || 'gemini-2.5-flash',
       review_rounds: reviewRounds,
@@ -237,7 +244,8 @@ function App() {
         content,
         model: selectedModel,
         lang,
-        agents: conversation.config?.agents,
+        // The personas as they are now, so edits and a language switch apply to the next message.
+        agents: hasCompletePersonas ? toRequestAgents(visibleAgents) : conversation.config?.agents,
         history,
       };
       await api.sendChatStream(request, (event) => {
@@ -338,7 +346,7 @@ function App() {
             conversation.id,
             payload.agent_round,
             payload.counselor_message,
-            { model: selectedModel },
+            { model: selectedModel, agents: request.agents },
           );
           setLiveRound(payload.agent_round);
           setCurrentConversation(saved);
@@ -430,8 +438,8 @@ function App() {
         <CounselingChat
           conversation={currentConversation}
           model={model}
-          agents={agents}
-          defaultAgents={defaultAgents}
+          agents={visibleAgents}
+          defaultAgents={localizedDefaultAgents}
           reviewRounds={reviewRounds}
           onModelChange={setModel}
           onAgentsChange={setAgents}

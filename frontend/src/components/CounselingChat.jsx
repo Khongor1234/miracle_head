@@ -6,6 +6,7 @@ import CouncilWelcome from './CouncilWelcome';
 import TeamPick from './TeamPick';
 import ProcessDiagram from './ProcessDiagram';
 import PersonaEditor from './PersonaEditor';
+import ModelPicker from './ModelPicker';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -339,21 +340,12 @@ export default function CounselingChat({
             >
               {lang === 'ja' ? 'EN' : '日本語'}
             </button>
-            <div className="model-control">
-              <label htmlFor="model-input">{c.modelLabel}</label>
-              <select
-                id="model-input"
-                value={model}
-                onChange={(e) => onModelChange(e.target.value)}
-                disabled={sending}
-              >
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-              </select>
-            </div>
+            <ModelPicker
+              value={model}
+              disabled={sending}
+              onChange={onModelChange}
+              labels={{ label: c.modelLabel, tags: c.modelTags, notes: c.modelNotes }}
+            />
           </div>
         </header>
 

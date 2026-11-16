@@ -82,6 +82,13 @@ export const translations = {
       selectedAgent: 'が選ばれました',
       councilEyebrow: 'あなたのカウンセリングチーム',
       homeLabel: 'トップ',
+      modelTags: { recommended: 'おすすめ', fast: '速い', new: '新しい', preview: '試験版' },
+      modelNotes: {
+        recommended: '速さと深さのバランスがよい標準モデル',
+        fast: '軽く速い。短いやりとり向け',
+        new: '新しい世代。じっくり考えたい相談に',
+        preview: '試験版のため、答え方が変わることがあります',
+      },
       councilListening: '5人が、あなたの言葉に耳を傾けています',
       teamOnline: '5人が待機中',
       process: {
@@ -220,6 +227,13 @@ export const translations = {
       selectedAgent: 'was selected',
       councilEyebrow: 'Your counseling team',
       homeLabel: 'Home',
+      modelTags: { recommended: 'Best pick', fast: 'Fast', new: 'New', preview: 'Preview' },
+      modelNotes: {
+        recommended: 'A balanced default for speed and depth',
+        fast: 'Lighter and quicker, for short exchanges',
+        new: 'A newer generation, for things that need more thought',
+        preview: 'A preview: its replies may change',
+      },
       councilListening: 'All five are listening to you',
       teamOnline: '5 agents ready',
       process: {
