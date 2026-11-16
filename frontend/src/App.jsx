@@ -11,6 +11,9 @@ const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
 // Conversations live in this browser only; the backend stores nothing.
 const conversationStore = createConversationStore();
 const DEFAULT_REVIEW_ROUNDS = 2;
+// The app view lives at #app so the browser's Back button returns to the landing page.
+const APP_HASH = '#app';
+const isAppUrl = () => window.location.hash === APP_HASH;
 
 const emptyReviewRound = (roundNumber) => ({
   round_number: roundNumber,
@@ -42,7 +45,7 @@ const updateRound = (current, roundNumber, updater) => {
 };
 
 function App() {
-  const [showLanding, setShowLanding] = useState(true);
+  const [showLanding, setShowLanding] = useState(() => !isAppUrl());
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
@@ -59,6 +62,29 @@ function App() {
   const touchStartRef = useRef(null);
 
   useEffect(() => onUnauthorized(() => setNeedsPassword(true)), []);
+
+  useEffect(() => {
+    const onHistoryChange = () => {
+      setShowLanding(!isAppUrl());
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('popstate', onHistoryChange);
+    return () => window.removeEventListener('popstate', onHistoryChange);
+  }, []);
+
+  const enterApp = () => {
+    if (!isAppUrl()) window.history.pushState(null, '', APP_HASH);
+    setShowLanding(false);
+    window.scrollTo(0, 0);
+  };
+
+  const goToLanding = () => {
+    // A new history entry, so Back takes the visitor into the chat again.
+    window.history.pushState(null, '', window.location.pathname + window.location.search);
+    setMobileSidebarOpen(false);
+    setShowLanding(true);
+    window.scrollTo(0, 0);
+  };
 
   const handleUnlock = () => {
     setNeedsPassword(false);
@@ -336,7 +362,7 @@ function App() {
   };
 
   if (showLanding) {
-    return <LandingPage onEnter={() => setShowLanding(false)} />;
+    return <LandingPage onEnter={enterApp} />;
   }
 
   if (needsPassword) {
@@ -369,6 +395,7 @@ function App() {
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
         onDeleteConversation={handleDeleteConversation}
+        onGoHome={goToLanding}
       />
       <main className="main-content">
         <CounselingChat
@@ -380,6 +407,7 @@ function App() {
           onModelChange={setModel}
           onAgentsChange={setAgents}
           onSendMessage={handleSendMessage}
+          onGoHome={goToLanding}
           sending={sending}
           liveRound={liveRound}
           error={error}

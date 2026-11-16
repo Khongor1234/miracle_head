@@ -136,6 +136,7 @@ export default function CounselingChat({
   onModelChange,
   onAgentsChange,
   onSendMessage,
+  onGoHome,
   sending,
   liveRound,
   error,
@@ -276,6 +277,10 @@ export default function CounselingChat({
 
         {/* ── Header ── */}
         <header className="chat-header">
+          <button className="home-btn" type="button" onClick={onGoHome} aria-label={c.homeAria}>
+            <span className="home-btn-arrow" aria-hidden="true">←</span>
+            <span className="home-btn-label">{c.homeLabel}</span>
+          </button>
           <div className="chat-header-title">
             <h1>{c.title}</h1>
             <p>{c.subtitle}</p>

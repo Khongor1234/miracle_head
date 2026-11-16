@@ -7,6 +7,7 @@ export default function Sidebar({
   onSelectConversation,
   onNewConversation,
   onDeleteConversation,
+  onGoHome,
 }) {
   const { t } = useLang();
   const s = t.sidebar;
@@ -14,9 +15,10 @@ export default function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <div className="sidebar-brand">
+        <button className="sidebar-brand sidebar-home" type="button" onClick={onGoHome} aria-label={t.chat.homeAria}>
           <span className="sidebar-brand-name">Miracle Head</span>
-        </div>
+          <span className="sidebar-home-hint" aria-hidden="true">{t.chat.homeLabel}</span>
+        </button>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           <span className="new-btn-icon">+</span>
           {s.newBtn}
