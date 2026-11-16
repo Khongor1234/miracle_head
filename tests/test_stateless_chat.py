@@ -29,7 +29,7 @@ def fake_llm(monkeypatch):
         seen["contexts"].append(context)
         return {"character": agent["character"], "name": agent["name"], "reply": f"{agent['character']} draft"}
 
-    async def fake_score(model, agent, context, content, candidates, high_risk, round_number):
+    async def fake_score(model, agent, context, content, candidates, high_risk, round_number, lang="ja"):
         return fallback_peer_scores(agent, candidates, high_risk, "test")
 
     async def fake_winner(model, agent, candidates, context, content, high_risk, lang="ja"):

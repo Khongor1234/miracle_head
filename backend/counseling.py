@@ -477,6 +477,27 @@ Requirements:
 Respond with the counselor reply text in {response_lang} only."""
 
 
+# The names the Japanese interface uses for the agents.
+JAPANESE_AGENT_NAMES = {
+    "Joy": "ヨロコビ",
+    "Sadness": "カナシミ",
+    "Anger": "イカリ",
+    "Fear": "ビビリ",
+    "Disgust": "ムカムカ",
+}
+
+
+def note_language_rule(lang: str) -> str:
+    """The judges write their short notes in the visitor's language."""
+    if lang == "en":
+        return 'Write every "note" in English and refer to the agents by their English names.'
+    names = ", ".join(f"{character}={name}" for character, name in JAPANESE_AGENT_NAMES.items())
+    return (
+        'Write every "note" in natural Japanese and refer to the agents by their Japanese names '
+        f"({names}). Keep the \"character\" field exactly as the English name given above."
+    )
+
+
 def scoring_prompt(
     judge_agent: Dict[str, str],
     conversation_context: str,
@@ -484,6 +505,7 @@ def scoring_prompt(
     candidates: List[Dict[str, Any]],
     high_risk: bool,
     round_number: int = 2,
+    lang: str = "ja",
 ) -> str:
     candidates_to_score = [
         candidate for candidate in candidates
@@ -523,6 +545,7 @@ Candidate replies to score. Your own candidate is intentionally excluded:
 Task: score only these other four candidates from 0 to 10 on each criterion.
 Do not score your own character. If your own character appears in the response by mistake, it will be ignored.
 Use only JSON. Do not explain outside JSON.
+{note_language_rule(lang)}
 {rubric_lines}
 
 Respond with only valid JSON:
@@ -642,8 +665,9 @@ async def score_candidates(
     candidates: List[Dict[str, Any]],
     high_risk: bool,
     round_number: int = 2,
+    lang: str = "ja",
 ) -> Dict[str, Any]:
-    prompt = scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number)
+    prompt = scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number, lang)
     data = None
     last_error = ""
     # Gemini 2.5's thinking counts against maxOutputTokens, so a small budget
@@ -852,7 +876,7 @@ async def run_counseling_round(
 
     # Round 2: Score the discussion analyses, then the winner generates the actual reply
     peer_scores = await asyncio.gather(*[
-        score_candidates(model, agent, context, client_text, list(discussion_candidates), high_risk, 2)
+        score_candidates(model, agent, context, client_text, list(discussion_candidates), high_risk, 2, lang)
         for agent in active_agents
     ])
 

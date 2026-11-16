@@ -81,3 +81,44 @@ def test_fallback_scores_english_replies_differently():
     rows = {row["character"]: row["weighted_total"] for row in fallback_peer_scores(judge, candidates, False, "x")["scores"]}
 
     assert rows["Joy"] > rows["Fear"]
+
+
+def test_scoring_asks_for_japanese_notes_in_japanese_mode():
+    prompt = counseling.scoring_prompt(JUDGE, "", "hi", CANDIDATES, False, 2, "ja")
+
+    assert "natural Japanese" in prompt
+    assert "Fear=ビビリ" in prompt
+
+
+def test_scoring_asks_for_english_notes_in_english_mode():
+    prompt = counseling.scoring_prompt(JUDGE, "", "hi", CANDIDATES, False, 2, "en")
+
+    assert 'every "note" in English' in prompt
+    assert "Japanese" not in prompt.split("Respond with only valid JSON")[0].split("Use only JSON.")[1]
+
+
+def test_the_stream_passes_the_language_to_the_judges(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from backend import stream
+    from backend.main import app
+
+    seen = []
+
+    async def fake_candidate(model, agent, context, content, high_risk, lang="ja"):
+        return {"character": agent["character"], "name": agent["name"], "reply": "draft"}
+
+    async def fake_score(model, agent, context, content, candidates, high_risk, round_number, lang="ja"):
+        seen.append(lang)
+        return counseling.fallback_peer_scores(agent, candidates, high_risk, "test")
+
+    async def fake_winner(model, agent, candidates, context, content, high_risk, lang="ja"):
+        return "reply"
+
+    monkeypatch.setattr(stream, "generate_candidate", fake_candidate)
+    monkeypatch.setattr(stream, "score_candidates", fake_score)
+    monkeypatch.setattr(stream, "generate_winner_reply", fake_winner)
+
+    TestClient(app).post("/api/chat/stream", json={"content": "hello", "lang": "en"})
+
+    assert seen and set(seen) == {"en"}

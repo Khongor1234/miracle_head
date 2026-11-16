@@ -43,8 +43,8 @@ async def _indexed_candidate(model, index, agent, context, content, high_risk, l
     return index, await generate_candidate(model, agent, context, content, high_risk, lang)
 
 
-async def _indexed_score(model, index, agent, context, content, candidates, high_risk):
-    return index, await score_candidates(model, agent, context, content, candidates, high_risk, SCORING_ROUND)
+async def _indexed_score(model, index, agent, context, content, candidates, high_risk, lang):
+    return index, await score_candidates(model, agent, context, content, candidates, high_risk, SCORING_ROUND, lang)
 
 
 async def _cancel_all(tasks: list) -> None:
@@ -106,7 +106,7 @@ async def counseling_events(
         yield stream_event("scoring_started", {"round_number": SCORING_ROUND, "candidate_count": len(candidates)})
         peer_scores_by_index = [None] * len(agents)
         scoring_tasks = [
-            asyncio.create_task(_indexed_score(model, i, agent, context, content, candidates, high_risk))
+            asyncio.create_task(_indexed_score(model, i, agent, context, content, candidates, high_risk, lang))
             for i, agent in enumerate(agents)
         ]
         for task in asyncio.as_completed(scoring_tasks):
