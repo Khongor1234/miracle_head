@@ -7,6 +7,7 @@ import { api, onUnauthorized } from './api';
 import { createConversationStore, historyFor } from './conversationStore';
 import { localizeAgents, localizeDefaults, toRequestAgents } from './personaLanguage';
 import { useLang } from './LanguageContext';
+import { APP_HASH, isStandaloneApp, shouldOpenChat } from './startScreen';
 import './App.css';
 
 const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
@@ -14,7 +15,6 @@ const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
 const conversationStore = createConversationStore();
 const DEFAULT_REVIEW_ROUNDS = 2;
 // The app view lives at #app so the browser's Back button returns to the landing page.
-const APP_HASH = '#app';
 const isAppUrl = () => window.location.hash === APP_HASH;
 // Whether the history sidebar is slid shut on wide screens (a per-browser preference).
 const SIDEBAR_KEY = 'miracle_head_sidebar_collapsed';
@@ -64,7 +64,12 @@ const updateRound = (current, roundNumber, updater) => {
 
 function App() {
   const { lang } = useLang();
-  const [showLanding, setShowLanding] = useState(() => !isAppUrl());
+  const [showLanding, setShowLanding] = useState(() => {
+    const openChat = shouldOpenChat({ hash: window.location.hash, isStandalone: isStandaloneApp() });
+    // Put the home-screen app on #app too, so ← トップ and back work as in a tab.
+    if (openChat && !isAppUrl()) window.history.replaceState(null, '', APP_HASH);
+    return !openChat;
+  });
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
