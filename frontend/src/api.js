@@ -99,6 +99,37 @@ async function parseError(response, fallback) {
   return err;
 }
 
+// Reads the backend's newline-delimited JSON events and hands each to onEvent.
+async function readEventStream(response, onEvent) {
+  if (!response.ok) throw await parseError(response, 'Failed to send message');
+  if (!response.body) throw new Error('Streaming is not supported by this browser.');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const processLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const event = JSON.parse(trimmed);
+    onEvent(event);
+    if (event.type === 'error') {
+      throw new Error(event.payload?.message || 'Counseling round failed.');
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) processLine(line);
+    if (done) break;
+  }
+
+  if (buffer.trim()) processLine(buffer);
+}
+
 export const api = {
   async getSettings() {
     const response = await request('/api/settings');
@@ -163,32 +194,16 @@ export const api = {
       headers: JSON_HEADERS,
       body: JSON.stringify({ content, model, lang }),
     });
-    if (!response.ok) throw await parseError(response, 'Failed to send message');
-    if (!response.body) throw new Error('Streaming is not supported by this browser.');
+    await readEventStream(response, onEvent);
+  },
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    const processLine = (line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-      const event = JSON.parse(trimmed);
-      onEvent(event);
-      if (event.type === 'error') {
-        throw new Error(event.payload?.message || 'Counseling round failed.');
-      }
-    };
-
-    while (true) {
-      const { value, done } = await reader.read();
-      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) processLine(line);
-      if (done) break;
-    }
-
-    if (buffer.trim()) processLine(buffer);
+  /** One counseling round with no server-side storage: the browser sends the history. */
+  async sendChatStream({ content, model, lang = 'ja', agents, history }, onEvent) {
+    const response = await request('/api/chat/stream', {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ content, model, lang, agents, history }),
+    });
+    await readEventStream(response, onEvent);
   },
 };

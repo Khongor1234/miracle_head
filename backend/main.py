@@ -1,36 +1,21 @@
 """FastAPI backend for the counseling dialogue app."""
 
 import asyncio
-import json
 import uuid
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
 
 from . import storage
 from .auth import require_app_password
 from .config import CORS_ORIGINS, DEFAULT_GEMINI_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_VOICES, IS_VERCEL
-from .counseling import (
-    AGENTS,
-    AGENT_CHARACTERS,
-    build_agent_round,
-    build_round_result,
-    build_scored_round_result,
-    generate_candidate,
-    generate_winner_reply,
-    aggregate_scores,
-    is_high_risk,
-    now_iso,
-    run_counseling_round,
-    score_candidates,
-    visible_context,
-)
+from .counseling import AGENTS, AGENT_CHARACTERS, now_iso, run_counseling_round
 from .llm import LLMError
-from .supabase_store import StorageError
+from .stream import counseling_events, new_client_message
 from .visitor import require_visitor_id
 
 # The schema pages sit outside the password dependency, so hide them in the cloud.
@@ -231,23 +216,6 @@ async def create_message(
     }
 
 
-def stream_event(event_type: str, payload: dict) -> str:
-    return json.dumps(
-        {"type": event_type, "payload": payload},
-        ensure_ascii=False,
-    ) + "\n"
-
-
-async def indexed_candidate(model, index, agent, context, content, high_risk, lang="ja"):
-    candidate = await generate_candidate(model, agent, context, content, high_risk, lang)
-    return index, candidate
-
-
-async def indexed_score(model, index, agent, context, content, candidates, high_risk, round_number):
-    score = await score_candidates(model, agent, context, content, candidates, high_risk, round_number)
-    return index, score
-
-
 @app.post("/api/conversations/{conversation_id}/messages/stream")
 async def create_message_stream(
     conversation_id: str, request: CreateMessageRequest, visitor_id: str = Depends(require_visitor_id)
@@ -260,129 +228,73 @@ async def create_message_stream(
     if not content:
         raise HTTPException(status_code=400, detail={"errors": ["Message is required."]})
 
-    client_message = {
-        "id": str(uuid.uuid4()),
-        "role": "client",
-        "content": content,
-        "created_at": now_iso(),
-    }
+    client_message = new_client_message(content)
     await asyncio.to_thread(storage.add_message, conversation_id, client_message)
 
     conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
     model = (request.model or conversation.get("config", {}).get("model") or DEFAULT_GEMINI_MODEL).strip()
     if model != conversation.get("config", {}).get("model"):
         conversation = await asyncio.to_thread(storage.update_conversation_config, conversation_id, {"model": model})
-    agents = conversation_agents(conversation)
-    review_rounds = conversation_review_rounds(conversation)
 
-    async def generate_events():
-        yield stream_event("client_message", {"client_message": client_message})
+    async def save_round(agent_round: dict, counselor_message: dict) -> dict:
+        await asyncio.to_thread(storage.add_agent_round, conversation_id, agent_round)
+        await asyncio.to_thread(storage.add_message, conversation_id, counselor_message)
+        return await asyncio.to_thread(storage.get_conversation, conversation_id)
 
-        context = visible_context(conversation.get("messages", []))
-        high_risk = is_high_risk(content)
-        candidate_tasks = []
-        scoring_tasks = []
-        try:
-            # Round 1: psychological discussion — why did the client say this?
-            yield stream_event("round_started", {
-                "round_number": 1,
-                "review_rounds": 2,
-                "agents": agents,
-                "high_risk": high_risk,
-                "model": model,
-            })
+    events = counseling_events(
+        model=model,
+        agents=conversation_agents(conversation),
+        messages=conversation.get("messages", []),
+        client_message=client_message,
+        lang=request.lang or "ja",
+        on_finished=save_round,
+    )
+    return StreamingResponse(events, media_type="application/x-ndjson")
 
-            candidates_by_index = [None] * len(agents)
-            lang = request.lang or "ja"
-            candidate_tasks = [
-                asyncio.create_task(indexed_candidate(model, index, agent, context, content, high_risk, lang))
-                for index, agent in enumerate(agents)
-            ]
-            for task in asyncio.as_completed(candidate_tasks):
-                index, candidate = await task
-                candidates_by_index[index] = candidate
-                yield stream_event("candidate_ready", {"round_number": 1, "index": index, "candidate": candidate})
 
-            candidates = [c for c in candidates_by_index if c is not None]
-            round_1 = build_round_result(1, candidates, lang)
-            yield stream_event("round_complete", {"round_number": 1, "round": round_1})
+MAX_HISTORY_MESSAGES = 40
+MAX_MESSAGE_LENGTH = 4000
 
-            # Round 2: score the discussion analyses
-            yield stream_event("round_started", {
-                "round_number": 2,
-                "review_rounds": 2,
-                "agents": agents,
-                "high_risk": high_risk,
-                "model": model,
-            })
-            yield stream_event("scoring_started", {"round_number": 2, "candidate_count": len(candidates)})
 
-            peer_scores_by_index = [None] * len(agents)
-            scoring_tasks = [
-                asyncio.create_task(indexed_score(model, index, agent, context, content, candidates, high_risk, 2))
-                for index, agent in enumerate(agents)
-            ]
-            for task in asyncio.as_completed(scoring_tasks):
-                index, score = await task
-                peer_scores_by_index[index] = score
-                yield stream_event("score_ready", {"round_number": 2, "index": index, "score": score})
+class HistoryMessage(BaseModel):
+    role: Literal["client", "counselor"]
+    content: str = Field(max_length=MAX_MESSAGE_LENGTH)
 
-            peer_scores = [s for s in peer_scores_by_index if s is not None]
 
-            # Determine winner and generate their counseling reply
-            totals = aggregate_scores(candidates, peer_scores)
-            winner_character = totals[0]["character"]
-            winner_agent = next((a for a in agents if a["character"] == winner_character), None)
-            if winner_agent is None:
-                raise ValueError(f"Winner character '{winner_character}' not found in agents")
-            winner_reply_text = await generate_winner_reply(
-                model, winner_agent, candidates, context, content, high_risk, lang
-            )
+class StatelessChatRequest(BaseModel):
+    content: str = Field(max_length=MAX_MESSAGE_LENGTH)
+    model: Optional[str] = None
+    lang: Optional[str] = "ja"
+    agents: Optional[List[AgentRequest]] = None
+    history: List[HistoryMessage] = Field(default_factory=list, max_length=MAX_HISTORY_MESSAGES)
 
-            round_2 = build_scored_round_result(2, high_risk, candidates, peer_scores, winner_reply_text, lang)
-            yield stream_event("round_complete", {"round_number": 2, "round": round_2})
 
-            agent_round = build_agent_round(client_message, high_risk, 2, [round_1, round_2])
-            await asyncio.to_thread(storage.add_agent_round, conversation_id, agent_round)
+async def _nothing_to_save(agent_round: dict, counselor_message: dict) -> None:
+    return None
 
-            counselor_message = {
-                "id": str(uuid.uuid4()),
-                "role": "counselor",
-                "content": agent_round["winner"]["reply"],
-                "created_at": now_iso(),
-                "source_round_id": agent_round["id"],
-                "source_agent": agent_round["winner"]["character"],
-            }
-            await asyncio.to_thread(storage.add_message, conversation_id, counselor_message)
 
-            updated_conversation = await asyncio.to_thread(storage.get_conversation, conversation_id)
-            yield stream_event("winner_selected", {
-                "round_number": review_rounds,
-                "agent_round": agent_round,
-                "counselor_message": counselor_message,
-                "conversation": updated_conversation,
-            })
-        except LLMError as exc:
-            for task in candidate_tasks + scoring_tasks:
-                if not task.done():
-                    task.cancel()
-            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
-            yield stream_event("error", {"message": str(exc)})
-        except StorageError:
-            # Already logged with details; the client only learns that saving failed.
-            for task in candidate_tasks + scoring_tasks:
-                if not task.done():
-                    task.cancel()
-            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
-            yield stream_event("error", {"message": "Could not save the conversation. Please try again."})
-        except Exception as exc:
-            for task in candidate_tasks + scoring_tasks:
-                if not task.done():
-                    task.cancel()
-            await asyncio.gather(*candidate_tasks, *scoring_tasks, return_exceptions=True)
-            yield stream_event("error", {"message": f"Counseling round failed: {exc}"})
+@app.post("/api/chat/stream")
+async def stateless_chat_stream(request: StatelessChatRequest):
+    """Run one counseling round without storing anything.
 
-    return StreamingResponse(generate_events(), media_type="application/x-ndjson")
+    The browser keeps the conversation and sends the recent history with
+    every message, so no database is needed.
+    """
+    content = request.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail={"errors": ["Message is required."]})
+
+    client_message = new_client_message(content)
+    history = [{"role": m.role, "content": m.content} for m in request.history]
+    events = counseling_events(
+        model=(request.model or DEFAULT_GEMINI_MODEL).strip(),
+        agents=validate_agents(request.agents),
+        messages=[*history, client_message],
+        client_message=client_message,
+        lang=request.lang or "ja",
+        on_finished=_nothing_to_save,
+    )
+    return StreamingResponse(events, media_type="application/x-ndjson")
 
 
 MAX_TTS_TEXT_LENGTH = 5000

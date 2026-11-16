@@ -4,9 +4,12 @@ import CounselingChat from './components/CounselingChat';
 import LandingPage from './components/LandingPage';
 import PasswordGate from './components/PasswordGate';
 import { api, onUnauthorized } from './api';
+import { createConversationStore, historyFor } from './conversationStore';
 import './App.css';
 
 const cloneAgents = (agents = []) => agents.map((agent) => ({ ...agent }));
+// Conversations live in this browser only; the backend stores nothing.
+const conversationStore = createConversationStore();
 const DEFAULT_REVIEW_ROUNDS = 2;
 
 const emptyReviewRound = (roundNumber) => ({
@@ -63,10 +66,7 @@ function App() {
     setLoadAttempt((attempt) => attempt + 1);
   };
 
-  const refreshList = async () => {
-    const list = await api.listConversations();
-    setConversations(list);
-  };
+  const refreshList = () => setConversations(conversationStore.list());
 
   useEffect(() => {
     let active = true;
@@ -80,11 +80,7 @@ function App() {
         }
       })
       .catch((err) => console.error('Failed to load settings:', err));
-    api.listConversations()
-      .then((list) => {
-        if (active) setConversations(list);
-      })
-      .catch((err) => console.error('Failed to load conversations:', err));
+    setConversations(conversationStore.list());
     return () => {
       active = false;
     };
@@ -104,7 +100,7 @@ function App() {
     setError('');
     setCurrentConversationId(id);
     try {
-      const conversation = await api.getConversation(id);
+      const conversation = conversationStore.get(id);
       setCurrentConversation(conversation);
       setLiveRound(null);
       if (conversation.config?.model) setModel(conversation.config.model);
@@ -116,9 +112,9 @@ function App() {
     }
   };
 
-  const handleDeleteConversation = async (id) => {
+  const handleDeleteConversation = (id) => {
     try {
-      await api.deleteConversation(id);
+      conversationStore.remove(id);
       setConversations((prev) => prev.filter((item) => item.id !== id));
       if (currentConversationId === id) {
         setCurrentConversationId(null);
@@ -132,7 +128,7 @@ function App() {
     }
   };
 
-  const ensureConversation = async () => {
+  const ensureConversation = () => {
     if (currentConversation) return currentConversation;
     const sessionAgents = agents.length ? agents : defaultAgents;
     const config = {
@@ -142,20 +138,10 @@ function App() {
     if (sessionAgents.length === 5 && sessionAgents.every((agent) => agent.persona?.trim())) {
       config.agents = sessionAgents;
     }
-    const conversation = await api.createConversation(config);
+    const conversation = conversationStore.create(config);
     setCurrentConversation(conversation);
     setCurrentConversationId(conversation.id);
-    setConversations((prev) => [
-      {
-        id: conversation.id,
-        created_at: conversation.created_at,
-        updated_at: conversation.updated_at,
-        title: conversation.title,
-        message_count: 0,
-        status: conversation.status,
-      },
-      ...prev,
-    ]);
+    refreshList();
     return conversation;
   };
 
@@ -175,8 +161,9 @@ function App() {
     });
     try {
       const selectedModel = model.trim() || 'gemini-2.5-flash';
-      const conversation = await ensureConversation();
+      const conversation = ensureConversation();
       activeConversationId = conversation.id;
+      const history = historyFor(conversation);
       setLiveRound((prev) => ({
         ...prev,
         model: selectedModel,
@@ -192,11 +179,19 @@ function App() {
         messages: [...(prev?.messages || []), pendingClient],
       }));
 
-      await api.sendMessageStream(conversation.id, content, selectedModel, (event) => {
+      const request = {
+        content,
+        model: selectedModel,
+        lang,
+        agents: conversation.config?.agents,
+        history,
+      };
+      await api.sendChatStream(request, (event) => {
         const payload = event.payload || {};
 
         if (event.type === 'client_message') {
           const clientMessage = payload.client_message;
+          conversationStore.addClientMessage(conversation.id, clientMessage);
           setCurrentConversation((prev) => {
             const base = prev || conversation;
             const messages = base.messages || [];
@@ -285,18 +280,27 @@ function App() {
         }
 
         if (event.type === 'winner_selected') {
+          const saved = conversationStore.addReply(
+            conversation.id,
+            payload.agent_round,
+            payload.counselor_message,
+            { model: selectedModel },
+          );
           setLiveRound(payload.agent_round);
-          setCurrentConversation(payload.conversation);
-          if (payload.conversation?.config?.model) setModel(payload.conversation.config.model);
+          setCurrentConversation(saved);
         }
-      }, lang);
+      });
       setCurrentConversationId(conversation.id);
-      await refreshList();
+      refreshList();
     } catch (err) {
       setError(err.errors?.join(' ') || err.message || 'Failed to send message.');
       if (activeConversationId) {
-        const fresh = await api.getConversation(activeConversationId).catch(() => null);
-        if (fresh) setCurrentConversation(fresh);
+        try {
+          setCurrentConversation(conversationStore.get(activeConversationId));
+          refreshList();
+        } catch {
+          // The conversation was never saved; keep what is on screen.
+        }
       }
     } finally {
       setSending(false);
