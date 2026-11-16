@@ -1,0 +1,28 @@
+# Supabase's free plan pauses a project after 7 days with no activity.
+# This asks the live API for conversations every 2 days, which reads the
+# database, so the miracle-head project never sits idle long enough to pause.
+name: Keep database awake
+
+on:
+  schedule:
+    - cron: "0 3 */2 * *" # 03:00 UTC (12:00 JST) every 2nd day
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read conversations through the API
+        env:
+          URL: https://miracle-head-api.vercel.app/api/conversations
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -m 60 \
+              -H "X-Visitor-Id: github-keepalive" "$URL")
+            echo "attempt $attempt: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 30
+          done
+          echo "::error::API answered $code; the Supabase project may be paused. Restore it in the Supabase dashboard."
+          exit 1
