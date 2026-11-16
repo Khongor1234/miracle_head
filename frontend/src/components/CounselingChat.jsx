@@ -7,6 +7,7 @@ import TeamPick from './TeamPick';
 import ProcessDiagram from './ProcessDiagram';
 import PersonaEditor from './PersonaEditor';
 import ModelPicker from './ModelPicker';
+import ReplyText from './ReplyText';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -375,7 +376,9 @@ export default function CounselingChat({
                     {jpName(message.source_agent, lang)} {c.selectedAgent}
                   </div>
                 )}
-                <span className="bubble-text">{displayText(message.content)}</span>
+                {message.role === 'counselor'
+                  ? <ReplyText text={displayText(message.content)} />
+                  : <span className="bubble-text">{displayText(message.content)}</span>}
                 {message.role === 'counselor' && (
                   <TeamPick
                     round={rounds.find((round) => round.id === message.source_round_id)}

@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List
 
-from .llm import LLMError, query_llm
+from .llm import query_llm
 
 
 AGENTS = [
@@ -537,6 +537,29 @@ Respond with only valid JSON:
 }}"""
 
 
+SCORING_MAX_OUTPUT_TOKENS = 8192
+SCORING_ATTEMPTS = 2
+
+# Keyword lists for the fallback scorer, in Japanese and English.
+_FALLBACK_TERMS = {
+    "safety": ["危険", "緊急", "救急", "支援", "ひとり", "連絡", "助け", "安全",
+               "safe", "safety", "emergency", "helpline", "support", "reach out", "not alone"],
+    "empathy": ["つら", "苦し", "大変", "しんど", "話して", "聞かせて",
+                "sounds", "understand", "makes sense", "hard", "painful", "difficult", "valid"],
+    "action": ["今", "連絡", "確認", "話", "教えて", "一緒", "できますか", "試して", "やってみ",
+               "try", "step", "today", "start", "could you", "what if", "let's"],
+    "hope": ["大丈夫", "できる", "応援", "一歩", "きっと", "信じ", "強さ",
+             "you can", "strength", "progress", "possible", "believe", "capable"],
+    "collab": ["一緒に", "考えましょ", "どう思", "教えてください", "聞かせて",
+               "together", "explore", "tell me", "what do you think", "would you like"],
+}
+
+
+def _mentions(reply: str, kind: str) -> bool:
+    lowered = reply.lower()
+    return any(term in reply or term in lowered for term in _FALLBACK_TERMS[kind])
+
+
 def clamp_score(value: Any) -> int:
     try:
         numeric = int(round(float(value)))
@@ -620,19 +643,26 @@ async def score_candidates(
     high_risk: bool,
     round_number: int = 2,
 ) -> Dict[str, Any]:
-    try:
+    prompt = scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number)
+    data = None
+    last_error = ""
+    # Gemini 2.5's thinking counts against maxOutputTokens, so a small budget
+    # cut the JSON off mid-way; give it room and retry once if it still breaks.
+    for _attempt in range(SCORING_ATTEMPTS):
         raw = await query_llm(
             model,
-            scoring_prompt(judge_agent, conversation_context, client_text, candidates, high_risk, round_number),
+            prompt,
             temperature=0.15,
-            max_output_tokens=1600,
+            max_output_tokens=SCORING_MAX_OUTPUT_TOKENS,
             response_mime_type="application/json",
         )
-        data = parse_json_object(raw)
-    except LLMError:
-        raise
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-        return fallback_peer_scores(judge_agent, candidates, high_risk, str(exc))
+        try:
+            data = parse_json_object(raw)
+            break
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            last_error = str(exc)
+    if data is None:
+        return fallback_peer_scores(judge_agent, candidates, high_risk, last_error)
     scores = data.get("scores", [])
     by_character = {score.get("character"): score for score in scores if score.get("character")}
     normalised = []
@@ -670,11 +700,11 @@ def fallback_peer_scores(
             continue
         reply = candidate.get("reply", "")
         lowered = reply.lower()
-        has_safety = any(term in reply for term in ["危険", "緊急", "救急", "支援", "ひとり", "連絡", "助け", "安全"])
-        has_empathy = any(term in reply for term in ["つら", "苦し", "大変", "しんど", "話して", "聞かせて"])
-        has_action = any(term in reply for term in ["今", "連絡", "確認", "話", "教えて", "一緒", "できますか", "試して", "やってみ"])
-        has_hope = any(term in reply for term in ["大丈夫", "できる", "応援", "一歩", "きっと", "信じ", "強さ"])
-        has_collab = any(term in reply for term in ["一緒に", "考えましょ", "どう思", "教えてください", "聞かせて"])
+        has_safety = _mentions(reply, "safety")
+        has_empathy = _mentions(reply, "empathy")
+        has_action = _mentions(reply, "action")
+        has_hope = _mentions(reply, "hope")
+        has_collab = _mentions(reply, "collab")
         unsafe = any(term in lowered for term in ["kill yourself", "suicide method"]) or "自傷は自然" in reply
 
         row = {

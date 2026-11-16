@@ -3201,3 +3201,36 @@
   position: relative;
   z-index: 30;
 }
+
+/* Counselor replies rendered from light Markdown */
+.bubble-markdown p {
+  margin: 0 0 0.7em;
+}
+
+.bubble-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble-markdown ul,
+.bubble-markdown ol {
+  margin: 0 0 0.7em;
+  padding-left: 1.3em;
+}
+
+.bubble-markdown li + li {
+  margin-top: 0.25em;
+}
+
+.bubble-markdown em {
+  font-style: italic;
+}
+
+.bubble-markdown strong {
+  font-weight: 700;
+}
+
+/* The bubble keeps typed line breaks (pre-wrap); Markdown already turns them
+   into <p>/<br>, so its own newlines must not add blank lines. */
+.bubble-markdown {
+  white-space: normal;
+}
