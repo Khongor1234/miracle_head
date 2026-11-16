@@ -3544,3 +3544,131 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ═══ Who said what: each agent's draft on demand ════════════ */
+.panel-strip-agent {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  font: inherit;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.18s;
+}
+
+.panel-strip-agent:disabled {
+  cursor: default;
+}
+
+.panel-strip-agent:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.panel-strip-agent:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.panel-strip-agent.is-open {
+  background: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--agent-color) 25%, transparent);
+}
+
+.panel-strip-agent:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: 1px;
+}
+
+.draft-hint {
+  margin: 0;
+  padding: 7px 12px 9px;
+  font-size: 11.5px;
+  color: var(--hq-text-3);
+  text-align: center;
+}
+
+.draft-card {
+  margin: 8px 10px 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
+  border-left: 3px solid var(--agent-color);
+  box-shadow: 0 8px 20px rgba(100, 70, 180, 0.1);
+  animation: chat-rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.draft-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--hq-text-3);
+}
+
+.draft-card-head img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.draft-card-head strong {
+  font-size: 13px;
+  color: var(--agent-color);
+}
+
+.draft-card-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(124, 92, 191, 0.08);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--hq-text-2);
+  cursor: pointer;
+}
+
+.draft-card-close:hover {
+  background: rgba(124, 92, 191, 0.16);
+}
+
+.draft-card-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--hq-text-1);
+  white-space: pre-wrap;
+}
+
+.draft-card-text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.draft-card-more {
+  min-height: 28px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hq-purple);
+  cursor: pointer;
+}
+
+.draft-card-more:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-strip-agent { transition: none; }
+  .draft-card { animation: none; }
+}

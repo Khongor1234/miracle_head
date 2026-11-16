@@ -11,6 +11,7 @@ import ReplyText from './ReplyText';
 import LangSwitch from './LangSwitch';
 import ReviewSpotlight from './ReviewSpotlight';
 import WinnerReason from './WinnerReason';
+import DraftStrip from './DraftStrip';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -492,20 +493,15 @@ export default function CounselingChat({
                     </div>
 
                     {/* Agent status strip */}
-                    <div className="panel-agent-strip">
-                      {activeAgents.map((agent) => (
-                        <div className={`panel-strip-agent ${agentClass(agent.character)}`} key={agent.character} title={agent.character}>
-                          {CHARACTER_IMGS[agent.character] && (
-                            <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
-                          )}
-                          {agentR1Done(agent.character)
-                            ? <span className="panel-strip-check">✓</span>
-                            : sending
-                              ? <span className="panel-strip-dots"><b /><b /><b /></span>
-                              : null}
-                        </div>
-                      ))}
-                    </div>
+                    <DraftStrip
+                      key={reviewRound?.id ?? 'live'}
+                      agents={activeAgents}
+                      candidates={round1Candidates}
+                      isSending={sending}
+                      characters={t.characters}
+                      labels={c.drafts}
+                      formatText={displayText}
+                    />
                   </div>
 
                   {/* ── Round 2 — 振り返り & 議論 ── */}
@@ -646,20 +642,15 @@ export default function CounselingChat({
                       </span>
                     )}
                   </div>
-                  <div className="panel-agent-strip">
-                    {activeAgents.map((agent) => (
-                      <div className={`panel-strip-agent ${agentClass(agent.character)}`} key={agent.character} title={agent.character}>
-                        {CHARACTER_IMGS[agent.character] && (
-                          <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
-                        )}
-                        {agentR1Done(agent.character)
-                          ? <span className="panel-strip-check">✓</span>
-                          : sending
-                            ? <span className="panel-strip-dots"><b /><b /><b /></span>
-                            : null}
-                      </div>
-                    ))}
-                  </div>
+                  <DraftStrip
+                    key={reviewRound?.id ?? 'live'}
+                    agents={activeAgents}
+                    candidates={round1Candidates}
+                    isSending={sending}
+                    characters={t.characters}
+                    labels={c.drafts}
+                    formatText={displayText}
+                  />
                 </div>
 
                 {/* Round 2 — 振り返り & 議論 */}
