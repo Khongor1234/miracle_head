@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useLang } from '../LanguageContext';
 import { api } from '../api';
 import ThinkingIndicator from './ThinkingIndicator';
+import CouncilWelcome from './CouncilWelcome';
+import TeamPick from './TeamPick';
+import LoopVideo from './LoopVideo';
+import { agentFrame, agentLoop } from '../agentAssets';
+import { usePrefersReducedMotion } from '../hooks/useMotion';
 import './CounselingChat.css';
 
 const CHARACTER_IMGS = {
@@ -68,16 +73,26 @@ const displayText = (value) => {
   return current || text;
 };
 
-function CounselorAvatar({ sourceAgent }) {
-  const imgSrc = CHARACTER_IMGS[sourceAgent];
-  if (imgSrc) {
-    return (
-      <div className="avatar">
-        <img src={imgSrc} alt={sourceAgent} />
-      </div>
-    );
-  }
-  return <div className="avatar-initials">相</div>;
+function CounselorAvatar({ sourceAgent, isReducedMotion }) {
+  const [isHovered, setIsHovered] = useState(false);
+  if (!CHARACTER_IMGS[sourceAgent]) return <div className="avatar-initials">相</div>;
+  // The agent who wrote the reply; its Higgsfield loop plays on hover.
+  return (
+    <div
+      className={`avatar agent-portrait ${agentClass(sourceAgent)}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <LoopVideo
+        className="agent-portrait-video"
+        src={agentLoop(sourceAgent)}
+        poster={agentFrame(sourceAgent)}
+        isActive={isHovered}
+        isReducedMotion={isReducedMotion}
+        label={sourceAgent}
+      />
+    </div>
+  );
 }
 
 function ClientAvatar() {
@@ -135,6 +150,7 @@ export default function CounselingChat({
   const [messagesVisible, setMessagesVisible] = useState(true);
   const [ttsPlayingId, setTtsPlayingId] = useState(null);
   const [ttsLoadingId, setTtsLoadingId] = useState(null);
+  const isReducedMotion = usePrefersReducedMotion();
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const audioRef = useRef(null);
@@ -293,35 +309,21 @@ export default function CounselingChat({
         {/* ── Messages ── */}
         <div className="message-list">
           {messages.length === 0 && (
-            <div className="empty-chat">
-              <div className="empty-chat-avatar">
-                <img src="/characters/avatars/joy.webp" alt={c.counselorName} />
-              </div>
-              <p className="empty-chat-label">{c.counselorName}</p>
-              <p>{c.counselorGreeting}</p>
-              {c.suggestions?.length > 0 && (
-                <div className="suggestion-chips">
-                  {c.suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      className="suggestion-chip"
-                      type="button"
-                      disabled={sending}
-                      onClick={() => { setDraft(s); textareaRef.current?.focus(); }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <CouncilWelcome
+              labels={{ eyebrow: c.councilEyebrow, greeting: c.counselorGreeting }}
+              characters={t.characters}
+              suggestions={c.suggestions}
+              disabled={sending}
+              isReducedMotion={isReducedMotion}
+              onPickSuggestion={(suggestion) => { setDraft(suggestion); textareaRef.current?.focus(); }}
+            />
           )}
 
           {messages.map((message) => (
             <div className={`message-row ${message.role}`} key={message.id}>
               {message.role === 'client'
                 ? <ClientAvatar />
-                : <CounselorAvatar sourceAgent={message.source_agent} />
+                : <CounselorAvatar sourceAgent={message.source_agent} isReducedMotion={isReducedMotion} />
               }
               <div className={`bubble${message.role === 'counselor' && message.source_agent ? ` ${agentClass(message.source_agent)}` : ''}`}>
                 {message.source_agent && message.role === 'counselor' && (
@@ -330,6 +332,13 @@ export default function CounselingChat({
                   </div>
                 )}
                 <span className="bubble-text">{displayText(message.content)}</span>
+                {message.role === 'counselor' && (
+                  <TeamPick
+                    round={rounds.find((round) => round.id === message.source_round_id)}
+                    label={c.teamPickLabel}
+                    onOpen={() => { setAgentPanelTab('process'); openReview(); }}
+                  />
+                )}
                 {message.role === 'counselor' && (
                   <button
                     className={`tts-btn${ttsPlayingId === message.id ? ' playing' : ''}`}

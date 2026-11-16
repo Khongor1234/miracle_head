@@ -1874,3 +1874,367 @@
   .thinking-bar span::after { animation: none; }
   .thinking-bar span { transition: none; }
 }
+
+/* ═══ Premium chat layer ══════════════════════════════════════
+   Higgsfield "mind room" backdrop, the council welcome, animated
+   agent portraits, the team-pick score strip and a floating composer. */
+
+.chat-pane {
+  position: relative;
+  isolation: isolate;
+}
+
+.chat-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(246, 241, 255, 0.55) 0%, rgba(246, 241, 255, 0.15) 40%, rgba(246, 241, 255, 0) 100%),
+    url('/motion/chat-backdrop.webp') center bottom / cover no-repeat;
+  opacity: 0.9;
+}
+
+.chat-header {
+  background: rgba(246, 241, 255, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Council welcome */
+.council {
+  margin: auto;
+  width: min(640px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 8px 24px;
+  animation: chat-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.council-eyebrow {
+  margin: 0 0 18px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hq-purple);
+}
+
+.council-arc {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.council-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* `translate`, not `transform`: the entrance animation owns transform. */
+  translate: 0 calc(var(--lift, 0px) * -1);
+  transition: translate 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: chat-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--arc-index) * 80ms);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.council-member:hover,
+.council-member:focus-visible {
+  translate: 0 calc(var(--lift, 0px) * -1 - 6px);
+  outline: none;
+}
+
+.council-portrait {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 28px rgba(100, 70, 180, 0.2);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.council-member.is-selected .council-portrait,
+.council-member:focus-visible .council-portrait {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--agent-color) 55%, transparent),
+    0 14px 34px color-mix(in srgb, var(--agent-color) 35%, transparent);
+  transform: scale(1.08);
+}
+
+.council-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.18);
+  transform-origin: 50% 40%;
+}
+
+.council-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--hq-text-2);
+}
+
+.council-member.is-selected .council-name {
+  color: var(--agent-color);
+}
+
+.council-spotlight {
+  margin-top: 18px;
+  max-width: 440px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
+  box-shadow: 0 10px 30px rgba(100, 70, 180, 0.1);
+  backdrop-filter: blur(10px);
+  animation: chat-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.council-role {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--agent-color);
+}
+
+.council-spotlight p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--hq-text-2);
+}
+
+.council-greeting {
+  margin: 26px 0 18px;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--hq-text-1);
+  text-wrap: balance;
+}
+
+.council-suggestions {
+  display: grid;
+  gap: 10px;
+  width: min(440px, 100%);
+}
+
+.council-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(10px);
+  font: inherit;
+  font-size: 14px;
+  color: var(--hq-text-1);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(100, 70, 180, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.council-suggestion:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 26px rgba(100, 70, 180, 0.16);
+}
+
+.council-suggestion-arrow {
+  color: var(--hq-purple);
+  transition: transform 0.2s;
+}
+
+.council-suggestion:hover .council-suggestion-arrow {
+  transform: translateX(4px);
+}
+
+/* Counselor replies: animated portrait and a tinted glass bubble */
+.agent-portrait {
+  width: 52px;
+  height: 52px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--agent-color) 30%, transparent);
+  cursor: default;
+}
+
+.agent-portrait-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.25);
+  transform-origin: 50% 35%;
+}
+
+.message-row.counselor .bubble.agent-joy,
+.message-row.counselor .bubble.agent-sadness,
+.message-row.counselor .bubble.agent-anger,
+.message-row.counselor .bubble.agent-fear,
+.message-row.counselor .bubble.agent-disgust {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--hq-text-1);
+  border: 1px solid color-mix(in srgb, var(--agent-color) 28%, transparent);
+  border-top: 3px solid color-mix(in srgb, var(--agent-color) 70%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--agent-color) 14%, transparent);
+}
+
+.message-row.counselor .bubble .source-agent {
+  color: var(--agent-color);
+}
+
+.message-row.client .bubble {
+  background: linear-gradient(135deg, #8a68cc, #a888d8);
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 26px rgba(120, 90, 200, 0.28);
+}
+
+/* Team pick: five score bars under a reply */
+.team-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 7px 12px 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 110, 200, 0.2);
+  background: rgba(246, 241, 255, 0.8);
+  font: inherit;
+  font-size: 12px;
+  color: var(--hq-text-2);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.team-pick:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.team-pick-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+
+.team-pick-bar {
+  width: 5px;
+  height: var(--bar-height);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--agent-color) 45%, transparent);
+  transform-origin: bottom;
+  animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.team-pick-bar:nth-child(2) { animation-delay: 0.06s; }
+.team-pick-bar:nth-child(3) { animation-delay: 0.12s; }
+.team-pick-bar:nth-child(4) { animation-delay: 0.18s; }
+.team-pick-bar:nth-child(5) { animation-delay: 0.24s; }
+
+.team-pick-bar.is-winner {
+  background: var(--agent-color);
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+.team-pick-score {
+  font-weight: 700;
+  color: var(--hq-purple);
+}
+
+/* Thinking card portraits play their loop while drafting */
+.thinking-video {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: scale(1.25);
+  transform-origin: 50% 35%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 16px rgba(100, 70, 180, 0.18);
+}
+
+.thinking-face {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.thinking-face .thinking-check {
+  z-index: 1;
+}
+
+/* Floating composer */
+.message-form {
+  margin: 0 16px 14px;
+  padding: 8px 8px 8px 10px;
+  padding-bottom: 8px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 16px 40px rgba(100, 70, 180, 0.14);
+}
+
+.message-form textarea {
+  border-color: transparent;
+  background: transparent;
+}
+
+.message-form:focus-within {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 0 4px rgba(155, 125, 212, 0.45),
+    0 16px 40px rgba(100, 70, 180, 0.18);
+}
+
+.message-form textarea:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #ffb36b, #e87fb4 45%, #8a68cc);
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.send-btn:hover:not(:disabled) {
+  transform: translateY(-1px) rotate(-8deg);
+  box-shadow: 0 8px 26px rgba(212, 119, 200, 0.45);
+}
+
+@media (max-width: 768px) {
+  .council-arc { gap: 8px; }
+  .council-portrait { width: 58px; height: 58px; }
+  .council-name { font-size: 11px; }
+  .message-form { margin: 0 10px max(10px, env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .council,
+  .council-member,
+  .council-spotlight,
+  .team-pick-bar { animation: none; }
+}
