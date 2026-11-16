@@ -10,6 +10,7 @@ import ModelPicker from './ModelPicker';
 import ReplyText from './ReplyText';
 import LangSwitch from './LangSwitch';
 import ReviewSpotlight from './ReviewSpotlight';
+import WinnerReason from './WinnerReason';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -155,6 +156,7 @@ export default function CounselingChat({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
+  const [focusedRoundId, setFocusedRoundId] = useState(null);
   const [ttsPlayingId, setTtsPlayingId] = useState(null);
   const [ttsLoadingId, setTtsLoadingId] = useState(null);
   const isReducedMotion = usePrefersReducedMotion();
@@ -206,7 +208,11 @@ export default function CounselingChat({
     activeAgents.length !== 5 || activeAgents.some((agent) => !agent.persona?.trim())
   );
   const latestSavedRound = rounds.length ? rounds[rounds.length - 1] : null;
-  const reviewRound = liveRound || latestSavedRound;
+  // A past reply the visitor opened ("why this reply?"); a reply in progress always wins.
+  const focusedRound = focusedRoundId ? rounds.find((round) => round.id === focusedRoundId) : null;
+  const reviewRound = (sending && liveRound) || focusedRound || liveRound || latestSavedRound;
+  const isViewingPast = Boolean(!sending && focusedRound && focusedRound.id !== latestSavedRound?.id);
+  const pastRoundNumber = focusedRound ? rounds.indexOf(focusedRound) + 1 : 0;
   const isLiveReview = Boolean(liveRound && sending);
   const displayRounds = reviewRound
     ? (
@@ -241,6 +247,12 @@ export default function CounselingChat({
   };
   const maxScore = finalTotals.length ? Math.max(...finalTotals.map((t) => scoreValue(t))) : 1;
   const winnerCharacter = reviewRound?.winner?.character;
+  const winnerAnalysis = displayText(round1Candidates.find((candidate) => candidate.character === winnerCharacter)?.reply ?? '');
+  const showRound = (roundId) => {
+    setFocusedRoundId(roundId);
+    setAgentPanelTab('process');
+    openReview();
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -250,6 +262,7 @@ export default function CounselingChat({
     event.preventDefault();
     const text = draft.trim();
     if (!text || sending || personaError) return;
+    setFocusedRoundId(null);
     setReviewOpen(true);
     setPersonaOpen(false);
     setDraft('');
@@ -361,7 +374,10 @@ export default function CounselingChat({
           )}
 
           {messages.map((message) => (
-            <div className={`message-row ${message.role}`} key={message.id}>
+            <div
+              className={`message-row ${message.role}${isViewingPast && message.source_round_id === focusedRoundId ? ' is-focused' : ''}`}
+              key={message.id}
+            >
               {message.role === 'client'
                 ? <ClientAvatar />
                 : <CounselorAvatar sourceAgent={message.source_agent} isReducedMotion={isReducedMotion} />
@@ -379,7 +395,7 @@ export default function CounselingChat({
                   <TeamPick
                     round={rounds.find((round) => round.id === message.source_round_id)}
                     label={c.teamPickLabel}
-                    onOpen={() => { setAgentPanelTab('process'); openReview(); }}
+                    onOpen={() => showRound(message.source_round_id)}
                   />
                 )}
                 {message.role === 'counselor' && (
@@ -454,6 +470,12 @@ export default function CounselingChat({
           {agentPanelTab === 'process' && (
             <div>
 
+              {isViewingPast && (
+                <div className="past-banner" role="status">
+                  <span>{c.viewingPast.replace('{n}', pastRoundNumber).replace('{total}', rounds.length)}</span>
+                  <button type="button" onClick={() => setFocusedRoundId(null)}>{c.backToLatest}</button>
+                </div>
+              )}
               {!reviewRound && !sending ? (
                 <ProcessDiagram labels={{ ...c.process, hint: c.panelIdleMsg }} />
               ) : (
@@ -539,6 +561,7 @@ export default function CounselingChat({
                         <strong>{jpName(winnerCharacter, lang)}</strong>
                         <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                       </div>
+                      <WinnerReason key={reviewRound.id} text={winnerAnalysis} labels={c.winnerWhy} />
                     </div>
                   )}
                 </>
@@ -599,6 +622,12 @@ export default function CounselingChat({
         {reviewOpen && (
           <div className="review-content">
 
+            {isViewingPast && (
+              <div className="past-banner" role="status">
+                <span>{c.viewingPast.replace('{n}', pastRoundNumber).replace('{total}', rounds.length)}</span>
+                <button type="button" onClick={() => setFocusedRoundId(null)}>{c.backToLatest}</button>
+              </div>
+            )}
             {!reviewRound && !sending ? (
               <div className="review-empty">{c.emptyReview}</div>
             ) : (
@@ -683,6 +712,7 @@ export default function CounselingChat({
                       <strong>{jpName(winnerCharacter, lang)}</strong>
                       <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                     </div>
+                    <WinnerReason key={reviewRound.id} text={winnerAnalysis} labels={c.winnerWhy} />
                   </div>
                 )}
               </>

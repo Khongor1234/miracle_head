@@ -3396,3 +3396,112 @@
   .review-spot.is-playing .review-spot-progress span { animation: none; }
   .review-spot-btn { transition: none; }
 }
+
+/* ═══ Looking back at an earlier reply ════════════════════════ */
+.past-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 214, 107, 0.22), rgba(232, 127, 180, 0.16));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hq-text-1);
+  animation: chat-rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.past-banner button {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hq-purple);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(100, 70, 180, 0.12);
+  transition: transform 0.15s;
+}
+
+.past-banner button:hover {
+  transform: translateY(-1px);
+}
+
+.past-banner button:active {
+  transform: scale(0.97);
+}
+
+/* The reply whose round is open in the panel */
+.message-row.is-focused .bubble {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 0 6px color-mix(in srgb, var(--agent-color, #9b7dd4) 40%, transparent),
+    0 14px 34px rgba(100, 70, 180, 0.18);
+  transition: box-shadow 0.3s;
+}
+
+/* Why the winning agent answered the way it did */
+.winner-why {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(90, 186, 124, 0.25);
+}
+
+.winner-why-title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a8a4a;
+}
+
+.winner-why-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--hq-text-2);
+  white-space: pre-wrap;
+}
+
+.winner-why-text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.winner-why-more {
+  min-height: 32px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hq-purple);
+  cursor: pointer;
+}
+
+.winner-why-more:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .past-banner { animation: none; }
+  .past-banner button { transition: none; }
+}
+
+/* Narrow headers keep the team faces and live dot, not the status words. */
+@media (max-width: 1360px) {
+  .header-team-text { display: none; }
+}
