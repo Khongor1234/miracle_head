@@ -47,7 +47,8 @@
 html, body {
   height: 100%;
   font-family: var(--font-ui);
-  background: var(--bg-0);
+  background: var(--dreamscape);
+  background-attachment: fixed;
   color: var(--text-1);
   font-size: 15px;
   line-height: 1.6;
@@ -136,4 +137,72 @@ html, body {
 .markdown-content strong {
   font-weight: 600;
   color: var(--text-1);
+}
+
+/* ─── Dreamscape background ────────────────────────────────────
+   Matches the Higgsfield character art: a lavender sky with warm light
+   from above, soft emotion-coloured haze, a cloud bank along the bottom
+   and a few twinkling sparkles. Shared by the landing page and the app. */
+:root {
+  --glass-panel: rgba(246, 241, 255, 0.55);
+  --dreamscape:
+    radial-gradient(ellipse 60% 45% at 50% -8%, rgba(255, 244, 214, 0.95), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 6% 18%, rgba(255, 214, 107, 0.40), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 0% 62%, rgba(143, 179, 245, 0.42), transparent 70%),
+    radial-gradient(ellipse 38% 36% at 96% 22%, rgba(255, 154, 132, 0.34), transparent 70%),
+    radial-gradient(ellipse 42% 40% at 100% 70%, rgba(195, 164, 245, 0.46), transparent 70%),
+    radial-gradient(ellipse 50% 30% at 50% 108%, rgba(150, 220, 174, 0.34), transparent 70%),
+    linear-gradient(180deg, #f3eeff 0%, #e9e0fa 45%, #ddd0f5 100%);
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cloud bank along the bottom edge */
+body::before {
+  top: auto;
+  height: 34vh;
+  background:
+    radial-gradient(ellipse 22% 60% at 8% 100%, rgba(255, 255, 255, 0.75), transparent 70%),
+    radial-gradient(ellipse 26% 70% at 30% 108%, rgba(255, 255, 255, 0.70), transparent 70%),
+    radial-gradient(ellipse 24% 60% at 55% 104%, rgba(255, 255, 255, 0.65), transparent 70%),
+    radial-gradient(ellipse 26% 70% at 80% 108%, rgba(255, 255, 255, 0.70), transparent 70%),
+    radial-gradient(ellipse 20% 55% at 100% 100%, rgba(255, 255, 255, 0.70), transparent 70%);
+  filter: blur(4px);
+  opacity: 1;
+}
+
+/* Sparkles */
+body::after {
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 18%, rgba(255, 255, 255, 0.95), transparent 60%),
+    radial-gradient(1.2px 1.2px at 27% 42%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(2px 2px at 44% 12%, rgba(255, 248, 220, 0.95), transparent 60%),
+    radial-gradient(1.4px 1.4px at 63% 30%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1.8px 1.8px at 81% 14%, rgba(255, 255, 255, 0.95), transparent 60%),
+    radial-gradient(1.2px 1.2px at 90% 48%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1.6px 1.6px at 72% 66%, rgba(255, 248, 220, 0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 18% 72%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1.4px 1.4px at 50% 58%, rgba(255, 255, 255, 0.7), transparent 60%);
+  animation: sparkle-twinkle 6s ease-in-out infinite alternate;
+}
+
+@keyframes sparkle-twinkle {
+  from { opacity: 0.35; }
+  to   { opacity: 1; }
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; opacity: 0.7; }
 }

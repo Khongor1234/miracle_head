@@ -25,7 +25,7 @@
   display: grid;
   grid-template-columns: 1fr 320px;
   min-width: 0;
-  background: radial-gradient(ellipse at 50% 0%, #f5f0ff 0%, #ede6f8 45%, #e0d4f5 100%);
+  background: transparent;
   color: var(--hq-text-1);
 }
 
@@ -389,7 +389,7 @@
   flex-shrink: 0;
   margin: 0 20px 10px;
   padding: 10px 14px;
-  color: #fca5a5;
+  color: #a3283a;
   background: rgba(200, 40, 40, 0.12);
   border: 1px solid rgba(220, 80, 80, 0.25);
   border-radius: 10px;
@@ -1066,8 +1066,10 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--hq-bg1);
-  border-left: 1px solid rgba(170, 150, 220, 0.25);
+  background: var(--glass-panel);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.55);
 }
 
 .panel-tabs {
@@ -1730,4 +1732,145 @@
   }
 
   .panel-score-fill { transition: none; }
+}
+
+/* ─── Thinking indicator (while the team works on a reply) ───── */
+.message-row.thinking-row {
+  justify-content: flex-start;
+}
+
+.thinking-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, 100%);
+  margin: 4px auto;
+  padding: 18px 20px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(180, 158, 228, 0.35);
+  box-shadow: 0 12px 36px rgba(120, 90, 200, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.thinking-team {
+  display: flex;
+  gap: 10px;
+}
+
+.thinking-face {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  animation: thinking-wave 1.6s ease-in-out infinite;
+  animation-delay: var(--wave-delay, 0s);
+}
+
+.thinking-face img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 16px rgba(100, 70, 180, 0.18);
+  transition: filter 0.4s, transform 0.4s;
+}
+
+/* A face that already drafted settles down and gets a check mark */
+.thinking-face.is-done {
+  animation: none;
+}
+
+.thinking-face.is-done img {
+  transform: scale(0.92);
+  filter: saturate(0.85);
+}
+
+.thinking-check {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2a8a4a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border: 2px solid #fff;
+  animation: agent-done 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+/* While scoring, the whole team leans in together */
+.phase-reviewing .thinking-face,
+.phase-finishing .thinking-face {
+  animation: thinking-huddle 1.2s ease-in-out infinite;
+  animation-delay: var(--wave-delay, 0s);
+}
+
+.phase-reviewing .thinking-face.is-done img,
+.phase-finishing .thinking-face.is-done img {
+  transform: none;
+  filter: none;
+}
+
+@keyframes thinking-wave {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%           { transform: translateY(-9px); }
+}
+
+@keyframes thinking-huddle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-3px) scale(1.06); }
+}
+
+.thinking-label {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  color: var(--hq-text-2, #5a4480);
+  text-align: center;
+  animation: chat-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.thinking-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(139, 109, 212, 0.14);
+}
+
+.thinking-bar span {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd66b, #8fb3f5, #ff9a84, #c3a4f5, #96dcae);
+  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.thinking-bar span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-100%);
+  animation: thinking-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes thinking-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-face,
+  .thinking-check,
+  .thinking-label,
+  .thinking-bar span::after { animation: none; }
+  .thinking-bar span { transition: none; }
 }

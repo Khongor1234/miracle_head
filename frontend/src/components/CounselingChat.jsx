@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLang } from '../LanguageContext';
 import { api } from '../api';
+import ThinkingIndicator from './ThinkingIndicator';
 import './CounselingChat.css';
 
 const CHARACTER_IMGS = {
@@ -20,6 +21,9 @@ const CHARACTER_JP = {
 };
 
 const jpName = (character, lang) => lang === 'en' ? (character || '') : (CHARACTER_JP[character] || character);
+
+const NETWORK_ERROR_PATTERN = /failed to fetch|networkerror|load failed/i;
+const isNetworkError = (message) => NETWORK_ERROR_PATTERN.test(String(message || ''));
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
 const scoreValue = (item) => item?.weighted_total ?? item?.average_weighted_total ?? item?.total ?? item?.average_total ?? 0;
@@ -345,17 +349,19 @@ export default function CounselingChat({
           ))}
 
           {sending && (
-            <div className="message-row counselor">
-              <CounselorAvatar sourceAgent={null} />
-              <div className="bubble pending">
-                <span /><span /><span />
-              </div>
+            <div className="message-row counselor thinking-row">
+              <ThinkingIndicator
+                labels={c.thinking}
+                draftedCharacters={round1Candidates.map((candidate) => candidate.character)}
+                agentCount={activeAgents.length || 5}
+                hasWinner={Boolean(liveRound?.winner)}
+              />
             </div>
           )}
           <div ref={bottomRef} />
         </div>
 
-        {error && <div className="chat-error">{error}</div>}
+        {error && <div className="chat-error" role="alert">{isNetworkError(error) ? c.networkError : error}</div>}
 
         {/* ── Input ── */}
         <form className="message-form" onSubmit={submit}>

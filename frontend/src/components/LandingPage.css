@@ -1,7 +1,7 @@
 /* ─── Layout shell ─────────────────────────────────────────── */
 .landing {
   min-height: 100vh;
-  background: #ece6f8;
+  background: transparent;
   color: #1e1240;
   font-family: var(--font-ui);
   overflow-x: hidden;
