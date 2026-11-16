@@ -8,6 +8,7 @@ import ProcessDiagram from './ProcessDiagram';
 import PersonaEditor from './PersonaEditor';
 import ModelPicker from './ModelPicker';
 import ReplyText from './ReplyText';
+import LangSwitch from './LangSwitch';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -146,7 +147,7 @@ export default function CounselingChat({
   liveRound,
   error,
 }) {
-  const { lang, setLang, t } = useLang();
+  const { lang, t } = useLang();
   const c = t.chat;
 
   const [draft, setDraft] = useState('');
@@ -334,13 +335,7 @@ export default function CounselingChat({
             </p>
           </div>
           <div className="header-controls">
-            <button
-              className="lang-toggle"
-              type="button"
-              onClick={() => setLang(lang === 'ja' ? 'en' : 'ja')}
-            >
-              {lang === 'ja' ? 'EN' : '日本語'}
-            </button>
+            <LangSwitch />
             <ModelPicker
               value={model}
               disabled={sending}

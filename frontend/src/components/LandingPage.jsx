@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLang } from '../LanguageContext';
 import LoopVideo from './LoopVideo';
+import LangSwitch from './LangSwitch';
 import { useOnScreen, usePointerTilt, usePrefersReducedMotion, useReveal } from '../hooks/useMotion';
 import './LandingPage.css';
 
@@ -72,7 +73,7 @@ function CharacterCard({ id, character, index, isReducedMotion }) {
 }
 
 export default function LandingPage({ onEnter }) {
-  const { lang, setLang, t } = useLang();
+  const { t } = useLang();
   const isReducedMotion = usePrefersReducedMotion();
   const rootRef = useReveal();
 
@@ -81,13 +82,7 @@ export default function LandingPage({ onEnter }) {
       <nav className="landing-nav">
         <span className="landing-logo">Miracle Head</span>
         <div className="landing-nav-right">
-          <button
-            className="lang-toggle"
-            onClick={() => setLang(lang === 'ja' ? 'en' : 'ja')}
-            type="button"
-          >
-            {lang === 'ja' ? 'EN' : '日本語'}
-          </button>
+          <LangSwitch />
           <button className="landing-nav-cta" onClick={onEnter} type="button">
             {t.landing.navCta}
           </button>

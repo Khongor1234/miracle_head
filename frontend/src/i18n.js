@@ -1,6 +1,7 @@
 export const translations = {
   ja: {
     lang: 'ja',
+    langSwitchLabel: '表示言語',
     gate: {
       title: 'パスワードを入力',
       body: 'このアプリは招待された方のみご利用いただけます。',
@@ -146,6 +147,7 @@ export const translations = {
 
   en: {
     lang: 'en',
+    langSwitchLabel: 'Display language',
     gate: {
       title: 'Enter password',
       body: 'This app is available to invited users only.',
