@@ -58,6 +58,19 @@ test('keeps only the five most recent agent rounds', () => {
   assert.deepEqual(store.get(id).agent_rounds.map((r) => r.id), ['round-3', 'round-4', 'round-5', 'round-6', 'round-7']);
 });
 
+test('keeps an alternate reply on its round without touching other rounds', () => {
+  const store = createConversationStore(memoryStorage());
+  const { id } = store.create();
+  store.addReply(id, { id: 'round-a' }, { id: 'r-a', role: 'counselor', content: 'x' });
+  store.addReply(id, { id: 'round-b' }, { id: 'r-b', role: 'counselor', content: 'y' });
+
+  store.addAlternate(id, 'round-a', 'Fear', 'fear reply');
+  const saved = store.addAlternate(id, 'round-a', 'Joy', 'joy reply');
+
+  assert.deepEqual(saved.agent_rounds[0].alternates, { Fear: 'fear reply', Joy: 'joy reply' });
+  assert.equal(saved.agent_rounds[1].alternates, undefined);
+});
+
 test('removes a conversation', () => {
   const store = createConversationStore(memoryStorage());
   const { id } = store.create();

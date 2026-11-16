@@ -123,6 +123,16 @@ export function createConversationStore(storage = defaultStorage()) {
       }));
     },
 
+    /** Keeps the reply a non-chosen agent would have given, on its round. */
+    addAlternate(id, roundId, character, reply) {
+      return update(id, (conversation) => ({
+        ...conversation,
+        agent_rounds: conversation.agent_rounds.map((round) => (round.id === roundId
+          ? { ...round, alternates: { ...(round.alternates || {}), [character]: reply } }
+          : round)),
+      }));
+    },
+
     addReply(id, agentRound, counselorMessage, config = {}) {
       return update(id, (conversation) => ({
         ...conversation,

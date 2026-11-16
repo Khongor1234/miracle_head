@@ -13,7 +13,15 @@ from typing import List, Literal, Optional
 from . import storage
 from .auth import require_app_password
 from .config import CORS_ORIGINS, DEFAULT_GEMINI_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_VOICES, IS_VERCEL
-from .counseling import AGENTS, AGENT_CHARACTERS, now_iso, run_counseling_round
+from .counseling import (
+    AGENTS,
+    AGENT_CHARACTERS,
+    generate_winner_reply,
+    is_high_risk,
+    now_iso,
+    run_counseling_round,
+    visible_context,
+)
 from .llm import LLMError
 from .stream import counseling_events, new_client_message
 from .visitor import require_visitor_id
@@ -295,6 +303,59 @@ async def stateless_chat_stream(request: StatelessChatRequest):
         on_finished=_nothing_to_save,
     )
     return StreamingResponse(events, media_type="application/x-ndjson")
+
+
+class DraftCandidate(BaseModel):
+    character: str = Field(max_length=32)
+    name: Optional[str] = Field(default=None, max_length=64)
+    reply: str = Field(max_length=MAX_MESSAGE_LENGTH)
+
+
+class AlternateReplyRequest(BaseModel):
+    character: str = Field(max_length=32)
+    content: str = Field(max_length=MAX_MESSAGE_LENGTH)
+    model: Optional[str] = None
+    lang: Optional[str] = "ja"
+    agents: Optional[List[AgentRequest]] = None
+    history: List[HistoryMessage] = Field(default_factory=list, max_length=MAX_HISTORY_MESSAGES)
+    candidates: List[DraftCandidate] = Field(default_factory=list, max_length=len(AGENT_CHARACTERS))
+
+
+@app.post("/api/chat/alternate")
+async def alternate_reply(request: AlternateReplyRequest):
+    """The reply a non-chosen agent would have given at that moment.
+
+    Generated only when the visitor asks, from the same round's drafts, so
+    nothing is stored and normal rounds stay as fast as before.
+    """
+    content = request.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail={"errors": ["Message is required."]})
+    if request.character not in AGENT_CHARACTERS:
+        raise HTTPException(status_code=400, detail={"errors": ["Unknown agent."]})
+
+    agent = next(agent for agent in validate_agents(request.agents) if agent["character"] == request.character)
+    lang = request.lang or "ja"
+    history = [{"role": m.role, "content": m.content} for m in request.history]
+    context = visible_context([*history, {"role": "client", "content": content}])
+    candidates = [
+        {**candidate.model_dump(), "name": candidate.name or candidate.character}
+        for candidate in request.candidates
+    ]
+    try:
+        reply = await generate_winner_reply(
+            (request.model or DEFAULT_GEMINI_MODEL).strip(),
+            agent,
+            candidates,
+            context,
+            content,
+            is_high_risk(content),
+            lang,
+            was_chosen=False,
+        )
+    except LLMError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    return {"character": request.character, "reply": reply}
 
 
 MAX_TTS_TEXT_LENGTH = 5000

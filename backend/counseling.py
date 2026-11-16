@@ -429,6 +429,7 @@ def winner_reply_prompt(
     client_text: str,
     high_risk: bool,
     lang: str = "ja",
+    was_chosen: bool = True,
 ) -> str:
     safety = ""
     if high_risk:
@@ -448,7 +449,12 @@ Your reply must:
         if high_risk else ""
     )
 
-    return f"""You are an internal counselor agent. Your psychological analysis was chosen as the most insightful by the team.
+    opening = (
+        "Your psychological analysis was chosen as the most insightful by the team."
+        if was_chosen
+        else "Another agent's reply was chosen this time; write the reply you yourself would have given."
+    )
+    return f"""You are an internal counselor agent. {opening}
 
 Agent: {winner_agent['name']} ({winner_agent['character']})
 Persona: {persona}
@@ -637,11 +643,12 @@ async def generate_winner_reply(
     client_text: str,
     high_risk: bool,
     lang: str = "ja",
+    was_chosen: bool = True,
 ) -> str:
     summary = _format_discussion_summary(discussion_candidates)
     raw = await query_llm(
         model,
-        winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk, lang),
+        winner_reply_prompt(winner_agent, summary, conversation_context, client_text, high_risk, lang, was_chosen),
         temperature=0.55,
         max_output_tokens=2048,
     )

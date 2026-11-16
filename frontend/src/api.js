@@ -197,6 +197,17 @@ export const api = {
     await readEventStream(response, onEvent);
   },
 
+  /** The reply a non-chosen agent would have given, made on request. */
+  async alternateReply(payload) {
+    const response = await request('/api/chat/alternate', {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw await parseError(response, 'Failed to make the reply');
+    return response.json();
+  },
+
   /** One counseling round with no server-side storage: the browser sends the history. */
   async sendChatStream({ content, model, lang = 'ja', agents, history }, onEvent) {
     const response = await request('/api/chat/stream', {

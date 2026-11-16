@@ -369,6 +369,29 @@ function App() {
     }
   };
 
+  // "What would this agent have said?" for a past round: made on request from
+  // that round's own moment (the message it answered and the drafts), then kept.
+  const handleRequestAlternate = async (roundId, character) => {
+    const conversation = currentConversation;
+    const round = conversation?.agent_rounds?.find((item) => item.id === roundId);
+    const messages = conversation?.messages || [];
+    const clientIndex = messages.findIndex((message) => message.id === round?.client_message_id);
+    if (!round || clientIndex < 0) throw new Error('This reply can no longer be found.');
+    const drafts = round.rounds?.[0]?.candidates || round.candidates || [];
+    const result = await api.alternateReply({
+      character,
+      content: messages[clientIndex].content,
+      model: model.trim() || 'gemini-2.5-flash',
+      lang,
+      agents: hasCompletePersonas ? toRequestAgents(visibleAgents) : conversation.config?.agents,
+      history: historyFor({ messages: messages.slice(0, clientIndex) }),
+      candidates: drafts.map(({ character: who, name, reply }) => ({ character: who, name, reply: String(reply ?? '') })),
+    });
+    const saved = conversationStore.addAlternate(conversation.id, roundId, character, result.reply);
+    setCurrentConversation(saved);
+    return result.reply;
+  };
+
   const handleTouchStart = (event) => {
     const touch = event.touches[0];
     touchStartRef.current = {
@@ -445,6 +468,7 @@ function App() {
           onAgentsChange={setAgents}
           onSendMessage={handleSendMessage}
           onGoHome={goToLanding}
+          onRequestAlternate={handleRequestAlternate}
           isSidebarCollapsed={isSidebarCollapsed}
           onOpenSidebar={toggleSidebar}
           sending={sending}

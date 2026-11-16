@@ -16,10 +16,26 @@ const reviewsOf = (character, peerScores = []) => peerScores.flatMap((judgeResul
 // other four scored it, one row at a time.
 export default function ScoreList({
   agents, candidates, peerScores, winnerCharacter, scoreOf, maxScore, characters, labels, formatText, formatScore,
+  roundId, alternates = {}, canAskAlternate, onRequestAlternate,
 }) {
   const [openCharacter, setOpenCharacter] = useState(null);
   const [isDraftExpanded, setIsDraftExpanded] = useState(false);
   const idPrefix = useId();
+  const [loadingCharacter, setLoadingCharacter] = useState(null);
+  const [failedCharacter, setFailedCharacter] = useState(null);
+
+  const askAlternate = async (character) => {
+    setLoadingCharacter(character);
+    setFailedCharacter(null);
+    try {
+      await onRequestAlternate(roundId, character);
+    } catch (err) {
+      console.error('Alternate reply failed:', err);
+      setFailedCharacter(character);
+    } finally {
+      setLoadingCharacter(null);
+    }
+  };
   const nameOf = (character) => characters[agentIndex(character)]?.name || character;
 
   const toggle = (character) => {
@@ -74,6 +90,26 @@ export default function ScoreList({
                       </button>
                     )}
                   </>
+                )}
+                {character !== winnerCharacter && (alternates[character] || canAskAlternate) && (
+                  <div className="alt-reply">
+                    <span className="score-details-label">{labels.altTitle.replace('{name}', nameOf(character))}</span>
+                    {alternates[character] ? (
+                      <p className="alt-reply-text">{formatText(alternates[character])}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        className="alt-reply-button"
+                        disabled={loadingCharacter === character}
+                        onClick={() => askAlternate(character)}
+                      >
+                        {loadingCharacter === character
+                          ? <><span className="alt-reply-dots" aria-hidden="true"><b /><b /><b /></span>{labels.altLoading.replace('{name}', nameOf(character))}</>
+                          : labels.altButton.replace('{name}', nameOf(character))}
+                      </button>
+                    )}
+                    {failedCharacter === character && <p className="alt-reply-error" role="alert">{labels.altError}</p>}
+                  </div>
                 )}
                 {reviews.length > 0 && (
                   <>

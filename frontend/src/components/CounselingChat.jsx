@@ -145,6 +145,7 @@ export default function CounselingChat({
   onAgentsChange,
   onSendMessage,
   onGoHome,
+  onRequestAlternate,
   isSidebarCollapsed,
   onOpenSidebar,
   sending,
@@ -527,6 +528,10 @@ export default function CounselingChat({
                       labels={c.scoreDetails}
                       formatText={displayText}
                       formatScore={formatScore}
+                      roundId={reviewRound?.id}
+                      alternates={reviewRound?.alternates}
+                      canAskAlternate={!sending && Boolean(reviewRound?.id) && rounds.some((round) => round.id === reviewRound?.id)}
+                      onRequestAlternate={onRequestAlternate}
                     />
 
                   </div>
@@ -666,6 +671,10 @@ export default function CounselingChat({
                     labels={c.scoreDetails}
                     formatText={displayText}
                     formatScore={formatScore}
+                    roundId={reviewRound?.id}
+                    alternates={reviewRound?.alternates}
+                    canAskAlternate={!sending && Boolean(reviewRound?.id) && rounds.some((round) => round.id === reviewRound?.id)}
+                    onRequestAlternate={onRequestAlternate}
                   />
                 </div>
 
