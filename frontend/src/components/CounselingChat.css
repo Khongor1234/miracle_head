@@ -3505,3 +3505,42 @@
 @media (max-width: 1360px) {
   .header-team-text { display: none; }
 }
+
+/* Read more inside the review card */
+.review-spot-card {
+  height: 132px;
+}
+
+.review-spot.is-expanded .review-spot-card {
+  height: auto;
+  min-height: 132px;
+}
+
+.review-spot.is-expanded .review-spot-note {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.review-spot-more {
+  min-height: 28px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hq-purple);
+  cursor: pointer;
+}
+
+.review-spot-more:hover {
+  text-decoration: underline;
+}
+
+.review-spot-more:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

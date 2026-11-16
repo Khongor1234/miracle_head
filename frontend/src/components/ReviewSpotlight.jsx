@@ -5,6 +5,8 @@ import { usePrefersReducedMotion } from '../hooks/useMotion';
 const ADVANCE_MS = 4500;
 // While reviews stream in, step through each new one quickly, never skipping.
 const CATCH_UP_MS = 1200;
+// Longer notes are clamped in the card and get a Read more toggle.
+const NOTE_CLAMP_CHARS = 110;
 
 // Every peer review as one list: who scored whom, the score and the reason.
 function flattenReviews(peerScores = []) {
@@ -26,11 +28,14 @@ export default function ReviewSpotlight({ peerScores, characters, labels, isLive
   const [isFollowing, setIsFollowing] = useState(true);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  // The review being read in full; moving to another review closes it.
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
   const total = reviews.length;
   const current = Math.min(index, total - 1);
-  const isPlaying = !isLive && total > 1 && !isPausedByUser && !isHovered && !isReducedMotion;
-  const isCatchingUp = isLive && isFollowing && current < total - 1;
+  const isExpanded = expandedIndex === current;
+  const isPlaying = !isLive && total > 1 && !isPausedByUser && !isHovered && !isReducedMotion && !isExpanded;
+  const isCatchingUp = isLive && isFollowing && !isExpanded && current < total - 1;
 
   useEffect(() => {
     if (!isPlaying) return undefined;
@@ -57,7 +62,7 @@ export default function ReviewSpotlight({ peerScores, characters, labels, isLive
 
   return (
     <section
-      className={`review-spot${isPlaying ? ' is-playing' : ''}`}
+      className={`review-spot${isPlaying ? ' is-playing' : ''}${isExpanded ? ' is-expanded' : ''}`}
       aria-roledescription="carousel"
       aria-label={labels.title}
       onMouseEnter={() => setIsHovered(true)}
@@ -84,6 +89,16 @@ export default function ReviewSpotlight({ peerScores, characters, labels, isLive
           <strong className="review-spot-score">{review.score.toFixed(1)}</strong>
         </div>
         <p className="review-spot-note">{review.note || labels.noNote}</p>
+        {review.note.length > NOTE_CLAMP_CHARS && (
+          <button
+            type="button"
+            className="review-spot-more"
+            aria-expanded={isExpanded}
+            onClick={() => setExpandedIndex(isExpanded ? null : current)}
+          >
+            {isExpanded ? labels.less : labels.more}
+          </button>
+        )}
       </div>
 
       <div className="review-spot-controls">

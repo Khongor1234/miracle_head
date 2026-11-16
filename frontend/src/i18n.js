@@ -91,6 +91,8 @@ export const translations = {
         next: '次のレビュー',
         pause: '自動再生を止める',
         play: '自動再生する',
+        more: 'もっと見る',
+        less: '閉じる',
       },
       modelTags: { recommended: 'おすすめ', fast: '速い', new: '新しい', preview: '試験版' },
       modelNotes: {
@@ -249,6 +251,8 @@ export const translations = {
         next: 'Next review',
         pause: 'Pause',
         play: 'Play',
+        more: 'Read more',
+        less: 'Show less',
       },
       modelTags: { recommended: 'Best pick', fast: 'Fast', new: 'New', preview: 'Preview' },
       modelNotes: {
