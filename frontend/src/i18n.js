@@ -83,6 +83,15 @@ export const translations = {
       selectedAgent: 'が選ばれました',
       councilEyebrow: 'あなたのカウンセリングチーム',
       homeLabel: 'トップ',
+      reviewSpot: {
+        title: 'お互いのレビュー',
+        liveTitle: 'いま届いたレビュー',
+        noNote: '採点のみ（コメントなし）',
+        previous: '前のレビュー',
+        next: '次のレビュー',
+        pause: '自動再生を止める',
+        play: '自動再生する',
+      },
       modelTags: { recommended: 'おすすめ', fast: '速い', new: '新しい', preview: '試験版' },
       modelNotes: {
         recommended: '速さと深さのバランスがよい標準モデル',
@@ -229,6 +238,15 @@ export const translations = {
       selectedAgent: 'was selected',
       councilEyebrow: 'Your counseling team',
       homeLabel: 'Home',
+      reviewSpot: {
+        title: 'Peer reviews',
+        liveTitle: 'Latest review',
+        noNote: 'Score only (no comment)',
+        previous: 'Previous review',
+        next: 'Next review',
+        pause: 'Pause',
+        play: 'Play',
+      },
       modelTags: { recommended: 'Best pick', fast: 'Fast', new: 'New', preview: 'Preview' },
       modelNotes: {
         recommended: 'A balanced default for speed and depth',
@@ -237,7 +255,7 @@ export const translations = {
         preview: 'A preview: its replies may change',
       },
       councilListening: 'All five are listening to you',
-      teamOnline: '5 agents ready',
+      teamOnline: 'Team ready',
       process: {
         title: 'How a reply is made',
         steps: [

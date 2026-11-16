@@ -9,6 +9,7 @@ import PersonaEditor from './PersonaEditor';
 import ModelPicker from './ModelPicker';
 import ReplyText from './ReplyText';
 import LangSwitch from './LangSwitch';
+import ReviewSpotlight from './ReviewSpotlight';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -519,6 +520,14 @@ export default function CounselingChat({
 
                   </div>
 
+                  <ReviewSpotlight
+                    key={isLiveReview ? 'live' : reviewRound?.id ?? 'none'}
+                    peerScores={reviewRound?.peer_scores}
+                    characters={t.characters}
+                    isLive={isLiveReview}
+                    labels={c.reviewSpot}
+                  />
+
                   {/* ── Winner reply ── */}
                   {finalWinnerReady && (
                     <div className={`panel-winner-card ${agentClass(winnerCharacter)}`}>
@@ -654,6 +663,14 @@ export default function CounselingChat({
                     })}
                   </div>
                 </div>
+
+                <ReviewSpotlight
+                  key={isLiveReview ? 'live' : reviewRound?.id ?? 'none'}
+                  peerScores={reviewRound?.peer_scores}
+                  characters={t.characters}
+                  isLive={isLiveReview}
+                  labels={c.reviewSpot}
+                />
 
                 {/* Winner reply */}
                 {finalWinnerReady && (

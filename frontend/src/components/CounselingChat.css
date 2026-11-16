@@ -3234,3 +3234,165 @@
 .bubble-markdown {
   white-space: normal;
 }
+
+/* ═══ Peer reviews, one at a time ═════════════════════════════ */
+.review-spot {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 22px rgba(100, 70, 180, 0.1);
+}
+
+.review-spot-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hq-purple);
+}
+
+.review-spot-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--hq-text-3);
+}
+
+/* Fixed height: the panel never grows while reviews stream in. */
+.review-spot-card {
+  height: 112px;
+  overflow: hidden;
+  animation: review-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes review-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.review-spot-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.review-spot-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--agent-color);
+  white-space: nowrap;
+}
+
+.review-spot-agent img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--agent-color) 40%, transparent);
+}
+
+.review-spot-arrow {
+  color: var(--hq-text-3);
+  font-size: 12px;
+}
+
+.review-spot-score {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(124, 92, 191, 0.12);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--hq-purple);
+}
+
+.review-spot-note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--hq-text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-spot-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.review-spot-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(140, 110, 200, 0.2);
+  border-radius: 50%;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--hq-text-2);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.review-spot-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(100, 70, 180, 0.14);
+}
+
+.review-spot-btn:active {
+  transform: scale(0.94);
+}
+
+.review-spot-btn:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: 2px;
+}
+
+.review-spot-progress {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(124, 92, 191, 0.14);
+  overflow: hidden;
+}
+
+.review-spot-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd66b, #e87fb4, #8a68cc);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.review-spot.is-playing .review-spot-progress span {
+  animation: review-progress var(--advance-ms, 4500ms) linear both;
+}
+
+@keyframes review-progress {
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-spot-card { animation: none; }
+  .review-spot.is-playing .review-spot-progress span { animation: none; }
+  .review-spot-btn { transition: none; }
+}
