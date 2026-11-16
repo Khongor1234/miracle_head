@@ -12,6 +12,7 @@ import LangSwitch from './LangSwitch';
 import ReviewSpotlight from './ReviewSpotlight';
 import WinnerReason from './WinnerReason';
 import DraftStrip from './DraftStrip';
+import ScoreList from './ScoreList';
 import LoopVideo from './LoopVideo';
 import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
@@ -514,27 +515,19 @@ export default function CounselingChat({
                     </div>
 
                     {/* Reflection — each agent + their score */}
-                    <div className="panel-reflection-list">
-                      {activeAgents.map((agent) => {
-                        const score = agentScore(agent.character);
-                        const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
-                        const isWinner = agent.character === winnerCharacter;
-                        return (
-                          <div className={`panel-reflection-item ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={`r2-${agent.character}`}>
-                            <div className="panel-reflection-head">
-                              {CHARACTER_IMGS[agent.character] && (
-                                <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
-                              )}
-                              <span className="panel-agent-name">{jpName(agent.character, lang)}</span>
-                              <div className="panel-score-bar">
-                                <div className="panel-score-fill" style={{ width: `${pct}%` }} />
-                              </div>
-                              <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <ScoreList
+                      key={reviewRound?.id ?? 'live'}
+                      agents={activeAgents}
+                      candidates={round1Candidates}
+                      peerScores={reviewRound?.peer_scores}
+                      winnerCharacter={winnerCharacter}
+                      scoreOf={agentScore}
+                      maxScore={maxScore}
+                      characters={t.characters}
+                      labels={c.scoreDetails}
+                      formatText={displayText}
+                      formatScore={formatScore}
+                    />
 
                   </div>
 
@@ -661,27 +654,19 @@ export default function CounselingChat({
                       {finalWinnerReady ? c.roundDone : round1AllDone && sending ? c.roundScoring : c.roundWaiting}
                     </span>
                   </div>
-                  <div className="panel-reflection-list">
-                    {activeAgents.map((agent) => {
-                      const score = agentScore(agent.character);
-                      const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
-                      const isWinner = agent.character === winnerCharacter;
-                      return (
-                        <div className={`panel-reflection-item ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={`dr2-${agent.character}`}>
-                          <div className="panel-reflection-head">
-                            {CHARACTER_IMGS[agent.character] && (
-                              <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="panel-agent-av" />
-                            )}
-                            <span className="panel-agent-name">{jpName(agent.character, lang)}</span>
-                            <div className="panel-score-bar">
-                              <div className="panel-score-fill" style={{ width: `${pct}%` }} />
-                            </div>
-                            <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ScoreList
+                    key={reviewRound?.id ?? 'live'}
+                    agents={activeAgents}
+                    candidates={round1Candidates}
+                    peerScores={reviewRound?.peer_scores}
+                    winnerCharacter={winnerCharacter}
+                    scoreOf={agentScore}
+                    maxScore={maxScore}
+                    characters={t.characters}
+                    labels={c.scoreDetails}
+                    formatText={displayText}
+                    formatScore={formatScore}
+                  />
                 </div>
 
                 <ReviewSpotlight
