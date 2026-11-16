@@ -1,7 +1,7 @@
 {
   "name": "Miracle Head — AI感情カウンセリング",
   "short_name": "Miracle Head",
-  "start_url": "/#app",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ece3fb",
