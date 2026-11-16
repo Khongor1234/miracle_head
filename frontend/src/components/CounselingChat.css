@@ -3879,3 +3879,29 @@
   .alt-reply-dots b { animation: none; }
   .alt-reply-button { transition: none; }
 }
+
+/* A reply's portrait opens that reply's round */
+.agent-portrait.is-button {
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.agent-portrait.is-button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--agent-color) 40%, transparent);
+}
+
+.agent-portrait.is-button:active {
+  transform: scale(0.95);
+}
+
+.agent-portrait.is-button:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.7);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-portrait.is-button { transition: none; }
+}

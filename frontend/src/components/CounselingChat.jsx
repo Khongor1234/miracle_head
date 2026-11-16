@@ -81,15 +81,20 @@ const displayText = (value) => {
   return current || text;
 };
 
-function CounselorAvatar({ sourceAgent, isReducedMotion }) {
+function CounselorAvatar({ sourceAgent, isReducedMotion, onOpen, label }) {
   const [isHovered, setIsHovered] = useState(false);
   if (!CHARACTER_IMGS[sourceAgent]) return <div className="avatar-initials">相</div>;
-  // The agent who wrote the reply; its Higgsfield loop plays on hover.
+  // The agent who wrote the reply; its Higgsfield loop plays on hover, and a
+  // click opens that reply's round in the panel.
+  const Tag = onOpen ? 'button' : 'div';
   return (
-    <div
-      className={`avatar agent-portrait ${agentClass(sourceAgent)}`}
+    <Tag
+      {...(onOpen ? { type: 'button', onClick: onOpen, 'aria-label': label, title: label } : {})}
+      className={`avatar agent-portrait ${agentClass(sourceAgent)}${onOpen ? ' is-button' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
     >
       <LoopVideo
         className="agent-portrait-video"
@@ -99,7 +104,7 @@ function CounselorAvatar({ sourceAgent, isReducedMotion }) {
         isReducedMotion={isReducedMotion}
         label={sourceAgent}
       />
-    </div>
+    </Tag>
   );
 }
 
@@ -383,7 +388,16 @@ export default function CounselingChat({
             >
               {message.role === 'client'
                 ? <ClientAvatar />
-                : <CounselorAvatar sourceAgent={message.source_agent} isReducedMotion={isReducedMotion} />
+                : (
+                  <CounselorAvatar
+                    sourceAgent={message.source_agent}
+                    isReducedMotion={isReducedMotion}
+                    label={c.openRoundFromAvatar.replace('{name}', t.characters[AGENT_ORDER.indexOf(message.source_agent)]?.name || message.source_agent)}
+                    onOpen={message.source_round_id && rounds.some((round) => round.id === message.source_round_id)
+                      ? () => showRound(message.source_round_id)
+                      : undefined}
+                  />
+                )
               }
               <div className={`bubble${message.role === 'counselor' && message.source_agent ? ` ${agentClass(message.source_agent)}` : ''}`}>
                 {message.source_agent && message.role === 'counselor' && (
