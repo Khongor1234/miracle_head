@@ -4,11 +4,11 @@ import { api } from '../api';
 import './CounselingChat.css';
 
 const CHARACTER_IMGS = {
-  Joy:     '/characters/joy.png',
-  Sadness: '/characters/sadness.png',
-  Anger:   '/characters/anger.png',
-  Fear:    '/characters/fear.png',
-  Disgust: '/characters/disgust.png',
+  Joy:     '/characters/avatars/joy.webp',
+  Sadness: '/characters/avatars/sadness.webp',
+  Anger:   '/characters/avatars/anger.webp',
+  Fear:    '/characters/avatars/fear.webp',
+  Disgust: '/characters/avatars/disgust.webp',
 };
 
 const CHARACTER_JP = {
@@ -291,7 +291,7 @@ export default function CounselingChat({
           {messages.length === 0 && (
             <div className="empty-chat">
               <div className="empty-chat-avatar">
-                <img src="/characters/joy.png" alt={c.counselorName} />
+                <img src="/characters/avatars/joy.webp" alt={c.counselorName} />
               </div>
               <p className="empty-chat-label">{c.counselorName}</p>
               <p>{c.counselorGreeting}</p>

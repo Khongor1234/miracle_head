@@ -78,10 +78,18 @@
 
 /* ─── Hero ─────────────────────────────────────────────────── */
 .landing-hero {
+  position: relative;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 64px 48px 72px;
+  text-align: center;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
   max-width: 760px;
   margin: 0 auto;
-  padding: 100px 48px 80px;
-  text-align: center;
 }
 
 .landing-chip {
@@ -209,13 +217,14 @@
 }
 
 .character-avatar {
+  position: relative;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  height: 160px;
+  aspect-ratio: 1 / 1;
   margin-bottom: 8px;
+  border-radius: 14px;
   overflow: hidden;
+  background: var(--c-tint);
+  isolation: isolate;
 }
 
 .character-img {
@@ -232,11 +241,11 @@
 }
 
 /* Character accent colors */
-.character-joy     { --c-accent: #c09020; }
-.character-sadness { --c-accent: #4a7fc0; }
-.character-anger   { --c-accent: #c04040; }
-.character-fear    { --c-accent: #7a4ab8; }
-.character-disgust { --c-accent: #3a9060; }
+.character-joy     { --c-accent: #c09020; --c-tint: #fdf0c4; }
+.character-sadness { --c-accent: #4a7fc0; --c-tint: #dce7fb; }
+.character-anger   { --c-accent: #c04040; --c-tint: #fde0d7; }
+.character-fear    { --c-accent: #7a4ab8; --c-tint: #ece2fc; }
+.character-disgust { --c-accent: #3a9060; --c-tint: #def3e4; }
 
 .character-card:hover {
   border-color: var(--c-accent);
@@ -562,4 +571,307 @@
     padding: 16px 20px;
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
+}
+
+/* ═══ Motion layer ═══════════════════════════════════════════
+   Hero entrance, drifting orbs, the Higgsfield hero clip, scroll
+   reveals, card tilt and the character loops. Everything below is
+   switched off for prefers-reduced-motion at the end of the file. */
+
+:root {
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Hero entrance */
+.hero-enter {
+  display: inline-block;
+  animation: hero-enter 0.9s var(--ease-out-soft) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.landing-sub.hero-enter { display: block; }
+
+@keyframes hero-enter {
+  from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+/* Soft emotion-coloured orbs drifting behind the hero */
+.hero-orbs {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-orb {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+  animation: orb-drift 18s ease-in-out infinite alternate;
+}
+
+.orb-joy     { background: #ffd66b; top: 4%;  left: 6%;  animation-duration: 17s; }
+.orb-sadness { background: #8fb3f5; top: 30%; left: -4%; animation-duration: 21s; }
+.orb-anger   { background: #ff9a84; top: 6%;  right: 4%; animation-duration: 19s; }
+.orb-fear    { background: #c3a4f5; top: 34%; right: -3%; animation-duration: 23s; }
+.orb-disgust { background: #96dcae; top: 52%; left: 42%; animation-duration: 20s; opacity: 0.3; }
+
+@keyframes orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(40px, -30px, 0) scale(1.15); }
+}
+
+/* Hero stage — the Higgsfield loop */
+.hero-stage {
+  --mx: 0;
+  --my: 0;
+  position: relative;
+  z-index: 1;
+  margin: 44px auto 0;
+  max-width: 1040px;
+  perspective: 1400px;
+}
+
+.hero-stage-inner {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #d9cdf3 url('/motion/hero.webp') center / cover no-repeat;
+  box-shadow:
+    0 30px 80px rgba(90, 60, 170, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transform: rotateX(calc(var(--my) * -3deg)) rotateY(calc(var(--mx) * 4deg));
+  transition: transform 0.5s var(--ease-out-soft);
+}
+
+.hero-stage-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at calc(50% + var(--mx) * 30%) calc(30% + var(--my) * 30%),
+    rgba(255, 255, 255, 0.28),
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
+.hero-stage-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Scroll reveal (uses the individual `translate` property so hover
+   transforms on the same element keep working) */
+[data-reveal] {
+  opacity: 0;
+  translate: 0 28px;
+  transition:
+    opacity 0.8s var(--ease-out-soft),
+    translate 0.8s var(--ease-out-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal][data-revealed] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* The steps container reveals its children one after another */
+.landing-steps[data-reveal] { opacity: 1; translate: none; }
+
+.landing-steps[data-reveal] .landing-step {
+  opacity: 0;
+  translate: 0 24px;
+  transition: opacity 0.7s var(--ease-out-soft), translate 0.7s var(--ease-out-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.landing-steps[data-revealed] .landing-step {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.landing-steps { position: relative; }
+
+.landing-steps::before {
+  content: '';
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffd66b, #8fb3f5, #ff9a84, #c3a4f5, #96dcae);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1.4s var(--ease-out-soft) 0.2s;
+  opacity: 0.55;
+  z-index: 0;
+}
+
+.landing-steps[data-revealed]::before { transform: scaleX(1); }
+
+.landing-step { position: relative; z-index: 1; }
+
+.step-number {
+  display: inline-block;
+  width: fit-content;
+  padding-right: 10px;
+  background: linear-gradient(135deg, #7c5cbf, #c39be8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-color: transparent;
+}
+
+/* Character cards — tilt, lift and the idle loop */
+.character-card {
+  --mx: 0;
+  --my: 0;
+  --lift: 0px;
+  transform:
+    perspective(900px)
+    rotateX(calc(var(--my) * -5deg))
+    rotateY(calc(var(--mx) * 6deg))
+    translateY(var(--lift));
+  transition:
+    border-color 0.25s,
+    box-shadow 0.35s,
+    transform 0.35s var(--ease-out-soft),
+    opacity 0.8s var(--ease-out-soft),
+    translate 0.8s var(--ease-out-soft);
+  transition-delay: 0ms, 0ms, 0ms, var(--reveal-delay, 0ms), var(--reveal-delay, 0ms);
+  outline: none;
+}
+
+.character-card:hover,
+.character-card:focus-visible {
+  --lift: -6px;
+  transform:
+    perspective(900px)
+    rotateX(calc(var(--my) * -5deg))
+    rotateY(calc(var(--mx) * 6deg))
+    translateY(var(--lift));
+  border-color: var(--c-accent);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--c-accent) 22%, transparent);
+}
+
+.character-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 45%, transparent);
+}
+
+.character-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.02);
+  transition: transform 0.6s var(--ease-out-soft);
+}
+
+.character-card.is-playing .character-video {
+  transform: scale(1.08);
+}
+
+.character-glow {
+  position: absolute;
+  inset: auto 10% -30% 10%;
+  height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c-accent) 45%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.5s;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.character-card.is-playing .character-glow { opacity: 0.6; }
+
+/* Footer CTA — the team bobbing together */
+.footer-cta-faces {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.footer-cta-faces img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 22px rgba(100, 70, 180, 0.18);
+  animation: face-bob 3.2s ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s);
+}
+
+@keyframes face-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.landing-disclaimer {
+  max-width: 560px;
+  margin: 28px auto 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #7a6aa8;
+  text-wrap: pretty;
+}
+
+.landing-cta .landing-cta-arrow {
+  transition: transform 0.25s var(--ease-out-soft);
+}
+
+.landing-cta:hover .landing-cta-arrow {
+  transform: translateX(4px);
+}
+
+@media (max-width: 1024px) {
+  .landing-steps::before { display: none; }
+}
+
+@media (max-width: 768px) {
+  .landing-hero { padding-top: 56px; padding-bottom: 48px; }
+  .hero-stage { margin-top: 36px; }
+  .hero-stage-inner { border-radius: 18px; transform: none; }
+  .hero-orb { width: 180px; height: 180px; }
+  .character-avatar { height: auto; }
+  /* The cards sit in a sideways carousel here; revealing them one by one
+     as they are swiped in would look broken, so they are simply shown. */
+  .character-card[data-reveal] { opacity: 1; translate: none; }
+  .landing-character-grid { scroll-padding-inline: 20px; }
+  .footer-cta-faces img { width: 44px; height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter,
+  .hero-orb,
+  .footer-cta-faces img { animation: none; }
+
+  [data-reveal],
+  .landing-steps[data-reveal] .landing-step {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+
+  .landing-steps::before { transform: scaleX(1); transition: none; }
+
+  .character-card,
+  .character-card:hover,
+  .hero-stage-inner { transform: none; transition: none; }
 }
