@@ -14,6 +14,22 @@ const DEFAULT_REVIEW_ROUNDS = 2;
 // The app view lives at #app so the browser's Back button returns to the landing page.
 const APP_HASH = '#app';
 const isAppUrl = () => window.location.hash === APP_HASH;
+// Whether the history sidebar is slid shut on wide screens (a per-browser preference).
+const SIDEBAR_KEY = 'miracle_head_sidebar_collapsed';
+const readSidebarCollapsed = () => {
+  try {
+    return window.localStorage.getItem(SIDEBAR_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+const saveSidebarCollapsed = (isCollapsed) => {
+  try {
+    window.localStorage.setItem(SIDEBAR_KEY, isCollapsed ? '1' : '0');
+  } catch {
+    // Storage blocked: the choice simply lasts until the page reloads.
+  }
+};
 
 const emptyReviewRound = (roundNumber) => ({
   round_number: roundNumber,
@@ -57,6 +73,7 @@ function App() {
   const [error, setError] = useState('');
   const [liveRound, setLiveRound] = useState(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(readSidebarCollapsed);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const touchStartRef = useRef(null);
@@ -71,6 +88,17 @@ function App() {
     window.addEventListener('popstate', onHistoryChange);
     return () => window.removeEventListener('popstate', onHistoryChange);
   }, []);
+
+  const toggleSidebar = () => {
+    const willCollapse = !isSidebarCollapsed;
+    saveSidebarCollapsed(willCollapse);
+    setIsSidebarCollapsed(willCollapse);
+    // The button just pressed disappears, so hand keyboard focus to its counterpart.
+    requestAnimationFrame(() => {
+      const target = willCollapse ? '.sidebar-open-btn' : '.sidebar-collapse-btn';
+      document.querySelector(target)?.focus({ preventScroll: true });
+    });
+  };
 
   const enterApp = () => {
     if (!isAppUrl()) window.history.pushState(null, '', APP_HASH);
@@ -371,7 +399,7 @@ function App() {
 
   return (
     <div
-      className={`app ${mobileSidebarOpen ? 'sidebar-open' : ''}`}
+      className={`app${mobileSidebarOpen ? ' sidebar-open' : ''}${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -396,6 +424,7 @@ function App() {
         onNewConversation={handleNewConversation}
         onDeleteConversation={handleDeleteConversation}
         onGoHome={goToLanding}
+        onCollapse={toggleSidebar}
       />
       <main className="main-content">
         <CounselingChat
@@ -408,6 +437,8 @@ function App() {
           onAgentsChange={setAgents}
           onSendMessage={handleSendMessage}
           onGoHome={goToLanding}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onOpenSidebar={toggleSidebar}
           sending={sending}
           liveRound={liveRound}
           error={error}

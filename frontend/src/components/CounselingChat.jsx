@@ -4,8 +4,10 @@ import { api } from '../api';
 import ThinkingIndicator from './ThinkingIndicator';
 import CouncilWelcome from './CouncilWelcome';
 import TeamPick from './TeamPick';
+import ProcessDiagram from './ProcessDiagram';
+import PersonaEditor from './PersonaEditor';
 import LoopVideo from './LoopVideo';
-import { agentFrame, agentLoop } from '../agentAssets';
+import { AGENT_ORDER, agentAvatar, agentFrame, agentLoop } from '../agentAssets';
 import { usePrefersReducedMotion } from '../hooks/useMotion';
 import './CounselingChat.css';
 
@@ -32,7 +34,6 @@ const isNetworkError = (message) => NETWORK_ERROR_PATTERN.test(String(message ||
 
 const agentClass = (character) => `agent-${String(character || '').toLowerCase()}`;
 const scoreValue = (item) => item?.weighted_total ?? item?.average_weighted_total ?? item?.total ?? item?.average_total ?? 0;
-const discussionItems = (round) => (round.discussion || []).filter((item) => item.type === 'candidate');
 const formatScore = (value) => {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return '0';
@@ -137,6 +138,8 @@ export default function CounselingChat({
   onAgentsChange,
   onSendMessage,
   onGoHome,
+  isSidebarCollapsed,
+  onOpenSidebar,
   sending,
   liveRound,
   error,
@@ -148,7 +151,6 @@ export default function CounselingChat({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [personaOpen, setPersonaOpen] = useState(false);
   const [agentPanelTab, setAgentPanelTab] = useState('process');
-  const [messagesVisible, setMessagesVisible] = useState(true);
   const [ttsPlayingId, setTtsPlayingId] = useState(null);
   const [ttsLoadingId, setTtsLoadingId] = useState(null);
   const isReducedMotion = usePrefersReducedMotion();
@@ -233,9 +235,6 @@ export default function CounselingChat({
     const entry = finalTotals.find((t) => t.character === character);
     return entry != null ? scoreValue(entry) : null;
   };
-  const latestRound = displayRounds.length ? displayRounds[displayRounds.length - 1] : null;
-  const latestDiscussion = latestRound ? discussionItems(latestRound) : [];
-  const round2PeerScores = latestRound?.peer_scores || [];
   const maxScore = finalTotals.length ? Math.max(...finalTotals.map((t) => scoreValue(t))) : 1;
   const winnerCharacter = reviewRound?.winner?.character;
 
@@ -268,6 +267,36 @@ export default function CounselingChat({
 
   const resetPersonas = () => onAgentsChange(defaultAgents.map((agent) => ({ ...agent })));
 
+  const resetPersona = (character) => {
+    const original = defaultAgents.find((agent) => agent.character === character);
+    if (original) updatePersona(character, original.persona);
+  };
+
+  const personaEditorProps = {
+    agents: activeAgents,
+    defaultAgents,
+    characters: t.characters,
+    isLocked: personasLocked,
+    hasError: personaError,
+    onChange: updatePersona,
+    onResetAll: resetPersonas,
+    onResetOne: resetPersona,
+    labels: {
+      locked: c.locked,
+      editable: c.editable,
+      resetAll: c.resetBtn,
+      editedCount: c.personaEditedCount,
+      intro: c.personaIntro,
+      edited: c.personaEdited,
+      empty: c.personaEmpty,
+      fieldLabel: c.personaFieldLabel,
+      resetOne: c.personaResetOne,
+      error: c.personaError,
+      roundsLabel: c.reviewRoundsLabel,
+      roundsValue: c.reviewRoundsFixed,
+    },
+  };
+
   const openPersonas = () => { setPersonaOpen(true); setReviewOpen(false); };
   const openReview  = () => { setReviewOpen(true);  setPersonaOpen(false); };
 
@@ -277,13 +306,30 @@ export default function CounselingChat({
 
         {/* ── Header ── */}
         <header className="chat-header">
+          <button
+            className={`sidebar-open-btn${isSidebarCollapsed ? ' is-shown' : ''}`}
+            type="button"
+            onClick={onOpenSidebar}
+            aria-label={t.sidebar.openLabel}
+            aria-expanded={!isSidebarCollapsed}
+            tabIndex={isSidebarCollapsed ? 0 : -1}
+          >
+            <span aria-hidden="true">☰</span>
+            <span className="sidebar-open-label">{t.sidebar.historyLabel}</span>
+          </button>
           <button className="home-btn" type="button" onClick={onGoHome} aria-label={c.homeAria}>
             <span className="home-btn-arrow" aria-hidden="true">←</span>
             <span className="home-btn-label">{c.homeLabel}</span>
           </button>
           <div className="chat-header-title">
             <h1>{c.title}</h1>
-            <p>{c.subtitle}</p>
+            <p className="header-team">
+              <span className="header-team-faces" aria-hidden="true">
+                {AGENT_ORDER.map((character) => <img key={character} src={agentAvatar(character)} alt="" />)}
+              </span>
+              <span className={`header-team-dot${sending ? ' is-busy' : ''}`} aria-hidden="true" />
+              <span className="header-team-text">{sending ? c.thinking.starting : c.teamOnline}</span>
+            </p>
           </div>
           <div className="header-controls">
             <button
@@ -315,7 +361,8 @@ export default function CounselingChat({
         <div className="message-list">
           {messages.length === 0 && (
             <CouncilWelcome
-              labels={{ eyebrow: c.councilEyebrow, greeting: c.counselorGreeting }}
+              labels={{ eyebrow: c.councilEyebrow, listening: c.councilListening, greeting: c.counselorGreeting }}
+              isListening={draft.trim().length > 0}
               characters={t.characters}
               suggestions={c.suggestions}
               disabled={sending}
@@ -378,7 +425,7 @@ export default function CounselingChat({
         {error && <div className="chat-error" role="alert">{isNetworkError(error) ? c.networkError : error}</div>}
 
         {/* ── Input ── */}
-        <form className="message-form" onSubmit={submit}>
+        <form className={`message-form${draft.trim() ? ' is-ready' : ''}`} onSubmit={submit}>
           <textarea
             ref={textareaRef}
             value={draft}
@@ -415,17 +462,9 @@ export default function CounselingChat({
         <div className="panel-content">
           {agentPanelTab === 'process' && (
             <div>
-              {/* Global message toggle */}
-              <button
-                className="panel-msg-toggle"
-                type="button"
-                onClick={() => setMessagesVisible((v) => !v)}
-              >
-                {messagesVisible ? (c.hideMessages ?? 'メッセージを隠す') : (c.showMessages ?? 'メッセージを表示')}
-              </button>
 
               {!reviewRound && !sending ? (
-                <div className="panel-idle">{c.panelIdleMsg}</div>
+                <ProcessDiagram labels={{ ...c.process, hint: c.panelIdleMsg }} />
               ) : (
                 <>
                   {/* ── Round 1 — 議論 ── */}
@@ -454,24 +493,6 @@ export default function CounselingChat({
                         </div>
                       ))}
                     </div>
-
-                    {/* Round 1 candidate reply messages */}
-                    {messagesVisible && round1Candidates.length > 0 && (
-                      <div className="panel-msg-list">
-                        {round1Candidates.map((candidate) => (
-                          <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`r1-${candidate.character}`}>
-                            <div className="panel-msg-head">
-                              {CHARACTER_IMGS[candidate.character] && (
-                                <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
-                              )}
-                              <strong>{jpName(candidate.character, lang)}</strong>
-                            </div>
-                            <p>{displayText(candidate.reply)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
                   </div>
 
                   {/* ── Round 2 — 振り返り & 議論 ── */}
@@ -489,7 +510,6 @@ export default function CounselingChat({
                         const score = agentScore(agent.character);
                         const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
                         const isWinner = agent.character === winnerCharacter;
-                        const peerEntry = round2PeerScores.find((ps) => ps.character === agent.character);
                         return (
                           <div className={`panel-reflection-item ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={`r2-${agent.character}`}>
                             <div className="panel-reflection-head">
@@ -502,44 +522,11 @@ export default function CounselingChat({
                               </div>
                               <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
                             </div>
-                            {messagesVisible && peerEntry?.scores?.length > 0 && (
-                              <div className="panel-peer-list">
-                                {peerEntry.scores.map((ps) => (
-                                  <div className={`panel-peer-item ${agentClass(ps.character)}`} key={`ps-${agent.character}-${ps.character}`}>
-                                    <span className="panel-peer-name">{ps.character}</span>
-                                    <b className="panel-peer-score-num">{ps.score ?? '—'}</b>
-                                    {ps.comment && <p>{ps.comment}</p>}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Round 2 Discussion */}
-                    {latestDiscussion.length > 0 && (
-                      <>
-                        <div className="panel-section-divider">{c.discussionLabel ?? '議論'}</div>
-                        {messagesVisible && (
-                          <div className="panel-msg-list">
-                            {latestDiscussion.map((item, i) => (
-                              <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`d2-${i}`}>
-                                <div className="panel-msg-head">
-                                  {CHARACTER_IMGS[item.character] && (
-                                    <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
-                                  )}
-                                  <strong>{jpName(item.character, lang)}</strong>
-                                  {item.title && <span className="panel-msg-title">{item.title}</span>}
-                                </div>
-                                <p>{displayText(item.content)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
                   </div>
 
                   {/* ── Winner reply ── */}
@@ -553,9 +540,6 @@ export default function CounselingChat({
                         <strong>{jpName(winnerCharacter, lang)}</strong>
                         <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                       </div>
-                      {messagesVisible && reviewRound.winner.reply && (
-                        <p className="panel-winner-reply-text">{displayText(reviewRound.winner.reply)}</p>
-                      )}
                     </div>
                   )}
                 </>
@@ -564,43 +548,7 @@ export default function CounselingChat({
           )}
 
           {agentPanelTab === 'persona' && (
-            <section className={`persona-editor ${personasLocked ? 'locked' : ''}`}>
-              <div className="persona-editor-head">
-                <div>
-                  <span>{c.editStatusLabel}</span>
-                  <strong>{personasLocked ? c.locked : c.editable}</strong>
-                </div>
-                <button type="button" onClick={resetPersonas} disabled={personasLocked || !defaultAgents.length}>
-                  {c.resetBtn}
-                </button>
-              </div>
-              <div className="persona-grid">
-                {activeAgents.map((agent) => (
-                  <label className={`persona-card ${agentClass(agent.character)}`} key={agent.character}>
-                    <div className="persona-card-head">
-                      <img src={CHARACTER_IMGS[agent.character]} alt={agent.character} className="persona-avatar-mini" />
-                      <span>{jpName(agent.character, lang)}</span>
-                    </div>
-                    <textarea
-                      value={agent.persona}
-                      onChange={(event) => updatePersona(agent.character, event.target.value)}
-                      disabled={personasLocked}
-                      rows={4}
-                    />
-                  </label>
-                ))}
-              </div>
-              {personaError && <div className="persona-error">{c.personaError}</div>}
-              <div className="round-control">
-                <div>
-                  <span>{c.reviewRoundsLabel}</span>
-                  <strong>{c.reviewRoundsFixed}</strong>
-                </div>
-                <div className="round-options fixed">
-                  <span>{c.reviewRoundsValue}</span>
-                </div>
-              </div>
-            </section>
+            <PersonaEditor {...personaEditorProps} />
           )}
         </div>
       </aside>
@@ -634,52 +582,7 @@ export default function CounselingChat({
 
         {personaOpen && (
           <div className="review-content">
-            <section className={`persona-editor ${personasLocked ? 'locked' : ''}`}>
-              <div className="persona-editor-head">
-                <div>
-                  <span>{c.editStatusLabel}</span>
-                  <strong>{personasLocked ? c.locked : c.editable}</strong>
-                </div>
-                <button type="button" onClick={resetPersonas} disabled={personasLocked || !defaultAgents.length}>
-                  {c.resetBtn}
-                </button>
-              </div>
-
-              <div className="persona-grid">
-                {activeAgents.map((agent) => (
-                  <label className={`persona-card ${agentClass(agent.character)}`} key={agent.character}>
-                    <div className="persona-card-head">
-                      <img
-                        src={CHARACTER_IMGS[agent.character]}
-                        alt={agent.character}
-                        className="persona-avatar-mini"
-                      />
-                      <span>{jpName(agent.character, lang)}</span>
-                    </div>
-                    <textarea
-                      value={agent.persona}
-                      onChange={(event) => updatePersona(agent.character, event.target.value)}
-                      disabled={personasLocked}
-                      rows={4}
-                    />
-                  </label>
-                ))}
-              </div>
-
-              {personaError && (
-                <div className="persona-error">{c.personaError}</div>
-              )}
-
-              <div className="round-control">
-                <div>
-                  <span>{c.reviewRoundsLabel}</span>
-                  <strong>{c.reviewRoundsFixed}</strong>
-                </div>
-                <div className="round-options fixed">
-                  <span>{c.reviewRoundsValue}</span>
-                </div>
-              </div>
-            </section>
+            <PersonaEditor {...personaEditorProps} />
           </div>
         )}
       </aside>
@@ -696,14 +599,6 @@ export default function CounselingChat({
 
         {reviewOpen && (
           <div className="review-content">
-            {/* Message toggle — same as desktop panel */}
-            <button
-              className="panel-msg-toggle"
-              type="button"
-              onClick={() => setMessagesVisible((v) => !v)}
-            >
-              {messagesVisible ? (c.hideMessages ?? 'メッセージを隠す') : (c.showMessages ?? 'メッセージを表示')}
-            </button>
 
             {!reviewRound && !sending ? (
               <div className="review-empty">{c.emptyReview}</div>
@@ -737,21 +632,6 @@ export default function CounselingChat({
                       </div>
                     ))}
                   </div>
-                  {messagesVisible && round1Candidates.length > 0 && (
-                    <div className="panel-msg-list">
-                      {round1Candidates.map((candidate) => (
-                        <div className={`panel-msg-bubble ${agentClass(candidate.character)}`} key={`dr1-${candidate.character}`}>
-                          <div className="panel-msg-head">
-                            {CHARACTER_IMGS[candidate.character] && (
-                              <img src={CHARACTER_IMGS[candidate.character]} alt={candidate.character} className="panel-agent-av" />
-                            )}
-                            <strong>{jpName(candidate.character, lang)}</strong>
-                          </div>
-                          <p>{displayText(candidate.reply)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Round 2 — 振り返り & 議論 */}
@@ -767,7 +647,6 @@ export default function CounselingChat({
                       const score = agentScore(agent.character);
                       const pct = score != null ? Math.round((score / Math.max(maxScore, 0.01)) * 100) : 0;
                       const isWinner = agent.character === winnerCharacter;
-                      const peerEntry = round2PeerScores.find((ps) => ps.character === agent.character);
                       return (
                         <div className={`panel-reflection-item ${agentClass(agent.character)}${isWinner ? ' win' : ''}`} key={`dr2-${agent.character}`}>
                           <div className="panel-reflection-head">
@@ -780,42 +659,10 @@ export default function CounselingChat({
                             </div>
                             <span className="panel-score-num">{score != null ? formatScore(score) : '—'}</span>
                           </div>
-                          {messagesVisible && peerEntry?.scores?.length > 0 && (
-                            <div className="panel-peer-list">
-                              {peerEntry.scores.map((ps) => (
-                                <div className={`panel-peer-item ${agentClass(ps.character)}`} key={`dps-${agent.character}-${ps.character}`}>
-                                  <span className="panel-peer-name">{ps.character}</span>
-                                  <b className="panel-peer-score-num">{ps.score ?? '—'}</b>
-                                  {ps.comment && <p>{ps.comment}</p>}
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
                   </div>
-                  {latestDiscussion.length > 0 && (
-                    <>
-                      <div className="panel-section-divider">{c.discussionLabel ?? '議論'}</div>
-                      {messagesVisible && (
-                        <div className="panel-msg-list">
-                          {latestDiscussion.map((item, i) => (
-                            <div className={`panel-msg-bubble ${agentClass(item.character)}`} key={`dd2-${i}`}>
-                              <div className="panel-msg-head">
-                                {CHARACTER_IMGS[item.character] && (
-                                  <img src={CHARACTER_IMGS[item.character]} alt={item.character} className="panel-agent-av" />
-                                )}
-                                <strong>{jpName(item.character, lang)}</strong>
-                                {item.title && <span className="panel-msg-title">{item.title}</span>}
-                              </div>
-                              <p>{displayText(item.content)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
                 </div>
 
                 {/* Winner reply */}
@@ -829,9 +676,6 @@ export default function CounselingChat({
                       <strong>{jpName(winnerCharacter, lang)}</strong>
                       <span className="panel-winner-score">{formatScore(scoreValue(reviewRound.winner))} {c.weightedScore}</span>
                     </div>
-                    {messagesVisible && reviewRound.winner.reply && (
-                      <p className="panel-winner-reply-text">{displayText(reviewRound.winner.reply)}</p>
-                    )}
                   </div>
                 )}
               </>

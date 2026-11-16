@@ -324,3 +324,158 @@
 .sidebar-home-hint::before {
   content: '← ';
 }
+
+/* ─── Live sidebar ─────────────────────────────────────────── */
+.conversation-item {
+  padding: 0;
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+
+.conversation-item:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(100, 70, 180, 0.1);
+}
+
+.conversation-item.active {
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 22px rgba(100, 70, 180, 0.12);
+}
+
+.conversation-open {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 40px 10px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.conversation-open:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: -3px;
+}
+
+.conversation-open .conversation-title,
+.conversation-open .conversation-meta {
+  display: flex;
+}
+
+.conversation-open .conversation-title {
+  display: block;
+}
+
+.conversation-item:focus-within .delete-session-btn {
+  opacity: 1;
+}
+
+.delete-session-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.delete-session-btn:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
+.new-conversation-btn {
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+
+.new-conversation-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(100, 70, 180, 0.14);
+}
+
+.new-conversation-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.no-conversations-faces {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.no-conversations-faces img {
+  width: 30px;
+  height: 30px;
+  margin-left: -8px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(100, 70, 180, 0.12);
+  transition: transform 0.25s;
+}
+
+.no-conversations-faces img:first-child { margin-left: 0; }
+
+.no-conversations:hover .no-conversations-faces img {
+  transform: translateY(-3px);
+}
+
+.no-conversations:hover .no-conversations-faces img:nth-child(2) { transition-delay: 0.05s; }
+.no-conversations:hover .no-conversations-faces img:nth-child(3) { transition-delay: 0.1s; }
+.no-conversations:hover .no-conversations-faces img:nth-child(4) { transition-delay: 0.15s; }
+.no-conversations:hover .no-conversations-faces img:nth-child(5) { transition-delay: 0.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .conversation-item,
+  .new-conversation-btn,
+  .no-conversations-faces img { transition: none; }
+  .conversation-item:hover { transform: none; }
+}
+
+/* Slide-shut button (wide screens; phones use their own 履歴 overlay) */
+.sidebar-header {
+  position: relative;
+}
+
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 14px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.sidebar-collapse-btn:hover {
+  transform: translateX(-2px);
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(100, 70, 180, 0.14);
+}
+
+.sidebar-collapse-btn:active {
+  transform: translateX(-2px) scale(0.94);
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: 3px solid rgba(155, 125, 212, 0.6);
+  outline-offset: 2px;
+}
+
+/* Keep the brand clear of the button */
+.sidebar-header .sidebar-home {
+  width: calc(100% - 44px);
+}
+
+@media (max-width: 1024px) {
+  .sidebar-collapse-btn { display: none; }
+  .sidebar-header .sidebar-home { width: 100%; }
+}

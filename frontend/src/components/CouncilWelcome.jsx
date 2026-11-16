@@ -7,14 +7,19 @@ const ARC_LIFT = [0, 12, 20, 12, 0];
 
 // The empty chat: the five agents stand in an arc and come alive on hover or
 // focus; clicking one shows what that agent listens for.
-export default function CouncilWelcome({ labels, characters, suggestions, disabled, isReducedMotion, onPickSuggestion }) {
+export default function CouncilWelcome({
+  labels, characters, suggestions, disabled, isListening, isReducedMotion, onPickSuggestion,
+}) {
   const [activeCharacter, setActiveCharacter] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState('Joy');
   const selected = characters[AGENT_ORDER.indexOf(selectedCharacter)];
 
   return (
-    <div className="council">
-      <p className="council-eyebrow">{labels.eyebrow}</p>
+    <div className={`council${isListening ? ' is-listening' : ''}`}>
+      <p className="council-eyebrow" aria-live="polite">
+        {isListening && <span className="council-listening-dot" aria-hidden="true" />}
+        {isListening ? labels.listening : labels.eyebrow}
+      </p>
       <div className="council-arc" role="list">
         {AGENT_ORDER.map((character, index) => {
           const info = characters[index];
@@ -40,7 +45,7 @@ export default function CouncilWelcome({ labels, characters, suggestions, disabl
                   className="council-video"
                   src={agentLoop(character)}
                   poster={agentFrame(character)}
-                  isActive={isActive || isSelected}
+                  isActive={isActive || isSelected || isListening}
                   isReducedMotion={isReducedMotion}
                   label={info?.name}
                 />
